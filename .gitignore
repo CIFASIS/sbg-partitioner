@@ -1,6 +1,6 @@
 # Third party libraries.
-3rd-party/
+src/3rd-party/gtest/usr/
+src/3rd-party/sbg/sb-graph-dev
 
-# Local Changelog
-src/ChangeLog
-ChangeLog
+# Local Folders
+lib/
