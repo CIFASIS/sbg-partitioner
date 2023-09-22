@@ -16,7 +16,7 @@ BUILD_DIR    	:= $(SCR_DIR)/obj/debug
 endif
 SBG_LIB_PATH    := $(3RD_PARTY_DIR)/sbg
 SBG_DEV         := sb-graph-dev
-SBG_LIB         := $(SBG_DEV).tar.xz
+SBG_LIB         := $(SBG_DEV).tar.gz
 BOOST_LIB_PATH  := $(3RD_PARTY_DIR)/boost
 BOOST_LIB       := boost-1.81.0.tar.xz
 RM = rm -rf
@@ -52,10 +52,16 @@ ifeq ("$(wildcard $(BOOST_LIB_PATH)/include)","")
 	cd $(BOOST_LIB_PATH); tar -xvf $(BOOST_LIB)
 endif
 
-# Temp use precompiled lib for sbg.
-lib-sbg:  
-ifeq ("$(wildcard $(SBG_LIB_PATH)/$(SBG_DEV)/usr/lib)","")
-	cd $(SBG_LIB_PATH); tar -xvf $(SBG_LIB)
+lib-sbg: lib-boost  
+ifeq ("$(wildcard $(SBG_LIB_PATH)/$(SBG_DEV))","")
+	cd $(SBG_LIB_PATH); ./update.py
+	cd $(SBG_LIB_PATH); tar -zxvf $(SBG_LIB)
+	cd $(SBG_LIB_PATH); cp Makefile.in ./$(SBG_DEV)
+	cd $(SBG_LIB_PATH)/$(SBG_DEV); autoconf
+	cd $(SBG_LIB_PATH)/$(SBG_DEV); ./configure
+	cd $(SBG_LIB_PATH)/$(SBG_DEV); make boost_libdir=../../boost
+	cd $(SBG_LIB_PATH)/$(SBG_DEV); mkdir usr
+	cd $(SBG_LIB_PATH)/$(SBG_DEV); make install prefix=./usr
 endif
 
 sbg-partitioner: lib-boost lib-sbg | create-folders
