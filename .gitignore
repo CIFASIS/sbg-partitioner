@@ -1,0 +1,13 @@
+# Third party libraries.
+src/3rd-party/gtest/usr/
+src/3rd-party/sbg/sb-graph-dev/
+src/3rd-party/boost/include/
+src/3rd-party/boost/lib/
+
+
+# Test files
+src/test/usr/
+
+# Local Folders
+lib/
+bin/
