@@ -1,6 +1,5 @@
 # Target variables
 MODE ?= Debug
-DISTRO := $(shell lsb_release -r 2>/dev/null | grep Release | awk '{ print $$2 }')
 
 # Build cores.
 CORES = $(shell nproc)
