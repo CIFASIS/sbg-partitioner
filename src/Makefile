@@ -31,7 +31,7 @@ ifeq ($(MODE),Debug)
 CXXFLAGS 	+= -ggdb  
 endif
 LIB_SBG_PARTITIONER = lib/libsbg-partitioner.a
-LIBS     := -L./lib -L$(SBG_LIB)/$(SBG_DEV)/usr/lib -lsbgraph
+LIBS     := -L./lib -L$(SBG_LIB_PATH)/$(SBG_DEV)/usr/lib -lsbgraph
 
 default: sbg-partitioner
 
