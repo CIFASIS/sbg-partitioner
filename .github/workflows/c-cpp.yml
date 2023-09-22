@@ -15,16 +15,13 @@ jobs:
     - name: Install deps.
       run: | 
         sudo apt-get update
+        sudo apt-get install boost1.71
         sudo apt-get install cmake 
         sudo apt-get install g++
           
     - name: Build
       working-directory: .
       run: make
-
-    - name: Install
-      working-directory: .
-      run: make install
     
     - name: Tests
       working-directory: .
