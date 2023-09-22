@@ -13,7 +13,6 @@ GOOGLE_TEST_INSTALL = $(ROOT_DIR)/3rd-party/gtest
 GOOGLE_TEST_LIB = gtest
 GOOGLE_MOCK_LIB = gmock
 GOOGLE_TEST_INCLUDE = $(GOOGLE_TEST_INSTALL)/usr/include
-LIB 		+= -L$(MMOC_LIB_DIR) -lginac -lcln -lgmp  
 G++ = g++
 G++_FLAGS = -c -Wall -I $(GOOGLE_TEST_INCLUDE) -std=c++17
 LD_FLAGS = -L $(GOOGLE_TEST_INSTALL)/usr/lib -l $(GOOGLE_TEST_LIB) -l $(GOOGLE_MOCK_LIB) -l pthread 
@@ -22,7 +21,7 @@ RM = rm -rf
 # The Target Binary Program
 INT_TEST    := $(BIN_DIR)/int-test-sbg-partitioner
 SYS_TEST	:= $(BIN_DIR)/sys-test-sbg-partitioner
-RUN_TESTS   := int-test-mmoc
+RUN_TESTS   := int-test-sbg-partitioner
 
 # Source files.
 MAIN_SRC = $(SRC_DIR)/main.cpp
