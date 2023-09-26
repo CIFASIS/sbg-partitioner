@@ -1,6 +1,7 @@
 # Target variables
 MODE ?= Debug
 DISTRO := $(shell lsb_release -r 2>/dev/null | grep Release | awk '{ print $$2 }')
+sbg_branch ?= sb-graph-dev
 
 # Compiler and Linker
 CXX     := g++
@@ -54,9 +55,8 @@ endif
 
 lib-sbg: lib-boost  
 ifeq ("$(wildcard $(SBG_LIB_PATH)/$(SBG_DEV))","")
-	cd $(SBG_LIB_PATH); ./update.py
+	cd $(SBG_LIB_PATH); ./update.py --branch_name $(sbg_branch)
 	cd $(SBG_LIB_PATH); tar -zxvf $(SBG_LIB)
-	cd $(SBG_LIB_PATH); cp Makefile.in ./$(SBG_DEV)
 	cd $(SBG_LIB_PATH)/$(SBG_DEV); autoconf
 	cd $(SBG_LIB_PATH)/$(SBG_DEV); ./configure
 	cd $(SBG_LIB_PATH)/$(SBG_DEV); make boost_libdir=../../boost
@@ -79,7 +79,8 @@ clean:
 	@cd test && $(MAKE) clean
 
 help:
-	@echo "make MODE=<Debug|Release> "
+	@echo "make MODE=<Debug|Release> sbg_branch=<BRANCH_NAME>"
 	@echo "Default values:"
 	@echo ""
 	@echo "MODE=Debug"
+	@echo "sbg_branch=sb-graph-dev"
