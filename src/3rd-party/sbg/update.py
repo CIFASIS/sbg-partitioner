@@ -13,9 +13,9 @@ def main():
     parser.add_argument("--repo_checkout", help="Clone method for the repo, it could be: https or ssh.", type=str, default='https')
     args = parser.parse_args()
     branch_name = args.branch_name
-    repo_url = 'https://github.com/CIFASIS/sb-graph.git'
-    if args.repo_checkout == 'ssh':
-        repo_url = 'git@github.com:CIFASIS/sb-graph.git'
+    repo_url = 'git@github.com:CIFASIS/sb-graph.git'
+    if args.repo_checkout == 'https':
+        repo_url = 'https://github.com/CIFASIS/sb-graph.git'
     if os.path.isdir('./sb-graph'):
         shutil.rmtree('./sb-graph')
     subprocess.check_call(['git', 'clone', '-b' , branch_name, '--single-branch', repo_url])

@@ -2,6 +2,8 @@
 MODE ?= Debug
 DISTRO := $(shell lsb_release -r 2>/dev/null | grep Release | awk '{ print $$2 }')
 sbg_branch ?= sb-graph-dev
+build_sbg ?= True
+repo_checkout ?= ssh
 
 # Compiler and Linker
 CXX     := g++
@@ -43,7 +45,7 @@ $(BUILD_DIR)/%.o : %.cpp
 	$(CXX) $(INCLUDES) -c $< -o $@ $(CXXFLAGS)
 
 lib-gtest: | create-folders 
-ifeq ("$(wildcard $(3RD_PARTY_DIR)/gtest/usr/lib)","")
+ifeq ("$(wildcard $(3RD_PARTY_DIR)/gtest/usr/lib)","") 
 	mkdir -p $(3RD_PARTY_DIR)/gtest/usr
 	cp -r $(3RD_PARTY_DIR)/gtest/ubuntu-$(DISTRO)/* $(3RD_PARTY_DIR)/gtest/usr/
 endif
@@ -53,14 +55,16 @@ ifeq ("$(wildcard $(BOOST_LIB_PATH)/include)","")
 	cd $(BOOST_LIB_PATH); tar -xvf $(BOOST_LIB)
 endif
 
-lib-sbg: lib-boost  
-ifeq ("$(wildcard $(SBG_LIB_PATH)/$(SBG_DEV))","")
-	cd $(SBG_LIB_PATH); ./update.py --branch_name $(sbg_branch)
+update-sbg:
+	cd $(SBG_LIB_PATH); ./update.py --branch_name $(sbg_branch) --repo_checkout $(repo_checkout)
 	cd $(SBG_LIB_PATH); tar -zxvf $(SBG_LIB)
+
+lib-sbg: lib-boost  
+ifeq ($(build_sbg), True)
 	cd $(SBG_LIB_PATH)/$(SBG_DEV); autoconf
 	cd $(SBG_LIB_PATH)/$(SBG_DEV); ./configure
 	cd $(SBG_LIB_PATH)/$(SBG_DEV); make boost_libdir=../../boost
-	cd $(SBG_LIB_PATH)/$(SBG_DEV); mkdir usr
+	cd $(SBG_LIB_PATH)/$(SBG_DEV); mkdir -p usr
 	cd $(SBG_LIB_PATH)/$(SBG_DEV); make install prefix=./usr
 endif
 
@@ -79,8 +83,10 @@ clean:
 	@cd test && $(MAKE) clean
 
 help:
-	@echo "make MODE=<Debug|Release> sbg_branch=<BRANCH_NAME>"
+	@echo "make MODE=<Debug|Release> sbg_branch=<BRANCH_NAME> build_sbg=<True|False> repo_checkout=<ssh|https>"
 	@echo "Default values:"
 	@echo ""
 	@echo "MODE=Debug"
 	@echo "sbg_branch=sb-graph-dev"
+	@echo "build_sbg=True"
+	@echo "repo_checkout=ssh"
