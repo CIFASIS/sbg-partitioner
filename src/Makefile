@@ -69,7 +69,7 @@ ifeq ($(build_sbg), True)
 endif
 
 sbg-partitioner: lib-boost lib-sbg | create-folders
-	$(CXX) $(INCLUDE) $(CXXFLAGS) main.cpp -o $(TARGET) $(LIBS) 
+	$(CXX) $(INCLUDES) $(CXXFLAGS) main.cpp -o $(TARGET) $(LIBS) 
 
 create-folders::
 	@mkdir -p $(BIN_DIR)
