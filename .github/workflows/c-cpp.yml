@@ -21,7 +21,9 @@ jobs:
           
     - name: Build
       working-directory: .
-      run: make
+      run: |
+        make update-sbg-lib repo_checkout=https
+        make 
     
     - name: Tests
       working-directory: .
