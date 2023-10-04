@@ -3,7 +3,6 @@ MODE ?= Debug
 sbg_branch ?= sb-graph-dev
 build_sbg ?= True
 repo_checkout=ssh
-build_sbg ?= True
 
 # Build cores.
 CORES = $(shell nproc)
