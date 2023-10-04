@@ -5,7 +5,6 @@ src/3rd-party/sbg/sb-graph-dev.tar.gz
 src/3rd-party/boost/include/
 src/3rd-party/boost/lib/
 
-
 # Test files
 src/test/usr/
 

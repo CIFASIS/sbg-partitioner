@@ -60,6 +60,9 @@ update-sbg:
 	cd $(SBG_LIB_PATH); tar -zxvf $(SBG_LIB)
 
 lib-sbg: lib-boost  
+ifeq ("$(wildcard $(SBG_LIB_PATH)/$(SBG_DEV))","")
+	make update-sbg
+endif
 ifeq ($(build_sbg), True)
 	cd $(SBG_LIB_PATH)/$(SBG_DEV); autoconf
 	cd $(SBG_LIB_PATH)/$(SBG_DEV); ./configure
