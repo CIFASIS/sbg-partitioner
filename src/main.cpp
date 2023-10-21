@@ -24,6 +24,8 @@
 #include <list>
 #include <string>
 
+#include "build_sb_graph.hpp"
+
 using namespace std;
 
 void usage()
@@ -44,18 +46,23 @@ void version()
   cout << "There is NO WARRANTY, to the extent permitted by law." << endl;
 }
 
+
 int main(int argc, char** argv)
 {
   int ret = 0;
   int opt;
-  // extern char* optarg;
-  // char str_arg[128];
+
   while (true) {
-    static struct option long_options[] = {{"version", no_argument, 0, 'v'}, {"help", no_argument, 0, 'h'}};
+    static struct option long_options[] = {{"filename", required_argument, 0, 'f'}, {"version", no_argument, 0, 'v'}, {"help", no_argument, 0, 'h'}};
     int option_index = 0;
-    opt = getopt_long(argc, argv, "vh:", long_options, &option_index);
+    opt = getopt_long(argc, argv, "f:vh:", long_options, &option_index);
     if (opt == EOF) break;
     switch (opt) {
+    case 'f':
+      if (optarg) {
+        build_sb_graph(optarg);
+        exit(0);
+      }
     case 'v':
       version();
       exit(0);
