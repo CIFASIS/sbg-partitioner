@@ -27,8 +27,12 @@ RM = rm -rf
 # The Target Binary Program
 TARGET      := $(BIN_DIR)/sbg-partitioner
 
+# Source files
+SOURCES := build_sb_graph.cpp \
+		   main.cpp
+
 # Flags, Libraries and Includes
-INCLUDES := -I. -I$(SBG_LIB)/$(SBG_DEV)/usr/include -I$(BOOST_LIB_PATH)/include 
+INCLUDES := -I. -I$(SBG_LIB_PATH)/$(SBG_DEV)/usr/include -I$(BOOST_LIB_PATH)/include -I$(3RD_PARTY_DIR)/rapidjson/include
 CXXFLAGS := -std=c++17 -Wall -Werror -Wno-reorder -O3 
 ifeq ($(MODE),Debug)
 CXXFLAGS 	+= -ggdb  
@@ -72,7 +76,7 @@ ifeq ($(build_sbg), True)
 endif
 
 sbg-partitioner: lib-boost lib-sbg | create-folders
-	$(CXX) $(INCLUDES) $(CXXFLAGS) main.cpp -o $(TARGET) $(LIBS) 
+	$(CXX) $(INCLUDES) $(CXXFLAGS) $(SOURCES) -o $(TARGET) $(LIBS)
 
 create-folders::
 	@mkdir -p $(BIN_DIR)
