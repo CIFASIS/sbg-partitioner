@@ -21,7 +21,7 @@
 #include <cassert>
 #include <fstream>
 #include <iostream>
-#include <unordered_map>
+#include <map>
 #include <rapidjson/document.h>
 #include <rapidjson/pointer.h>
 #include <rapidjson/istreamwrapper.h>
@@ -86,10 +86,10 @@ static vector<Var> read_var_object(const rapidjson::Value& var_array)
 
 /// This funcion takes a json object and returns a list of parsed node objects (Node)
 /// and its id as key/value.
-static unordered_map<int, Node> create_node_objects_from_json(const Document& document)
+static map<int, Node> create_node_objects_from_json(const Document& document)
 {
   auto nodes_array = document["nodes"].GetArray();
-  unordered_map<int, Node> nodes;
+  map<int, Node> nodes;
   int max_counter = 0;
   for (const auto& node : nodes_array) {
     int id = node["id"].GetInt();
@@ -118,6 +118,44 @@ static unordered_map<int, Node> create_node_objects_from_json(const Document& do
   }
 
   return nodes;
+}
+
+
+/// Creates an offset for each node, following the order of the input vector
+static std::map<int, int> create_node_offsets(const map<int, Node>& nodes)
+{
+  std::map<int, int> node_offsets;
+  int current_offset = 0;
+  for (const auto& [id, node] : nodes) {
+
+    node_offsets[id] = current_offset;
+    int node_offset = node.interval_end - node.interval_start;
+    current_offset += node_offset + 1;
+  }
+
+  return node_offsets;
+}
+
+
+/// Creates a set of nodes, taking into accout the offset of each one to avoid collisions.
+static OrdSet create_set_of_nodes(const map<int, Node>& nodes, std::map<int, int>& node_offsets, int& max_value)
+{
+  OrdSet node_set;
+  for (const auto& [id, node] : nodes) {
+
+    cout << "Defining interval for node " << id;
+
+    // Define the interval and add it to the node set
+    Interval interval(node.interval_start + node_offsets[id], 1, node.interval_end + node_offsets[id]);
+    node_set.emplace_hint(node_set.end(), interval);
+    cout << interval << endl;
+
+    // udpate max value
+    max_value = max(max_value, int(interval.end()));
+  }
+  max_value++;
+
+  return node_set;
 }
 
 
@@ -191,36 +229,40 @@ CanonSBG build_sb_graph(const char* filename)
 
   // Now read the document and convert it into a known type
   auto nodes = create_node_objects_from_json(document);
-  int max_value = 0;
-  for (const auto& [id, node]: nodes) {
-    max_value = max(max_value, node.interval_end);
-  }
-  max_value++;
+
+  // Create an offset for each equation node. We want that each equation has its
+  // own domain.
+  std::map<int, int> node_offsets = create_node_offsets(nodes);
+
+  // Now, we create our set of nodes.
+  int max_value = 0;  // We track the max value, so we avoid domain collision between edges and nodes
+  OrdSet node_set = create_set_of_nodes(nodes, node_offsets, max_value);
 
   // Now, let's build a graph!
   CanonSBG graph; // This will be our graph
-  OrdSet node_set;  // Our set of nodes
   OrdSet edge_set;  // Our set of edges
   CanonPWMap map_left_to_right;  // Map object of one of the sides
   CanonPWMap map_right_to_left; // Map object of one of the other side
 
   // We iterate the set of nodes read from the input file
   for (const auto& [id, node] : nodes) {
+    cout << "\nLooking for connection in node " << id << std::endl;
 
-    // Define the interval and add it to the node set
+    // Define the equation interval (without offsets)
     Interval interval(node.interval_start, 1, node.interval_end);
-    node_set.emplace_hint(node_set.end(), interval);
 
-    // Now, iterate the right expresions to connect them with their definitions.
+    // Now, iterate the right expresions to connect them to their definitions.
     // When we say left_sth we are talking about the variable defined on the left side,
     // Analogous for right_sth
     for (const Var &right_var : node.rhs) {
+      cout << "Looking for connection for var " << right_var.id << std::endl;
       LExp right_exp = LExp(RAT(right_var.exp_a, 1), RAT(right_var.exp_b, 1));
       Interval right_node_image = image(interval, right_exp);
 
       // Definitions of this variable are on defs field. We iterate it so we
       // can map them.
       for (int i : right_var.defs) {
+        cout << "Is it connected to " << i << "?" << std::endl;
         auto left_node = nodes[i];
         Interval left_interval(left_node.interval_start, 1, left_node.interval_end);
         LExp left_exp = read_left_vars(left_node);
@@ -228,10 +270,11 @@ CanonSBG build_sb_graph(const char* filename)
 
         // we want to see if the intersection of the images is not empty
         Interval image_intersection = intersection(right_node_image, left_node_image);
-
         if (isEmpty(image_intersection)) {
+          cout << "No, it is not" << std::endl;
           continue;
         }
+        cout << "Yes, it is" << std::endl;
 
         // Edge domain will be from the current max value and will have the quantity as the intersection
         INT domain_offset = image_intersection.end() - image_intersection.begin();
@@ -243,18 +286,20 @@ CanonSBG build_sb_graph(const char* filename)
         // Update maximum value
         max_value = maxElem(edge_domain) + 1;
 
-        // Create and save map interval to connect right var with left var
+        // Create and save map interval to connect right var to left var
         auto pre_image_right_to_left_exp = get_pre_image(image_intersection, right_exp);
         auto right_map_interval = create_map_interval(pre_image_right_to_left_exp, edge_domain, right_exp);
         map_right_to_left.emplace(right_map_interval);
 
-        // Create and save map interval to connect left var with right var
+        // Create and save map interval to connect left var to right var
         auto pre_image_left_to_right_exp = get_pre_image(image_intersection, left_exp);
         auto left_map_interval = create_map_interval(pre_image_left_to_right_exp, edge_domain, left_exp);
         map_left_to_right.emplace(left_map_interval);
       }
     }
   }
+
+  cout << "\n";
 
   // set node set
   graph.set_V(node_set);
