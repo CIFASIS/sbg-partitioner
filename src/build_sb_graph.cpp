@@ -21,7 +21,7 @@
 #include <cassert>
 #include <fstream>
 #include <iostream>
-#include <map>
+#include <unordered_map>
 #include <rapidjson/document.h>
 #include <rapidjson/pointer.h>
 #include <rapidjson/istreamwrapper.h>
@@ -86,10 +86,10 @@ static vector<Var> read_var_object(const rapidjson::Value& var_array)
 
 /// This funcion takes a json object and returns a list of parsed node objects (Node)
 /// and its id as key/value.
-static map<int, Node> create_node_objects_from_json(const Document& document)
+static unordered_map<int, Node> create_node_objects_from_json(const Document& document)
 {
   auto nodes_array = document["nodes"].GetArray();
-  map<int, Node> nodes;
+  unordered_map<int, Node> nodes;
   int max_counter = 0;
   for (const auto& node : nodes_array) {
     int id = node["id"].GetInt();
