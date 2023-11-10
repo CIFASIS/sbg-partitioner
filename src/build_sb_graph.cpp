@@ -150,7 +150,7 @@ static CanonMap create_map_interval(const OrdPWMDInter& pre_image, const Interva
   map_exp.set_slope(var_exp.slope());
 
   // We start from the original offset and substract the domain offset
-  INT offset = var_exp.offset().value().numerator();  // for now, we use only integers
+  INT offset = 0;
   offset = offset - minElem(edge_domain);
 
   // Then we take the minimum element of the pre-image and add the offset
@@ -193,8 +193,9 @@ CanonSBG build_sb_graph(const char* filename)
   auto nodes = create_node_objects_from_json(document);
   int max_value = 0;
   for (const auto& [id, node]: nodes) {
-    max_value = max(max_value, node.interval_end) + 1;
+    max_value = max(max_value, node.interval_end);
   }
+  max_value++;
 
   // Now, let's build a graph!
   CanonSBG graph; // This will be our graph
@@ -248,7 +249,7 @@ CanonSBG build_sb_graph(const char* filename)
         map_right_to_left.emplace(right_map_interval);
 
         // Create and save map interval to connect left var with right var
-        auto pre_image_left_to_right_exp = get_pre_image(image_intersection, right_exp);
+        auto pre_image_left_to_right_exp = get_pre_image(image_intersection, left_exp);
         auto left_map_interval = create_map_interval(pre_image_left_to_right_exp, edge_domain, left_exp);
         map_left_to_right.emplace(left_map_interval);
       }
