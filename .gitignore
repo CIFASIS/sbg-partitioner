@@ -11,3 +11,6 @@ src/test/usr/
 # Local Folders
 lib/
 bin/
+
+# Text Editor
+.vscode/
