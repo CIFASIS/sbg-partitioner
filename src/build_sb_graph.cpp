@@ -64,7 +64,7 @@ static vector<Var> read_var_object(const rapidjson::Value& var_array)
         string id = value["id"].GetString();
 
         auto expression = value["exp"].GetArray();
-        assert(expression.Size() == 2 && "Size of expression object is not as expected");
+        assert(expression.Size() == 2 and "Size of expression object is not as expected");
 
         int exp_a = expression[0].GetInt();
         int exp_b = expression[1].GetInt();
@@ -95,7 +95,7 @@ static map<int, Node> create_node_objects_from_json(const Document& document)
     int id = node["id"].GetInt();
 
     auto interval = node["interval"].GetArray();
-    assert(interval.Size() == 2 && "Size of interval is not as expected");
+    assert(interval.Size() == 2 and "Size of interval is not as expected");
 
     int interval_start = interval[0].GetInt();
     int interval_end = interval[1].GetInt();
@@ -122,9 +122,9 @@ static map<int, Node> create_node_objects_from_json(const Document& document)
 
 
 /// Creates an offset for each node, following the order of the input vector
-static std::map<int, int> create_node_offsets(const map<int, Node>& nodes)
+static map<int, int> create_node_offsets(const map<int, Node>& nodes)
 {
-  std::map<int, int> node_offsets;
+  map<int, int> node_offsets;
   int current_offset = 0;
   for (const auto& [id, node] : nodes) {
 
@@ -138,7 +138,7 @@ static std::map<int, int> create_node_offsets(const map<int, Node>& nodes)
 
 
 /// Creates a set of nodes, taking into accout the offset of each one to avoid collisions.
-static OrdSet create_set_of_nodes(const map<int, Node>& nodes, std::map<int, int>& node_offsets, int& max_value)
+static OrdSet create_set_of_nodes(const map<int, Node>& nodes, map<int, int>& node_offsets, int& max_value)
 {
   OrdSet node_set;
   for (const auto& [id, node] : nodes) {
@@ -217,7 +217,7 @@ Interval get_pre_image(const Interval& image_interval, const LExp& expression)
 }
 
 
-CanonSBG build_sb_graph(const char* filename)
+CanonSBG build_sb_graph(const string& filename)
 {
   cout << "Reading " << filename << "..." << endl;
 
@@ -232,7 +232,7 @@ CanonSBG build_sb_graph(const char* filename)
 
   // Create an offset for each equation node. We want that each equation has its
   // own domain.
-  std::map<int, int> node_offsets = create_node_offsets(nodes);
+  map<int, int> node_offsets = create_node_offsets(nodes);
 
   // Now, we create our set of nodes.
   int max_value = 0;  // We track the max value, so we avoid domain collision between edges and nodes
@@ -246,7 +246,7 @@ CanonSBG build_sb_graph(const char* filename)
 
   // We iterate the set of nodes read from the input file
   for (const auto& [id, node] : nodes) {
-    cout << "\nLooking for connection in node " << id << std::endl;
+    cout << "\nLooking for connection in node " << id << endl;
 
     // Define the equation interval (without offsets)
     Interval interval(node.interval_start, 1, node.interval_end);
@@ -255,14 +255,14 @@ CanonSBG build_sb_graph(const char* filename)
     // When we say left_sth we are talking about the variable defined on the left side,
     // Analogous for right_sth
     for (const Var &right_var : node.rhs) {
-      cout << "Looking for connection for var " << right_var.id << std::endl;
+      cout << "Looking for connection for var " << right_var.id << endl;
       LExp right_exp = LExp(RAT(right_var.exp_a, 1), RAT(right_var.exp_b, 1));
       Interval right_node_image = image(interval, right_exp);
 
       // Definitions of this variable are on defs field. We iterate it so we
       // can map them.
       for (int i : right_var.defs) {
-        cout << "Is it connected to " << i << "?" << std::endl;
+        cout << "Is it connected to " << i << "?" << endl;
         auto left_node = nodes[i];
         Interval left_interval(left_node.interval_start, 1, left_node.interval_end);
         LExp left_exp = read_left_vars(left_node);
@@ -271,10 +271,10 @@ CanonSBG build_sb_graph(const char* filename)
         // we want to see if the intersection of the images is not empty
         Interval image_intersection = intersection(right_node_image, left_node_image);
         if (isEmpty(image_intersection)) {
-          cout << "No, it is not" << std::endl;
+          cout << "No, it is not" << endl;
           continue;
         }
-        cout << "Yes, it is" << std::endl;
+        cout << "Yes, it is" << endl;
 
         // Edge domain will be from the current max value and will have the quantity as the intersection
         INT domain_offset = image_intersection.end() - image_intersection.begin();

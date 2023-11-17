@@ -22,9 +22,11 @@
 #include <cstdlib>
 #include <iostream>
 #include <list>
+#include <optional>
 #include <string>
 
 #include "build_sb_graph.hpp"
+#include "partition_graph.hpp"
 
 using namespace std;
 
@@ -47,36 +49,81 @@ void version()
 }
 
 
+void create_random_partitions(string filename, int number_of_partitions)
+{
+  auto graph = build_sb_graph(filename.c_str());
+  PartitionGraph partition_graph(graph, number_of_partitions);
+  partition_graph.print_partition();
+
+  for (size_t i = 0; i < partition_graph.graph().V().size(); i++) {
+    size_t partition = rand() % number_of_partitions;
+    partition_graph.set_partition(i, partition);
+  }
+
+  partition_graph.print_partition();
+}
+
+
 int main(int argc, char** argv)
 {
   int ret = 0;
   int opt;
+  optional<string> filename = nullopt;
+  optional<int> number_of_partitions = nullopt;
 
   while (true) {
-    static struct option long_options[] = {{"filename", required_argument, 0, 'f'}, {"version", no_argument, 0, 'v'}, {"help", no_argument, 0, 'h'}};
+
+    static struct option long_options[] = {
+      {"filename", required_argument, 0, 'f'},
+      {"partitions", required_argument, 0, 'p'},
+      {"version", no_argument, 0, 'v'},
+      {"help", no_argument, 0, 'h'}
+    };
+
     int option_index = 0;
-    opt = getopt_long(argc, argv, "f:vh:", long_options, &option_index);
+    opt = getopt_long(argc, argv, "f:p:vh:", long_options, &option_index);
     if (opt == EOF) break;
+
     switch (opt) {
     case 'f':
       if (optarg) {
-        build_sb_graph(optarg);
-        exit(0);
+        filename = string(optarg);
       }
+      break;
+
+    case 'p':
+      if (optarg) {
+        number_of_partitions = atoi(optarg);
+      }
+      break;
+
     case 'v':
       version();
       exit(0);
+
     case 'h':
       usage();
       exit(0);
+
     case '?':
       usage();
       exit(-1);
       break;
+
     default:
       abort();
     }
   }
+
+  if (!filename or !number_of_partitions) {
+    usage();
+    exit(1);
+  }
+
+  cout << "filename is " << *filename << endl;
+  cout << "number of partitions is " << *number_of_partitions << endl;
+  create_random_partitions(*filename, *number_of_partitions);
+
   cout << "Exit code: " << ret << endl;
   return ret;
 }
