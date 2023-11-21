@@ -30,6 +30,8 @@
 
 using namespace std;
 
+using namespace sbg_partitioner;
+
 void usage()
 {
   cout << "Usage sbg-partitioner" << endl;
@@ -49,18 +51,21 @@ void version()
 }
 
 
-void create_random_partitions(string filename, int number_of_partitions)
+PartitionGraph create_random_partitions(string filename, int number_of_partitions)
 {
   auto graph = build_sb_graph(filename.c_str());
   PartitionGraph partition_graph(graph, number_of_partitions);
-  partition_graph.print_partition();
+
+  cout << partition_graph << endl;
 
   for (size_t i = 0; i < partition_graph.graph().V().size(); i++) {
     size_t partition = rand() % number_of_partitions;
     partition_graph.set_partition(i, partition);
   }
 
-  partition_graph.print_partition();
+  cout << partition_graph << endl;
+
+  return partition_graph;
 }
 
 
@@ -122,7 +127,20 @@ int main(int argc, char** argv)
 
   cout << "filename is " << *filename << endl;
   cout << "number of partitions is " << *number_of_partitions << endl;
-  create_random_partitions(*filename, *number_of_partitions);
+  PartitionGraph pgraph = create_random_partitions(*filename, *number_of_partitions);
+  for (int i = 0; i < *number_of_partitions; i++){
+    auto set = pgraph.get_connectivity_set(i);
+
+    cout << "connectivity set for " << i << " { ";
+    for (const auto& s : set) {
+      cout << s << " ";
+    }
+    cout << "}" << endl;
+
+    for (const auto& s : set) {
+      cout << pgraph.graph().V()[s] << endl;
+    }
+  }
 
   cout << "Exit code: " << ret << endl;
   return ret;
