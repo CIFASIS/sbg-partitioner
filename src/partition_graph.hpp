@@ -19,22 +19,27 @@
 
 #pragma once
 
+#include <iostream>
 #include <map>
+#include <unordered_set>
 
 #include <sbg/interval.hpp>
 #include <sbg/sbg.hpp>
 
+namespace sbg_partitioner {
 
 class PartitionGraph {
 
-public:
+public: 
     PartitionGraph(SBG::LIB::CanonSBG& _graph, int number_of_partitions);
-
-    void print_partition();
 
     const SBG::LIB::CanonSBG& graph() const;
 
     void set_partition(size_t interval_index, size_t partition_number);
+
+    std::map<SBG::LIB::SetPiece, int> partitions() const;
+
+    std::unordered_set<size_t> get_connectivity_set(size_t edge_index) const;
 
 private:
     SBG::LIB::CanonSBG _graph;
@@ -42,3 +47,9 @@ private:
 
     void make_initial_partition(int number_of_partitions);
 };
+
+size_t connectivity_set_cardinality(const PartitionGraph& pgraph, size_t edge_index);
+
+std::ostream& operator<<(std::ostream& os, const PartitionGraph pgraph);
+
+}

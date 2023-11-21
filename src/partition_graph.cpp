@@ -26,8 +26,10 @@ using namespace std;
 using namespace SBG::LIB;
 using namespace SBG::Util;
 
+namespace sbg_partitioner {
 
-PartitionGraph::PartitionGraph(SBG::LIB::CanonSBG& graph, int number_of_partitions)
+
+PartitionGraph::PartitionGraph(::CanonSBG& graph, int number_of_partitions)
     : _graph(graph),
     _partitions({})
 {
@@ -35,17 +37,7 @@ PartitionGraph::PartitionGraph(SBG::LIB::CanonSBG& graph, int number_of_partitio
 }
 
 
-void PartitionGraph::print_partition()
-{
-    cout << endl;
-    for (const auto& [interval, proc] : _partitions) {
-        cout << interval << " -- " << proc << endl;
-    }
-    cout << endl;
-}
-
-
-const SBG::LIB::CanonSBG& PartitionGraph::graph() const { return _graph; }
+const ::CanonSBG& PartitionGraph::graph() const { return _graph; }
 
 
 void PartitionGraph::set_partition(size_t interval_index, size_t partition_number)
@@ -54,6 +46,36 @@ void PartitionGraph::set_partition(size_t interval_index, size_t partition_numbe
     assert(partition_number < _partitions.size() and "Invalid partition!");
 
     _partitions[_graph.V()[interval_index]] = partition_number;
+}
+
+
+map<SetPiece, int> PartitionGraph::partitions() const { return _partitions; }
+
+
+unordered_set<size_t> PartitionGraph::get_connectivity_set(size_t edge_index) const
+{
+    unordered_set<size_t> connectivity_set = {};
+
+    const size_t n = _graph.map1().size();
+    assert (edge_index < n and "Invalid index!");
+
+    auto e1 = _graph.map1()[edge_index];
+    auto im1 = image(e1);
+
+    auto e2 = _graph.map2()[edge_index];
+    auto im2 = image(e2);
+
+    for (const auto& [interval, proc] : _partitions) {
+        if (not isEmpty(intersection(im1, interval))) {
+            connectivity_set.insert(proc);
+        }
+
+        if (not isEmpty(intersection(im2, interval))) {
+            connectivity_set.insert(proc);
+        }
+    }
+
+    return connectivity_set;
 }
 
 
@@ -77,4 +99,25 @@ void PartitionGraph::make_initial_partition(int number_of_partitions)
         size_t partition = rand() % number_of_partitions;
         _partitions[_graph.V()[j]] = partition;
     }
+}
+
+
+size_t connectivity_set_cardinality(const PartitionGraph& pgraph, size_t edge_index)
+{
+    unordered_set<size_t> conn_set = pgraph.get_connectivity_set(edge_index);
+    return conn_set.size();
+}
+
+
+std::ostream& operator<<(std::ostream& os, const PartitionGraph pgraph)
+{
+    os << "\n";
+    for (const auto& [interval, proc] : pgraph.partitions()) {
+        os << interval << " -- " << proc << "\n";
+    }
+    os << "\n";
+
+    return os;
+}
+
 }
