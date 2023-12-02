@@ -121,39 +121,36 @@ static map<int, Node> create_node_objects_from_json(const Document& document)
 }
 
 
-/// Creates an offset for each node, following the order of the input vector
-static map<int, int> create_node_offsets(const map<int, Node>& nodes)
-{
-  map<int, int> node_offsets;
-  int current_offset = 0;
-  for (const auto& [id, node] : nodes) {
-
-    node_offsets[id] = current_offset;
-    int node_offset = node.interval_end - node.interval_start;
-    current_offset += node_offset + 1;
-  }
-
-  return node_offsets;
-}
-
-
 /// Creates a set of nodes, taking into accout the offset of each one to avoid collisions.
 static OrdSet create_set_of_nodes(const map<int, Node>& nodes, map<int, int>& node_offsets, int& max_value)
 {
+  // We start to build out set of intervals from 0
+  int current_max = 0;
   OrdSet node_set;
   for (const auto& [id, node] : nodes) {
 
-    cout << "Defining interval for node " << id;
+    cout << "Defining interval for node " << id << endl;
 
-    // Define the interval and add it to the node set
-    Interval interval(node.interval_start + node_offsets[id], 1, node.interval_end + node_offsets[id]);
+    // Define the interval and add it to the node set taking into account the current offset
+    // Create an offset for each equation node. We want that each equation has its
+    // own domain.
+    int interval_begin = current_max;
+    int interval_end = (node.interval_end - node.interval_start) + current_max;
+    Interval interval(interval_begin, 1, interval_end);
+
     node_set.emplace_hint(node_set.end(), interval);
     cout << interval << endl;
 
+    // set this node offset, the difference between the interval and the original one
+    node_offsets[id] =  interval_begin - node.interval_start;
+
+
     // udpate max value
-    max_value = max(max_value, int(interval.end()));
+    current_max = interval_end + 1;
   }
-  max_value++;
+
+  // We save max value so edge domain will not collide with node domain
+  max_value = current_max;
 
   return node_set;
 }
@@ -176,11 +173,15 @@ static LExp read_left_vars(const Node& node)
 /// @param pre_image  Subset of the domain of the expression we want to connect
 /// @param edge_domain  Domain of the map
 /// @param var_exp  Original expression of the variable
-static CanonMap create_map_interval(const OrdPWMDInter& pre_image, const Interval& edge_domain, const LExp& var_exp)
+static CanonMap create_map_interval(const OrdPWMDInter& pre_image, const Interval& edge_domain, const LExp& var_exp, int set_offset)
 {
   // If the slope is 0, we just return the expression.
   if (var_exp.slope() == 0) {
-    return CanonMap(edge_domain, var_exp);
+    LExp map_exp = var_exp;
+    INT offset = var_exp.offset().numerator();
+    offset += set_offset;
+    map_exp.set_offset(RAT(offset, 1));
+    return CanonMap(edge_domain, map_exp);
   }
 
   // Slope remains the same
@@ -188,7 +189,7 @@ static CanonMap create_map_interval(const OrdPWMDInter& pre_image, const Interva
   map_exp.set_slope(var_exp.slope());
 
   // We start from the original offset and substract the domain offset
-  INT offset = 0;
+  INT offset = set_offset;
   offset = offset - minElem(edge_domain);
 
   // Then we take the minimum element of the pre-image and add the offset
@@ -230,9 +231,7 @@ CanonSBG build_sb_graph(const string& filename)
   // Now read the document and convert it into a known type
   auto nodes = create_node_objects_from_json(document);
 
-  // Create an offset for each equation node. We want that each equation has its
-  // own domain.
-  map<int, int> node_offsets = create_node_offsets(nodes);
+  map<int, int> node_offsets;
 
   // Now, we create our set of nodes.
   int max_value = 0;  // We track the max value, so we avoid domain collision between edges and nodes
@@ -287,13 +286,15 @@ CanonSBG build_sb_graph(const string& filename)
         max_value = maxElem(edge_domain) + 1;
 
         // Create and save map interval to connect right var to left var
+        // right_exp.set_offset(right_exp.offset() + ); // hack
         auto pre_image_right_to_left_exp = get_pre_image(image_intersection, right_exp);
-        auto right_map_interval = create_map_interval(pre_image_right_to_left_exp, edge_domain, right_exp);
+        auto right_map_interval = create_map_interval(pre_image_right_to_left_exp, edge_domain, right_exp, node_offsets[id]);
         map_right_to_left.emplace(right_map_interval);
 
         // Create and save map interval to connect left var to right var
+        // left_exp.set_offset(left_exp.offset() + node_offsets[left_node.id]); // hack
         auto pre_image_left_to_right_exp = get_pre_image(image_intersection, left_exp);
-        auto left_map_interval = create_map_interval(pre_image_left_to_right_exp, edge_domain, left_exp);
+        auto left_map_interval = create_map_interval(pre_image_left_to_right_exp, edge_domain, left_exp, node_offsets[left_node.id]);
         map_left_to_right.emplace(left_map_interval);
       }
     }
