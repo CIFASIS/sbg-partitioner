@@ -129,7 +129,7 @@ static OrdSet create_set_of_nodes(const map<int, Node>& nodes, map<int, int>& no
   OrdSet node_set;
   for (const auto& [id, node] : nodes) {
 
-    cout << "Defining interval for node " << id << endl;
+    cout << "Defining interval for node " << id << " ";
 
     // Define the interval and add it to the node set taking into account the current offset
     // Create an offset for each equation node. We want that each equation has its
@@ -143,7 +143,6 @@ static OrdSet create_set_of_nodes(const map<int, Node>& nodes, map<int, int>& no
 
     // set this node offset, the difference between the interval and the original one
     node_offsets[id] =  interval_begin - node.interval_start;
-
 
     // udpate max value
     current_max = interval_end + 1;
@@ -218,27 +217,16 @@ Interval get_pre_image(const Interval& image_interval, const LExp& expression)
 }
 
 
-CanonSBG build_sb_graph(const string& filename)
+/// @brief Add documentation
+/// @param nodes 
+/// @param node_offsets 
+/// @param max_value 
+/// @return 
+static tuple<OrdSet, CanonPWMap, CanonPWMap> create_graph_edges(
+        const std::map<int, Node>& nodes,
+        const map<int, int>& node_offsets,
+        int& max_value)
 {
-  cout << "Reading " << filename << "..." << endl;
-
-  // Parse json document
-  Document document;
-  ifstream ifs(filename);
-  IStreamWrapper isw(ifs);
-  document.ParseStream(isw);
-
-  // Now read the document and convert it into a known type
-  auto nodes = create_node_objects_from_json(document);
-
-  map<int, int> node_offsets;
-
-  // Now, we create our set of nodes.
-  int max_value = 0;  // We track the max value, so we avoid domain collision between edges and nodes
-  OrdSet node_set = create_set_of_nodes(nodes, node_offsets, max_value);
-
-  // Now, let's build a graph!
-  CanonSBG graph; // This will be our graph
   OrdSet edge_set;  // Our set of edges
   CanonPWMap map_left_to_right;  // Map object of one of the sides
   CanonPWMap map_right_to_left; // Map object of one of the other side
@@ -262,7 +250,7 @@ CanonSBG build_sb_graph(const string& filename)
       // can map them.
       for (int i : right_var.defs) {
         cout << "Is it connected to " << i << "?" << endl;
-        auto left_node = nodes[i];
+        auto left_node = nodes.at(i);
         Interval left_interval(left_node.interval_start, 1, left_node.interval_end);
         LExp left_exp = read_left_vars(left_node);
         Interval left_node_image = image(left_interval, left_exp);
@@ -288,17 +276,36 @@ CanonSBG build_sb_graph(const string& filename)
         // Create and save map interval to connect right var to left var
         // right_exp.set_offset(right_exp.offset() + ); // hack
         auto pre_image_right_to_left_exp = get_pre_image(image_intersection, right_exp);
-        auto right_map_interval = create_map_interval(pre_image_right_to_left_exp, edge_domain, right_exp, node_offsets[id]);
+        auto right_map_interval = create_map_interval(pre_image_right_to_left_exp, edge_domain, right_exp, node_offsets.at(id));
         map_right_to_left.emplace(right_map_interval);
 
         // Create and save map interval to connect left var to right var
-        // left_exp.set_offset(left_exp.offset() + node_offsets[left_node.id]); // hack
         auto pre_image_left_to_right_exp = get_pre_image(image_intersection, left_exp);
-        auto left_map_interval = create_map_interval(pre_image_left_to_right_exp, edge_domain, left_exp, node_offsets[left_node.id]);
+        auto left_map_interval = create_map_interval(pre_image_left_to_right_exp, edge_domain, left_exp, node_offsets.at(left_node.id));
         map_left_to_right.emplace(left_map_interval);
       }
     }
   }
+
+  return {edge_set, map_left_to_right, map_right_to_left};
+}
+
+
+/// @brief  Add documentation
+/// @param nodes 
+/// @return 
+static CanonSBG create_sb_graph(const std::map<int, Node>& nodes)
+{
+  int max_value = 0;  // We track the max value, so we avoid domain collision between edges and nodes
+  map<int, int> node_offsets;
+
+  // Now, we create our set of nodes.
+  OrdSet node_set = create_set_of_nodes(nodes, node_offsets, max_value);
+
+  // Now, let's build a graph!
+  CanonSBG graph; // This will be our graph
+
+  const auto [edge_set, map_left_to_right, map_right_to_left] = create_graph_edges(nodes, node_offsets, max_value);
 
   cout << "\n";
 
@@ -311,6 +318,26 @@ CanonSBG build_sb_graph(const string& filename)
   // set maps
   graph.set_map1(map_left_to_right);
   graph.set_map2(map_right_to_left);
+
+  return graph;
+}
+
+
+CanonSBG build_sb_graph(const string& filename)
+{
+  cout << "Reading " << filename << "..." << endl;
+
+  // Parse json document
+  Document document;
+  ifstream ifs(filename);
+  IStreamWrapper isw(ifs);
+  document.ParseStream(isw);
+
+  // Now read the document and convert it into a known type
+  auto nodes = create_node_objects_from_json(document);
+
+  // Now, let's get our graph
+  CanonSBG graph = create_sb_graph(nodes);
 
   cout << graph << endl;
 
