@@ -34,23 +34,23 @@ DFS::DFS(CanonSBG graph) : _graph(graph)
     initialize_adjacents();
 }
 
+
 void DFS::initialize_adjacents()
 {
     // Fill adjacents
-    for (size_t i = 0; i < _graph.V().size(); i++) {
-        _visited[i] = false;
+    for (node_identifier i = 0; i < _graph.V().size(); i++) {
         const auto incoming_node = _graph.V()[i];
 
-        for (size_t edge_counter = 0; edge_counter < _graph.E().size(); edge_counter++) {
+        for (node_identifier edge_counter = 0; edge_counter < _graph.E().size(); edge_counter++) {
             const auto edge = _graph.E()[edge_counter];
 
-            for (size_t map_counter = 0; map_counter < _graph.map1().size(); map_counter++) {
+            for (node_identifier map_counter = 0; map_counter < _graph.map1().size(); map_counter++) {
                 const auto map = _graph.map1()[map_counter];
                 const auto edge_map_intersection = intersection(edge.intervals()[0], map.dom());
                 if (not isEmpty(edge_map_intersection)) {
                     const auto map_image = image(edge_map_intersection.pieces().begin()->intervals()[0], map.exp());
 
-                    for (size_t node_idx = 0; node_idx < _graph.V().size(); node_idx++) {
+                    for (node_identifier node_idx = 0; node_idx < _graph.V().size(); node_idx++) {
                         if (node_idx == i) {
                             continue;
                         }
@@ -67,8 +67,8 @@ void DFS::initialize_adjacents()
 
     // Choosing root node
     _root_node_idx = 0;
-    size_t current_max_adj_values = _adjacent[_root_node_idx].size();
-    for (size_t i = 1; i < _graph.V().size(); i++) {
+    node_identifier current_max_adj_values = _adjacent[_root_node_idx].size();
+    for (node_identifier i = 1; i < _graph.V().size(); i++) {
         if (_adjacent[i].size() > current_max_adj_values) {
             _root_node_idx = i;
             current_max_adj_values = _adjacent[_root_node_idx].size();
@@ -81,80 +81,83 @@ void DFS::initialize_adjacents()
 
 void DFS::start()
 {
-    _stack = stack<size_t>();
+    // just in case, clear visited arrays
+    _visited.clear();
+    _partially_visited.clear();
+    _stack.clear();
 
-    _current_node_idx = _root_node_idx;
-    update_stack();
-
-    for (size_t i = 0; i < _graph.V().size(); i++) {
-        _visited[i] = false;
-    }
-
-    _visited[_current_node_idx] = true;
+    // let's start with the root node
+    add_it_partially(_root_node_idx);
+    fill_current_node_stack();
 }
 
 
-SetPiece DFS::current() const { return _graph.V()[_current_node_idx]; }
-
-
-bool DFS::next()
+SetPiece DFS::current() const
 {
-    if (_stack.empty()) {
-        for (size_t i = 0; i < _graph.V().size(); i++) {
-            if (not _visited[i]) {
-                _stack.push(i);
-                _stack_mirror.insert(i);
-                break;
-            }
-        }
-    }
-
-    if (_stack.empty()) {
-        return false;
-    }
-
-    _current_node_idx = _stack.top();
-
-
-    assert(not _visited[_current_node_idx]);
-    _stack.pop();
-
-    _visited[_current_node_idx] = true;
-
-    update_stack();
-    return true;
+    auto current_node_idx = _visited.back();
+    return _graph.V()[current_node_idx];
 }
 
-void DFS::update_stack()
+
+
+void DFS::iterate()
 {
-    auto adjacents_node_idxs = _adjacent[_current_node_idx];
-    for (size_t idx : adjacents_node_idxs) {
-        if (not _visited[idx] and _stack_mirror.find(idx) == _stack_mirror.end()) {
-            _stack.push(idx);
-            _stack_mirror.insert(idx);
+    node_identifier node_candidate = _partially_visited.back();
+    while (not _stack[node_candidate].empty()) {
+        const node_identifier new_node_candidate = _stack[node_candidate].back();
+        _stack[node_candidate].pop_back();
+        node_candidate = new_node_candidate;
+        add_it_partially(node_candidate);
+        fill_current_node_stack();
+    }
+
+    add_it_definitely(node_candidate);
+}
+
+
+void DFS::fill_current_node_stack()
+{
+    node_identifier id = _partially_visited.back();
+    _stack[id] = vector<node_identifier>();
+    for (const node_identifier adj_node : _adjacent[id]) {
+        if (not was_partially_visited(adj_node) and not was_visited(adj_node)
+            and not already_added(adj_node)) {
+            _stack[id].push_back(adj_node);
         }
     }
 }
 
-// static void actual_dfs(const size_t i, map<size_t, bool>& visited, const map<size_t, set<size_t> >& adjacent)
-// {
-//     cout << "Visiting " << i << std::endl;
 
-//     visited[i] = true;
+bool DFS::was_visited(node_identifier id)
+{
+    return find(_visited.begin(), _visited.end(), id) != _visited.end();
+}
 
-//     for (auto it = adjacent.at(i).cbegin(); it != adjacent.at(i).cend(); ++it) {
-//         if (!visited[*it]) {
-//             actual_dfs(*it, visited, adjacent);
-//         }
-//     }
-// }
+bool DFS::was_partially_visited(node_identifier id)
+{
+    auto search = _stack.find(id);
+    return search != _stack.end();
+}
 
-// static void dfs(const CanonSBG& graph)
-// {
-//     map<size_t, bool> visited;
-//     map<size_t, set<size_t> > adjacent;
+bool DFS::already_added(node_identifier id)
+{
+    for (const auto& [_, s] : _stack) {
+        if (find(s.cbegin(), s.cend(), id) != s.cend()) {
+            return true;
+        }
+    }
 
+    return false;
+}
 
+void DFS::add_it_partially(node_identifier id)
+{
+    _partially_visited.push_back(id);
+}
 
-//     actual_dfs(4, visited, adjacent);
-// }
+void DFS::add_it_definitely(node_identifier id)
+{
+    _partially_visited.pop_back();
+    _visited.push_back(id);
+    cout << "Add it now! " << _visited.back() << endl;
+}

@@ -22,6 +22,7 @@
 #include <map>
 #include <set>
 #include <stack>
+#include <vector>
 
 #include <sbg/sbg.hpp>
 
@@ -33,29 +34,36 @@ namespace search {
 class DFS {
 
 public:
+    typedef size_t node_identifier;
+
     DFS(SBG::LIB::CanonSBG graph);
 
     void start();
 
     SBG::LIB::SetPiece current() const;
 
-    bool next();
-
+    void iterate();
 private:
-    std::map<size_t, bool> _visited;
-    std::map<size_t, std::set<size_t> > _adjacent;
+    std::vector<node_identifier> _visited;
+    std::vector<node_identifier> _partially_visited;
+    std::map<node_identifier, std::set<node_identifier> > _adjacent;
 
-    std::stack<size_t> _stack;
-    std::set<size_t> _stack_mirror;
+    std::map<node_identifier, std::vector<node_identifier>> _stack;
 
     size_t _root_node_idx;
-    size_t _current_node_idx;
 
     SBG::LIB::CanonSBG _graph;
 
     void initialize_adjacents();
 
-    void update_stack();
+    void fill_current_node_stack();
+
+    bool was_visited(node_identifier id);
+    bool was_partially_visited(node_identifier id);
+    bool already_added(node_identifier id);
+
+    void add_it_partially(node_identifier id);
+    void add_it_definitely(node_identifier id);
 };
 
 }
