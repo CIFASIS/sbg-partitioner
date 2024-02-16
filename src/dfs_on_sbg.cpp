@@ -45,22 +45,10 @@ void DFS::initialize_adjacents()
             const auto edge = _graph.E()[edge_counter];
 
             for (node_identifier map_counter = 0; map_counter < _graph.map1().size(); map_counter++) {
-                const auto map = _graph.map1()[map_counter];
-                const auto edge_map_intersection = intersection(edge.intervals()[0], map.dom());
-                if (not isEmpty(edge_map_intersection)) {
-                    const auto map_image = image(edge_map_intersection.pieces().begin()->intervals()[0], map.exp());
-
-                    for (node_identifier node_idx = 0; node_idx < _graph.V().size(); node_idx++) {
-                        if (node_idx == i) {
-                            continue;
-                        }
-
-                        const auto potential_arriving_node = _graph.V()[node_idx];
-                        if (intersection(potential_arriving_node, map_image) == potential_arriving_node) {
-                            _adjacent[i].insert(node_idx);
-                        }
-                    }
-                }
+                const auto map1 = _graph.map1()[map_counter];
+                add_adjacent_nodes(i, map1, edge);
+                const auto map2 = _graph.map2()[map_counter];
+                add_adjacent_nodes(i, map2, edge);
             }
         }
     }
@@ -79,6 +67,26 @@ void DFS::initialize_adjacents()
 }
 
 
+void DFS::add_adjacent_nodes(const node_identifier id, const CanonMap& map, const SBG::LIB::SetPiece& edge)
+{
+    const auto edge_map_intersection = intersection(edge.intervals()[0], map.dom());
+    if (not isEmpty(edge_map_intersection)) {
+        const auto map_image = image(edge_map_intersection.pieces().begin()->intervals()[0], map.exp());
+
+        for (node_identifier node_idx = 0; node_idx < _graph.V().size(); node_idx++) {
+            if (node_idx == id) {
+                continue;
+            }
+
+            const auto potential_arriving_node = _graph.V()[node_idx];
+            if (intersection(potential_arriving_node, map_image) == potential_arriving_node) {
+                _adjacent[id].insert(node_idx);
+            }
+        }
+    }
+}
+
+
 void DFS::start()
 {
     // just in case, clear visited arrays
@@ -92,26 +100,20 @@ void DFS::start()
 }
 
 
-SetPiece DFS::current() const
-{
-    auto current_node_idx = _visited.back();
-    return _graph.V()[current_node_idx];
-}
-
-
-
 void DFS::iterate()
 {
-    node_identifier node_candidate = _partially_visited.back();
-    while (not _stack[node_candidate].empty()) {
-        const node_identifier new_node_candidate = _stack[node_candidate].back();
-        _stack[node_candidate].pop_back();
-        node_candidate = new_node_candidate;
-        add_it_partially(node_candidate);
-        fill_current_node_stack();
-    }
+    while (not _partially_visited.empty()) {
+        node_identifier node_candidate = _partially_visited.back();
+        while (not _stack[node_candidate].empty()) {
+            const node_identifier new_node_candidate = _stack[node_candidate].back();
+            _stack[node_candidate].pop_back();
+            node_candidate = new_node_candidate;
+            add_it_partially(node_candidate);
+            fill_current_node_stack();
+        }
 
-    add_it_definitely(node_candidate);
+        add_it_definitely(node_candidate);
+    }
 }
 
 
@@ -133,11 +135,13 @@ bool DFS::was_visited(node_identifier id)
     return find(_visited.begin(), _visited.end(), id) != _visited.end();
 }
 
+
 bool DFS::was_partially_visited(node_identifier id)
 {
     auto search = _stack.find(id);
     return search != _stack.end();
 }
+
 
 bool DFS::already_added(node_identifier id)
 {
@@ -150,10 +154,12 @@ bool DFS::already_added(node_identifier id)
     return false;
 }
 
+
 void DFS::add_it_partially(node_identifier id)
 {
     _partially_visited.push_back(id);
 }
+
 
 void DFS::add_it_definitely(node_identifier id)
 {

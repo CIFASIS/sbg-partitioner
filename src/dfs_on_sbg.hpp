@@ -40,8 +40,6 @@ public:
 
     void start();
 
-    SBG::LIB::SetPiece current() const;
-
     void iterate();
 private:
     std::vector<node_identifier> _visited;
@@ -57,6 +55,8 @@ private:
     void initialize_adjacents();
 
     void fill_current_node_stack();
+
+    void add_adjacent_nodes(const node_identifier id, const SBG::LIB::CanonMap& map, const SBG::LIB::SetPiece& edge);
 
     bool was_visited(node_identifier id);
     bool was_partially_visited(node_identifier id);
