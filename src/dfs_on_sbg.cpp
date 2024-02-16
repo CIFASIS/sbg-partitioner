@@ -41,7 +41,7 @@ void DFS::initialize_adjacents()
     for (node_identifier i = 0; i < _graph.V().size(); i++) {
         const auto incoming_node = _graph.V()[i];
 
-        for (node_identifier edge_counter = 0; edge_counter < _graph.E().size(); edge_counter++) {
+        for (node_identifier edge_counter = 0; edge_counter < _graph.E().size() - 1; edge_counter++) {
             const auto edge = _graph.E()[edge_counter];
 
             for (node_identifier map_counter = 0; map_counter < _graph.map1().size(); map_counter++) {
@@ -102,17 +102,32 @@ void DFS::start()
 
 void DFS::iterate()
 {
-    while (not _partially_visited.empty()) {
-        node_identifier node_candidate = _partially_visited.back();
-        while (not _stack[node_candidate].empty()) {
-            const node_identifier new_node_candidate = _stack[node_candidate].back();
-            _stack[node_candidate].pop_back();
-            node_candidate = new_node_candidate;
-            add_it_partially(node_candidate);
-            fill_current_node_stack();
+    bool finished = false;
+    while (not finished) {
+        while (not _partially_visited.empty()) {
+            node_identifier node_candidate = _partially_visited.back();
+            while (not _stack[node_candidate].empty()) {
+                const node_identifier new_node_candidate = _stack[node_candidate].back();
+                _stack[node_candidate].pop_back();
+                node_candidate = new_node_candidate;
+                add_it_partially(node_candidate);
+                fill_current_node_stack();
+            }
+
+            add_it_definitely(node_candidate);
         }
 
-        add_it_definitely(node_candidate);
+        // At this point, _partially_visited is empty, that means all nodes connected to
+        // the root node were visited. Let's see if there is any isolated node.
+        finished = _visited.size() == _graph.V().size();
+        if (not finished) {
+            for (node_identifier i = 0; i < _graph.V().size(); i++) {
+                if (find(_visited.begin(), _visited.end(), i) == _visited.end()) {
+                    add_it_partially(i);
+                    break;
+                }
+            }
+        }
     }
 }
 
