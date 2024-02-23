@@ -74,9 +74,10 @@ unordered_set<size_t> PartitionGraph::get_connectivity_set(size_t edge_index) co
 }
 
 
+// I wish this was a separate function, not part of PartitionGraph but there were a lot of
+// compile problems if partitions map object is created locally and OrdSet objects are added.
 void PartitionGraph::make_initial_partition(unsigned number_of_partitions, PartitionAlgorithm algorithm, bool pre_order)
 {
-    std::map<unsigned, OrdSet> partitions = {};
     switch (algorithm) {
         case PartitionAlgorithm::GREEDY:
         default:
