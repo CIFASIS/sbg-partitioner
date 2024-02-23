@@ -17,39 +17,34 @@
 
  ******************************************************************************/
 
+#include <set>
+
 #include "build_sb_graph.hpp"
+#include "dfs_on_sbg.hpp"
 #include "partition_graph.hpp"
 
 
 using namespace std;
 
 using namespace SBG::LIB;
-using namespace SBG::Util;
+
+using namespace sbg_partitioner::search;
 
 namespace sbg_partitioner {
 
 
-PartitionGraph::PartitionGraph(::CanonSBG& graph, int number_of_partitions)
+PartitionGraph::PartitionGraph(CanonSBG& graph, unsigned number_of_partitions, PartitionAlgorithm algorithm, bool pre_order)
     : _graph(graph),
     _partitions({})
 {
-    make_initial_partition(number_of_partitions);
+    make_initial_partition(number_of_partitions, algorithm, pre_order);
 }
 
 
 const ::CanonSBG& PartitionGraph::graph() const { return _graph; }
 
 
-void PartitionGraph::set_partition(size_t interval_index, size_t partition_number)
-{
-    assert(interval_index < _graph.V().size() and "Invalid index!");
-    assert(partition_number < _partitions.size() and "Invalid partition!");
-
-    _partitions[_graph.V()[interval_index]] = partition_number;
-}
-
-
-map<SetPiece, int> PartitionGraph::partitions() const { return _partitions; }
+map<unsigned, OrdSet> PartitionGraph::partitions() const { return _partitions; }
 
 
 unordered_set<size_t> PartitionGraph::get_connectivity_set(size_t edge_index) const
@@ -65,12 +60,12 @@ unordered_set<size_t> PartitionGraph::get_connectivity_set(size_t edge_index) co
     auto e2 = _graph.map2()[edge_index];
     auto im2 = image(e2);
 
-    for (const auto& [interval, proc] : _partitions) {
-        if (not isEmpty(intersection(im1, interval))) {
+    for (const auto& [proc, set_piece] : _partitions) {
+        if (not isEmpty(intersection(im1, set_piece))) {
             connectivity_set.insert(proc);
         }
 
-        if (not isEmpty(intersection(im2, interval))) {
+        if (not isEmpty(intersection(im2, set_piece))) {
             connectivity_set.insert(proc);
         }
     }
@@ -79,25 +74,25 @@ unordered_set<size_t> PartitionGraph::get_connectivity_set(size_t edge_index) co
 }
 
 
-void PartitionGraph::make_initial_partition(int number_of_partitions)
+void PartitionGraph::make_initial_partition(unsigned number_of_partitions, PartitionAlgorithm algorithm, bool pre_order)
 {
-    size_t begin, end = 0;
-    size_t min_size = _graph.V().size() / number_of_partitions;
+    std::map<unsigned, OrdSet> partitions = {};
+    switch (algorithm) {
+        case PartitionAlgorithm::GREEDY:
+        default:
+            DFS dfs(_graph, number_of_partitions, pre_order);
+            dfs.start();
+            dfs.iterate();
 
-    for (int i = 0; i < number_of_partitions; i++) {
+            map<unsigned, set<SetPiece>> partitions = dfs.partitions();
 
-        begin = i * min_size;
-        end = size_t(i + 1) * min_size;
-
-        for (size_t j = begin; j < end; j++) {
-            _partitions[_graph.V()[j]] = i;
-        }
-    }
-
-    for (auto j = end; j < _graph.V().size(); j++) {
-
-        size_t partition = rand() % number_of_partitions;
-        _partitions[_graph.V()[j]] = partition;
+            for (auto& [id, set] : partitions) {
+                OrdSet set_piece;
+                for (auto& s : set) {
+                    set_piece.emplaceBack(s.intervals().front());
+                }
+                _partitions[id] = set_piece;
+            }
     }
 }
 

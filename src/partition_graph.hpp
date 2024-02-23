@@ -28,26 +28,28 @@
 
 namespace sbg_partitioner {
 
+enum PartitionAlgorithm
+{
+    GREEDY = 0
+};
+
+
 /// This class represents a partioned set based graph.
 /// The main purpose of PartitionGraph is to divide the
 /// calculation of different nodes of a dynamic model
 /// in order to simulate it in parallel.
 class PartitionGraph {
 
-public: 
-    PartitionGraph(SBG::LIB::CanonSBG& _graph, int number_of_partitions);
+public:
+    PartitionGraph(SBG::LIB::CanonSBG& _graph, unsigned number_of_partitions,
+                   PartitionAlgorithm algorithm, bool pre_order);
 
     /// Returns a reference of the set based graph to be partioned.
     const SBG::LIB::CanonSBG& graph() const;
 
-    /// Assigns a partition to a interval.
-    /// @param interval_index Index of the interval
-    /// @param partition_number id of the partition
-    void set_partition(size_t interval_index, size_t partition_number);
-
     /// Returns the current partion as a map where each interval is associated
     /// to a partition number.
-    std::map<SBG::LIB::SetPiece, int> partitions() const;
+    std::map<unsigned, SBG::LIB::OrdSet> partitions() const;
 
     /// Returns the connectivity set of a set of edges contained in map1 and map2 of
     /// the graph (I mean, edges in CanonSBG::map1()[edge_index] and CanonSBG::map2()[edge_index]).
@@ -56,10 +58,10 @@ public:
 
 private:
     SBG::LIB::CanonSBG _graph;
-    std::map<SBG::LIB::SetPiece, int> _partitions;
+    std::map<unsigned, SBG::LIB::OrdSet> _partitions;
 
     /// It creates an initial partition.
-    void make_initial_partition(int number_of_partitions);
+    void make_initial_partition(unsigned number_of_partitions, PartitionAlgorithm algorithm, bool pre_order);
 };
 
 /// This function returns the cardinality of a connectivity set.

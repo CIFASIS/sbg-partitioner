@@ -51,19 +51,10 @@ void version()
 }
 
 
-PartitionGraph create_random_partitions(string filename, int number_of_partitions)
+PartitionGraph create_initial_partition(SBG::LIB::CanonSBG& graph, unsigned number_of_partitions,
+               sbg_partitioner::PartitionAlgorithm algorithm, bool pre_order)
 {
-  auto graph = build_sb_graph(filename.c_str());
-  PartitionGraph partition_graph(graph, number_of_partitions);
-
-  cout << partition_graph << endl;
-
-  for (size_t i = 0; i < partition_graph.graph().V().size(); i++) {
-    size_t partition = rand() % number_of_partitions;
-    partition_graph.set_partition(i, partition);
-  }
-
-  cout << partition_graph << endl;
+  PartitionGraph partition_graph(graph, number_of_partitions, algorithm, pre_order);
 
   return partition_graph;
 }
@@ -74,7 +65,7 @@ int main(int argc, char** argv)
   int ret = 0;
   int opt;
   optional<string> filename = nullopt;
-  optional<int> number_of_partitions = nullopt;
+  optional<unsigned> number_of_partitions = nullopt;
 
   while (true) {
 
@@ -127,20 +118,14 @@ int main(int argc, char** argv)
 
   cout << "filename is " << *filename << endl;
   cout << "number of partitions is " << *number_of_partitions << endl;
-  PartitionGraph pgraph = create_random_partitions(*filename, *number_of_partitions);
-  for (int i = 0; i < *number_of_partitions; i++){
-    auto set = pgraph.get_connectivity_set(i);
 
-    cout << "connectivity set for " << i << " { ";
-    for (const auto& s : set) {
-      cout << s << " ";
-    }
-    cout << "}" << endl;
+  auto sb_graph = build_sb_graph(filename->c_str());
 
-    for (const auto& s : set) {
-      cout << pgraph.graph().V()[s] << endl;
-    }
-  }
+  PartitionGraph pgraph = create_initial_partition(sb_graph, *number_of_partitions, sbg_partitioner::GREEDY, true);
+  cout << pgraph << endl;
+
+  PartitionGraph pgraph2 = create_initial_partition(sb_graph, *number_of_partitions, sbg_partitioner::GREEDY, false);
+  cout << pgraph2 << endl;
 
   cout << "Exit code: " << ret << endl;
   return ret;

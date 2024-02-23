@@ -31,7 +31,8 @@ TARGET      := $(BIN_DIR)/sbg-partitioner
 SOURCES := build_sb_graph.cpp \
 		   dfs_on_sbg.cpp \
 		   main.cpp \
-		   partition_graph.cpp
+		   partition_graph.cpp \
+		   partition_strategy.cpp
 
 # Flags, Libraries and Includes
 INCLUDES := -I. -I$(SBG_LIB_PATH)/$(SBG_DEV)/usr/include -I$(BOOST_LIB_PATH)/include -I$(3RD_PARTY_DIR)/rapidjson/include

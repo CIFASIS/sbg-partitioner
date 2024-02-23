@@ -26,10 +26,15 @@ using namespace std;
 using namespace SBG::LIB;
 using namespace SBG::Util;
 
+using namespace sbg_partitioner;
 using namespace sbg_partitioner::search;
 
 
-DFS::DFS(CanonSBG graph) : _graph(graph)
+DFS::DFS(CanonSBG& graph, unsigned number_of_partitions, bool pre_order)
+    : _number_of_partitions(number_of_partitions),
+    _pre_order(pre_order),
+    _graph(graph),
+    _partition_strategy(PartitionStrategyGreedy(number_of_partitions, _graph))
 {
     initialize_adjacents();
 }
@@ -106,9 +111,9 @@ void DFS::iterate()
     while (not finished) {
         while (not _partially_visited.empty()) {
             node_identifier node_candidate = _partially_visited.back();
-            while (not _stack[node_candidate].empty()) {
-                const node_identifier new_node_candidate = _stack[node_candidate].back();
-                _stack[node_candidate].pop_back();
+            while (not _stack.empty()) {
+                const node_identifier new_node_candidate = _stack.back();
+                _stack.pop_back();
                 node_candidate = new_node_candidate;
                 add_it_partially(node_candidate);
                 fill_current_node_stack();
@@ -129,56 +134,66 @@ void DFS::iterate()
             }
         }
     }
+
+    std::cout << _partition_strategy << std::endl;
 }
+
+
+map<DFS::node_identifier, set<DFS::node_identifier> > DFS::adjacents() const { return _adjacent; }
+
+
+std::map<unsigned, std::set<SBG::LIB::SetPiece>> DFS::partitions() const { return _partition_strategy.partitions(); }
 
 
 void DFS::fill_current_node_stack()
 {
     node_identifier id = _partially_visited.back();
-    _stack[id] = vector<node_identifier>();
     for (const node_identifier adj_node : _adjacent[id]) {
         if (not was_partially_visited(adj_node) and not was_visited(adj_node)
             and not already_added(adj_node)) {
-            _stack[id].push_back(adj_node);
+            _stack.push_back(adj_node);
         }
     }
 }
 
 
-bool DFS::was_visited(node_identifier id)
-{
-    return find(_visited.begin(), _visited.end(), id) != _visited.end();
-}
+bool DFS::was_visited(node_identifier id) { return find(_visited.begin(), _visited.end(), id) != _visited.end(); }
 
 
 bool DFS::was_partially_visited(node_identifier id)
 {
-    auto search = _stack.find(id);
-    return search != _stack.end();
+    return find(_partially_visited.begin(), _partially_visited.end(), id) != _partially_visited.end();
 }
 
 
 bool DFS::already_added(node_identifier id)
 {
-    for (const auto& [_, s] : _stack) {
-        if (find(s.cbegin(), s.cend(), id) != s.cend()) {
-            return true;
-        }
-    }
-
-    return false;
+    return (find(_stack.cbegin(), _stack.cend(), id) != _stack.cend());
 }
 
 
 void DFS::add_it_partially(node_identifier id)
 {
+    if (_pre_order) {
+        add_it_to_a_partition(id);
+    }
+
     _partially_visited.push_back(id);
 }
 
 
 void DFS::add_it_definitely(node_identifier id)
 {
+    if (not _pre_order) {
+        add_it_to_a_partition(id);
+    }
+
     _partially_visited.pop_back();
     _visited.push_back(id);
-    cout << "Add it now! " << _visited.back() << endl;
+}
+
+void DFS::add_it_to_a_partition(node_identifier id)
+{
+    auto v = _graph.V()[id];
+    _partition_strategy(v);
 }
