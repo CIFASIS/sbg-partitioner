@@ -81,7 +81,7 @@ void PartitionGraph::make_initial_partition(unsigned number_of_partitions, Parti
     switch (algorithm) {
         case PartitionAlgorithm::GREEDY:
         default:
-            DFS dfs(_graph, number_of_partitions, pre_order);
+            DFS dfs(_graph, number_of_partitions, make_unique<PartitionStrategyGreedy>(number_of_partitions, _graph), pre_order);
             dfs.start();
             dfs.iterate();
 

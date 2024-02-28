@@ -30,7 +30,8 @@ namespace sbg_partitioner {
 
 enum PartitionAlgorithm
 {
-    GREEDY = 0
+    GREEDY = 0,
+    DISTRIBUTED = 1
 };
 
 

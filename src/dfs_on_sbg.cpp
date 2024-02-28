@@ -30,11 +30,11 @@ using namespace sbg_partitioner;
 using namespace sbg_partitioner::search;
 
 
-DFS::DFS(CanonSBG& graph, unsigned number_of_partitions, bool pre_order)
+DFS::DFS(CanonSBG& graph, unsigned number_of_partitions, std::unique_ptr<PartitionStrategy> partition_strategy, bool pre_order)
     : _number_of_partitions(number_of_partitions),
     _pre_order(pre_order),
     _graph(graph),
-    _partition_strategy(PartitionStrategyGreedy(number_of_partitions, _graph))
+    _partition_strategy(move(partition_strategy))
 {
     initialize_adjacents();
 }
@@ -135,14 +135,14 @@ void DFS::iterate()
         }
     }
 
-    std::cout << _partition_strategy << std::endl;
+    std::cout << *_partition_strategy << std::endl;
 }
 
 
 map<DFS::node_identifier, set<DFS::node_identifier> > DFS::adjacents() const { return _adjacent; }
 
 
-std::map<unsigned, std::set<SBG::LIB::SetPiece>> DFS::partitions() const { return _partition_strategy.partitions(); }
+std::map<unsigned, std::set<SBG::LIB::SetPiece>> DFS::partitions() const { return _partition_strategy->partitions(); }
 
 
 void DFS::fill_current_node_stack()
@@ -195,5 +195,5 @@ void DFS::add_it_definitely(node_identifier id)
 void DFS::add_it_to_a_partition(node_identifier id)
 {
     auto v = _graph.V()[id];
-    _partition_strategy(v);
+    (*_partition_strategy)(v);
 }

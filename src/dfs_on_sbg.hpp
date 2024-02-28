@@ -20,6 +20,7 @@
 #pragma once
 
 #include <map>
+#include <memory>
 #include <set>
 #include <stack>
 #include <vector>
@@ -40,7 +41,7 @@ public:
 
     /// pre_order: True means pre-order, False means post-order. In-order is not taken
     /// into account since the graph is not a binary tree.
-    DFS(SBG::LIB::CanonSBG& graph, unsigned number_of_partitions, bool pre_order);
+    DFS(SBG::LIB::CanonSBG& graph, unsigned number_of_partitions, std::unique_ptr<PartitionStrategy> partition_strategy, bool pre_order);
 
     void start();
 
@@ -63,7 +64,7 @@ private:
 
     SBG::LIB::CanonSBG _graph;
 
-    PartitionStrategyGreedy _partition_strategy;
+    std::unique_ptr<PartitionStrategy> _partition_strategy;
 
     void initialize_adjacents();
 
