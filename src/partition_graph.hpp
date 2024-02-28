@@ -70,6 +70,6 @@ private:
 /// @return the cardinality of the connectivity set
 size_t connectivity_set_cardinality(const PartitionGraph& pgraph, size_t edge_index);
 
-std::ostream& operator<<(std::ostream& os, const PartitionGraph pgraph);
+std::ostream& operator<<(std::ostream& os, const PartitionGraph& pgraph);
 
 }

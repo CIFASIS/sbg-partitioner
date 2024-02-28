@@ -105,7 +105,7 @@ size_t connectivity_set_cardinality(const PartitionGraph& pgraph, size_t edge_in
 }
 
 
-std::ostream& operator<<(std::ostream& os, const PartitionGraph pgraph)
+std::ostream& operator<<(std::ostream& os, const PartitionGraph& pgraph)
 {
     os << "\n";
     for (const auto& [interval, proc] : pgraph.partitions()) {
