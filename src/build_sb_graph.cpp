@@ -155,16 +155,20 @@ static OrdSet create_set_of_nodes(const map<int, Node>& nodes, map<int, int>& no
 }
 
 
-static LExp read_left_vars(const Node& node)
+static vector<LExp> read_left_vars(const Node& node)
 {
-  const auto& l_node = node.lhs;
+  const auto& l_nodes = node.lhs;
 
-  assert(l_node.size() == 1);
+  assert(l_nodes.size() > 0);
 
-  Var var = l_node[0];
-  LExp exp = LExp(RAT(var.exp_a, 1), RAT(var.exp_b, 1));
+  vector<LExp> exps(l_nodes.size());
+  for (const auto& l_node : l_nodes) {
+    Var var = l_node;
+    LExp exp = LExp(RAT(var.exp_a, 1), RAT(var.exp_b, 1));
+    exps.push_back(exp);
+  }
 
-  return exp;
+  return exps;
 }
 
 
@@ -252,37 +256,39 @@ static tuple<OrdSet, CanonPWMap, CanonPWMap> create_graph_edges(
         cout << "Is it connected to " << i << "?" << endl;
         auto left_node = nodes.at(i);
         Interval left_interval(left_node.interval_start, 1, left_node.interval_end);
-        LExp left_exp = read_left_vars(left_node);
-        Interval left_node_image = image(left_interval, left_exp);
+        vector<LExp> left_exps = read_left_vars(left_node);
+        for (const auto& left_exp : left_exps) {
+          Interval left_node_image = image(left_interval, left_exp);
 
-        // we want to see if the intersection of the images is not empty
-        Interval image_intersection = intersection(right_node_image, left_node_image);
-        if (isEmpty(image_intersection)) {
-          cout << "No, it is not" << endl;
-          continue;
+          // we want to see if the intersection of the images is not empty
+          Interval image_intersection = intersection(right_node_image, left_node_image);
+          if (isEmpty(image_intersection)) {
+            cout << "No, it is not" << endl;
+            continue;
+          }
+          cout << "Yes, it is" << endl;
+
+          // Edge domain will be from the current max value and will have the quantity as the intersection
+          INT domain_offset = image_intersection.end() - image_intersection.begin();
+
+          // domain for both edges
+          Interval edge_domain(max_value, 1, max_value + domain_offset);
+          edge_set.emplace_hint(edge_set.end(), edge_domain);
+
+          // Update maximum value
+          max_value = maxElem(edge_domain) + 1;
+
+          // Create and save map interval to connect right var to left var
+          // right_exp.set_offset(right_exp.offset() + ); // hack
+          auto pre_image_right_to_left_exp = get_pre_image(image_intersection, right_exp);
+          auto right_map_interval = create_map_interval(pre_image_right_to_left_exp, edge_domain, right_exp, node_offsets.at(id));
+          map_right_to_left.emplace(right_map_interval);
+
+          // Create and save map interval to connect left var to right var
+          auto pre_image_left_to_right_exp = get_pre_image(image_intersection, left_exp);
+          auto left_map_interval = create_map_interval(pre_image_left_to_right_exp, edge_domain, left_exp, node_offsets.at(left_node.id));
+          map_left_to_right.emplace(left_map_interval);
         }
-        cout << "Yes, it is" << endl;
-
-        // Edge domain will be from the current max value and will have the quantity as the intersection
-        INT domain_offset = image_intersection.end() - image_intersection.begin();
-
-        // domain for both edges
-        Interval edge_domain(max_value, 1, max_value + domain_offset);
-        edge_set.emplace_hint(edge_set.end(), edge_domain);
-
-        // Update maximum value
-        max_value = maxElem(edge_domain) + 1;
-
-        // Create and save map interval to connect right var to left var
-        // right_exp.set_offset(right_exp.offset() + ); // hack
-        auto pre_image_right_to_left_exp = get_pre_image(image_intersection, right_exp);
-        auto right_map_interval = create_map_interval(pre_image_right_to_left_exp, edge_domain, right_exp, node_offsets.at(id));
-        map_right_to_left.emplace(right_map_interval);
-
-        // Create and save map interval to connect left var to right var
-        auto pre_image_left_to_right_exp = get_pre_image(image_intersection, left_exp);
-        auto left_map_interval = create_map_interval(pre_image_left_to_right_exp, edge_domain, left_exp, node_offsets.at(left_node.id));
-        map_left_to_right.emplace(left_map_interval);
       }
     }
   }
