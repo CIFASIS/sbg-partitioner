@@ -38,6 +38,8 @@ using namespace SBG::LIB;
 using namespace SBG::Util;
 
 
+namespace sbg_partitioner {
+
 struct Var {
     string id;
     INT exp_a;
@@ -311,19 +313,15 @@ static CanonSBG create_sb_graph(const std::map<int, Node>& nodes)
   // Now, let's build a graph!
   CanonSBG graph; // This will be our graph
 
+  /// Firstly, add each node piece to the graph.
+  for (SetPiece mdi : node_set.pieces())
+    graph = addSV(OrdSet(mdi), graph);
+
+  // Then, create edges and maps.
   const auto [edge_set, map_left_to_right, map_right_to_left] = create_graph_edges(nodes, node_offsets, max_value);
 
-  cout << "\n";
-
-  // set node set
-  graph.set_V(node_set);
-
-  // set edge set
-  graph.set_E(edge_set);
-
-  // set maps
-  graph.set_map1(map_left_to_right);
-  graph.set_map2(map_right_to_left);
+  // now add those edges and maps to the graph
+  graph = addSE(map_left_to_right, map_right_to_left, graph);
 
   return graph;
 }
@@ -348,4 +346,51 @@ CanonSBG build_sb_graph(const string& filename)
   cout << graph << endl;
 
   return graph;
+}
+
+
+static unsigned add_adjacent_nodes(const CanonMap& incoming_map, const CanonMap& arrival_map, const SetPiece& node, OrdSet& adjacents)
+{
+  auto map_image = image(incoming_map.dom()[0], incoming_map.exp());
+  auto node_map_intersection = intersection(map_image.intervals()[0], node);
+
+  unsigned qty = 0;
+  if (not isEmpty(node_map_intersection)) {
+
+    auto pre_image = preImage(OrdSet(node_map_intersection), incoming_map);//get_pre_image(node_map_intersection[0], incoming_map.exp()[0]);
+    auto adjs = image(pre_image[0], arrival_map.exp());
+    qty += adjs[0].end() - adjs[0].begin() + 1;
+    adjacents.emplaceBack(adjs[0]);
+  }
+
+  return qty;
+}
+
+OrdSet get_adjacents(const CanonSBG& graph, const SetPiece& node)
+{
+  OrdSet adjacents = {};
+
+  // Fill adjacents
+  unsigned acc = 0;
+  for (size_t map_counter = 0; map_counter < graph.map1().size(); map_counter++) {
+      const auto map1 = graph.map1()[map_counter];
+      const auto map2 = graph.map2()[map_counter];
+
+      cout << "Maps are " << map1 << ", " << map2 << endl;
+
+      acc += add_adjacent_nodes(map1, map2, node, adjacents);
+
+      auto map2_minus_map1_dom = difference(map2.dom(), map1.dom());
+      cout << map2.dom() << ", " << map1.dom() << map2_minus_map1_dom << endl;
+      if (not isEmpty(map2_minus_map1_dom)){
+        CanonMap map2_ = CanonMap(map2_minus_map1_dom, map2.exp());
+
+        acc += add_adjacent_nodes(map2_, map1, node, adjacents);
+      }
+  }
+
+  cout << "Comunication is " << acc <<endl;
+  return adjacents;
+}
+
 }

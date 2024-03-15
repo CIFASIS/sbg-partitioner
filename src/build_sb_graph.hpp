@@ -21,8 +21,27 @@
 
 #include <sbg/sbg.hpp>
 
+namespace sbg_partitioner {
+
 /// Takes a path to a json file, reads it and then builds a sb graph with
 /// a node for each access to a variable and an edge for each connection
 /// between variables.
 /// If a variable appears on the left and on the right side, an edge is created.
 SBG::LIB::CanonSBG build_sb_graph(const std::string& filename);
+
+
+/// Ad hoc function to get pre image of an expression from its image.
+/// @param image_interval  Image we want to get the pre image from
+/// @param expression  Expression to get the pre image
+/// @return pre image as an interval
+SBG::LIB::Interval get_pre_image(const SBG::LIB::Interval& image_interval, const SBG::LIB::LExp& expression);
+
+
+/// Takes a graph and a set of nodes and return a set of nodes connected with the mentioned set.
+/// If a node is connected at least by one edge with one node in the set, it will be in the returned
+/// set.
+/// @param graph the graph where we are looking for connections.
+/// @param node set of nodes we want to know its connections.
+/// @return a set of nodes connected to the function parameter.
+SBG::LIB::OrdSet get_adjacents(const SBG::LIB::CanonSBG& graph, const SBG::LIB::SetPiece& node);
+}
