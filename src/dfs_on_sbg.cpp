@@ -72,7 +72,7 @@ void DFS::initialize_adjacents()
 }
 
 
-void DFS::add_adjacent_nodes(const node_identifier id, const CanonMap& map, const SBG::LIB::SetPiece& edge)
+void DFS::add_adjacent_nodes(const node_identifier id, const CanonMap& map, const SetPiece& edge)
 {
     const auto edge_map_intersection = intersection(edge.intervals()[0], map.dom());
     if (not isEmpty(edge_map_intersection)) {
