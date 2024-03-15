@@ -57,6 +57,22 @@ public:
     /// So that, we consider the graph as an undirected graph.
     std::unordered_set<size_t> get_connectivity_set(size_t edge_index) const;
 
+    /// Takes a node and its partition number and returns the internal cost according
+    /// to the definition in "An Efficient Heuristic Procedure for Partitioning Graphs".
+    /// Note: if node does not fully belong to "partition", it will trigger an exception.
+    unsigned int internal_cost(const SBG::LIB::SetPiece& node, unsigned partition);
+
+    /// Takes a node and its partition number and returns the external cost according
+    /// to the definition in "An Efficient Heuristic Procedure for Partitioning Graphs"
+    /// Note: if node totally or partially belongs to "partition", it will trigger an exception.
+    unsigned int external_cost(const SBG::LIB::SetPiece& node, unsigned partition);
+
+    /// Gets you the gain (the reduction in cost) of exchanging nodes A and B.
+    /// @param node_a pair with partition number and a subset of that partition
+    /// @param node_b analog node_a
+    /// @return the gain of exchanging them
+    int gain(const std::pair<unsigned, SBG::LIB::SetPiece> node_a, const std::pair<unsigned, SBG::LIB::SetPiece> node_b);
+
 private:
     SBG::LIB::CanonSBG _graph;
     std::map<unsigned, SBG::LIB::OrdSet> _partitions;
@@ -70,6 +86,7 @@ private:
 /// @param edge_index index of the edges to get the connectivity set.
 /// @return the cardinality of the connectivity set
 size_t connectivity_set_cardinality(const PartitionGraph& pgraph, size_t edge_index);
+
 
 std::ostream& operator<<(std::ostream& os, const PartitionGraph& pgraph);
 
