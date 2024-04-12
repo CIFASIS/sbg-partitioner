@@ -30,6 +30,7 @@ TARGET      := $(BIN_DIR)/sbg-partitioner
 # Source files
 SOURCES := build_sb_graph.cpp \
 		   dfs_on_sbg.cpp \
+		   kernighan_lin_sbg.cpp \
 		   main.cpp \
 		   partition_graph.cpp \
 		   partition_strategy.cpp

@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <set>
+
 #include "partition_graph.hpp"
 
 namespace sbg_partitioner
@@ -27,7 +29,25 @@ namespace sbg_partitioner
 
 // void kl_sbg_bipart();
 
+struct GainObject {
+    size_t i;
+    size_t j;
+    int gain;
+    size_t size;
+};
+
+struct GainObjectComparator {
+    bool operator()(const GainObject& gain_1, const GainObject& gain_2) const
+    {
+        return gain_1.gain >= gain_2.gain;
+    }
+};
+
 using ec_ic = std::pair<SBG::LIB::OrdPWMDInter , SBG::LIB::OrdPWMDInter>;
+
+using CostMatrix = std::set<GainObject, GainObjectComparator>;
+
+std::ostream& operator<<(std::ostream& os, const GainObject& gain);
 
 ec_ic compute_EC_IC(
     const SBG::LIB::OrdSet& partition,
@@ -38,7 +58,18 @@ ec_ic compute_EC_IC(
 
 // en principio es un vector pero quien sabe
 std::vector<ec_ic> compute_diff(
-    const SBG::LIB::OrdPWMDInter& partitions,
+    const SBG::LIB::OrdSet& partition,
     const SBG::LIB::CanonSBG& graph);
+
+
+CostMatrix generate_gain_matrix(
+    SBG::LIB::OrdSet& partition_a,
+    SBG::LIB::OrdSet& partition_b,
+    const SBG::LIB::CanonSBG& graph);
+
+
+void compute_gain_matrix(
+    const SBG::LIB::OrdSet& partition_a,
+    const SBG::LIB::OrdSet& partition_b);
 
 }; // namespace sbg_partitioner

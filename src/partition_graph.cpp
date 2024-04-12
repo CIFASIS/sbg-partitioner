@@ -176,29 +176,18 @@ int PartitionGraph::gain(const pair<unsigned, SetPiece> node_a, const pair<unsig
     cout << "PartitionGraph::gain between " << node_a.second << ", " << node_b.second << endl;
     unsigned c_ab = get_comunication_cost(node_a.second, node_b.second, _graph.map1(), _graph.map2());
 
-    // check this out
-    unsigned a_b_cost = 0;
-    // for (size_t idx = 0; idx < _partitions[node_a.first].size(); idx++) {
-    //     a_b_cost += get_comunication_cost(_partitions[node_a.first][idx], _partitions[node_b.first], _graph.map1(), _graph.map2());
-    // }
-
-    for_each(_partitions[node_a.first].begin(), _partitions[node_a.first].end(),
-        [&a_b_cost, node_a, node_b, this](const SetPiece& p) {
-            a_b_cost += get_comunication_cost(p, _partitions[node_b.first], _graph.map1(), _graph.map2());
-        });
-
-    int z = a_b_cost - c_ab;
-
     unsigned external_a = external_cost(node_a.second, node_b.first);
     unsigned external_b = external_cost(node_b.second, node_a.first);
 
     unsigned internal_a = internal_cost(node_a.second, node_a.first);
     unsigned internal_b = internal_cost(node_b.second, node_b.first);
 
-    int old_cost = z + external_a + external_b - z;
-    int new_cost = z + internal_a + internal_b - z;
-    cout << "old cost is " << old_cost << " new cost is " << new_cost << endl;
-    int gain = old_cost - new_cost;
+    int d_a = external_a - internal_a;
+    int d_b = external_b - internal_b;
+    cout << "Costs a " << external_a << ", " << internal_a << endl;
+    cout << "Costs b " << external_b << ", " << internal_b << endl;
+    cout << "comunnication between a & b is " << c_ab << endl;
+    int gain = d_a + d_b - 2*c_ab;
 
     return gain;
 }

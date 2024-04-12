@@ -28,6 +28,8 @@
 #include "build_sb_graph.hpp"
 #include "partition_graph.hpp"
 
+#include "kernighan_lin_sbg.hpp"
+
 using namespace std;
 
 using namespace sbg_partitioner;
@@ -124,9 +126,30 @@ int main(int argc, char** argv)
   PartitionGraph pgraph = create_initial_partition(sb_graph, *number_of_partitions, sbg_partitioner::GREEDY, true);
   cout << pgraph << endl;
 
-  PartitionGraph pgraph2 = create_initial_partition(sb_graph, *number_of_partitions, sbg_partitioner::GREEDY, false);
-  cout << pgraph2 << endl;
+  // PartitionGraph pgraph2 = create_initial_partition(sb_graph, *number_of_partitions, sbg_partitioner::GREEDY, false);
+  // cout << pgraph2 << endl;
+
+  // auto adj = get_adjacents(sb_graph, sb_graph.V()[0]);
+  // cout << "Adjacents of " << sb_graph.V()[0] << " are " << adj << endl;
+
+  auto p = pgraph.partitions()[0];
+  // unsigned ic = pgraph.internal_cost(p[0], 1);
+  // cout << "Internal cost for " << p[0] << " is " << ic << endl;
+
+  unsigned ec = pgraph.internal_cost(p[0], 0);
+  cout << "External cost for " << p[0] << " is " << ec << endl;
+
+  int g = pgraph.gain({1, pgraph.partitions()[1][0]}, {0, pgraph.partitions()[0][0]});
+  cout << "Gain between " << pgraph.partitions()[1] << " and " << pgraph.partitions()[0] << " is " << g << endl;
 
   cout << "Exit code: " << ret << endl;
+
+  auto s =  generate_gain_matrix(pgraph.partitions()[1], pgraph.partitions()[0], sb_graph);
+  cout << "let's see...\n";
+  for (const auto &x : s) {
+    cout << x << ", ";
+  }
+  std::cout << std::endl;
+
   return ret;
 }
