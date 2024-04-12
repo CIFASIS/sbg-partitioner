@@ -1,6 +1,6 @@
 # Target variables
 MODE ?= Debug
-sbg_branch ?= sb-graph-dev
+sbg_branch ?= iss-23-refactor
 build_sbg ?= True
 repo_checkout=ssh
 
@@ -41,6 +41,6 @@ help:
 	@echo "Default values:"
 	@echo ""
 	@echo "MODE=Debug"
-	@echo "sbg_branch=sb-graph-dev"
+	@echo "sbg_branch=iss-23-refactor"
 	@echo "build_sbg=True"
 	@echo "repo_checkout=ssh"
