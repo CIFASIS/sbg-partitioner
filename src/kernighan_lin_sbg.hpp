@@ -68,8 +68,10 @@ CostMatrix generate_gain_matrix(
     const SBG::LIB::CanonSBG& graph);
 
 
-void compute_gain_matrix(
-    const SBG::LIB::OrdSet& partition_a,
-    const SBG::LIB::OrdSet& partition_b);
+GainObject max_diff(
+    CostMatrix& cost_matrix,
+    SBG::LIB::OrdSet& partition_a,
+    SBG::LIB::OrdSet& partition_b,
+    const SBG::LIB::CanonSBG& graph);
 
 }; // namespace sbg_partitioner
