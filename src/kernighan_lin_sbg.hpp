@@ -25,7 +25,7 @@
 
 namespace sbg_partitioner
 {
-// void kl_sbg();
+void kl_sbg(const SBG::LIB::CanonSBG& graph, SBG::LIB::OrdSet& partition_a, SBG::LIB::OrdSet& partition_b);
 
 // void kl_sbg_bipart();
 
@@ -48,30 +48,5 @@ using ec_ic = std::pair<SBG::LIB::OrdPWMDInter , SBG::LIB::OrdPWMDInter>;
 using CostMatrix = std::set<GainObject, GainObjectComparator>;
 
 std::ostream& operator<<(std::ostream& os, const GainObject& gain);
-
-ec_ic compute_EC_IC(
-    const SBG::LIB::OrdSet& partition,
-    const SBG::LIB::OrdSet& nodes,
-    const SBG::LIB::CanonPWMap& departure_map,
-    const SBG::LIB::CanonPWMap& arrival_map);
-
-
-// en principio es un vector pero quien sabe
-std::vector<ec_ic> compute_diff(
-    const SBG::LIB::OrdSet& partition,
-    const SBG::LIB::CanonSBG& graph);
-
-
-CostMatrix generate_gain_matrix(
-    SBG::LIB::OrdSet& partition_a,
-    SBG::LIB::OrdSet& partition_b,
-    const SBG::LIB::CanonSBG& graph);
-
-
-GainObject max_diff(
-    CostMatrix& cost_matrix,
-    SBG::LIB::OrdSet& partition_a,
-    SBG::LIB::OrdSet& partition_b,
-    const SBG::LIB::CanonSBG& graph);
 
 }; // namespace sbg_partitioner

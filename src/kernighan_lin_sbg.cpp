@@ -25,6 +25,9 @@
 #include "kernighan_lin_sbg.hpp"
 
 
+// This code is based on https://github.com/CIFASIS/sbg-partitioner/discussions/17
+
+
 using namespace std;
 
 using namespace SBG::LIB;
@@ -84,8 +87,8 @@ static size_t get_c_ab(
     return comm_size;
 }
 
-
-ec_ic compute_EC_IC(
+// Consider exposing these functions to facilitate being reused
+static ec_ic compute_EC_IC(
     const OrdSet& partition,
     const OrdSet& nodes,
     const CanonPWMap& departure_map,
@@ -100,25 +103,6 @@ ec_ic compute_EC_IC(
 }
 
 
-vector<ec_ic> compute_diff(
-    const OrdSet& partition,
-    const CanonSBG& graph)
-{
-    vector<ec_ic> d;
-    d.reserve(partition.pieces().size());
-
-    for (const auto& p : partition.pieces()) {
-        ec_ic comunication_nodes = compute_EC_IC(partition, p, graph.map1(), graph.map2());
-        ec_ic comunication_nodes_2 = compute_EC_IC(partition, p, graph.map2(), graph.map1());
-        comunication_nodes.first = cup(comunication_nodes.first, comunication_nodes_2.first);
-        comunication_nodes.second = cup(comunication_nodes.second, comunication_nodes_2.second);
-        d.push_back(comunication_nodes);
-    }
-
-    return d;
-}
-
-
 static GainObject get_gain_object(
     size_t i, size_t j,
     OrdSet& partition_a,
@@ -130,7 +114,9 @@ static GainObject get_gain_object(
     auto b = partition_b[j];
 
     // Take the minimum partition size. We add 1 because it includes the last element
-    size_t min_size = min(a[0].end() - a[0].begin() + 1, b[0].end() - b[0].begin() + 1);
+    size_t size_node_a = a[0].end() - a[0].begin() + 1;
+    size_t size_node_b = b[0].end() - b[0].begin() + 1;
+    size_t min_size = min(size_node_a, size_node_b);
 
     // No problem here, a is just a copy of partition_a[i], same for b
     // We substract 1 because it includes the last element
@@ -181,7 +167,7 @@ static GainObject get_gain_object(
 }
 
 
-CostMatrix generate_gain_matrix(
+static CostMatrix generate_gain_matrix(
     OrdSet& partition_a,
     OrdSet& partition_b,
     const CanonSBG& graph)
@@ -202,35 +188,13 @@ CostMatrix generate_gain_matrix(
 }
 
 
-static bool remove_partition(size_t i, OrdSet& partition)
-{
-    bool was_removed = false;
-
-    auto partition_copy = partition;
-    for (size_t index = 0; index < partition.pieces().size(); index++) {
-        if (index == i) {
-            was_removed = true;
-            continue;
-        }
-
-        partition_copy.pieces().insert(partition[index]);
-    }
-
-    partition = partition_copy;
-
-    return was_removed;
-}
-
-
-static bool remove_nodes_from_cost_matrix(
+static void remove_nodes_from_cost_matrix(
     CostMatrix& cost_matrix,
     OrdSet& partition,
     const GainObject& gain_object)
 {
     vector<CostMatrix::iterator> to_be_removed;
-    auto node_b = partition[gain_object.j];
-    size_t partition_size_b = node_b.intervals()[0].end() - node_b.intervals()[0].begin() + 1;
-    bool node_b_is_fully_used = partition_size_b == gain_object.size;
+
     // delete each combination with partition i
     for (auto it = cost_matrix.begin(); it != cost_matrix.end(); ++it) {
         if (it->j == gain_object.j) {
@@ -242,31 +206,6 @@ static bool remove_nodes_from_cost_matrix(
         cout << "removing " << *it << endl;
         cost_matrix.erase(it);
     }
-
-    return node_b_is_fully_used;
-}
-
-
-/// @brief update partition_b with the new interval and remove the other object from partition_a
-/// @param partition_a partition to remove element with index gain_object.i
-/// @param partition_b partition to update element with index gain_object.j
-/// @param gain_object gain_object to be removed
-static void update_partition(
-    OrdSet& partition_a,
-    OrdSet& partition_b,
-    const GainObject& gain_object)
-{
-    // Firstly, create an empty partition, this one will be filled with new partition a information
-    auto partition_a_copy = OrdSet();
-
-    // take the remaining piece of node b and replace it with the previous one
-    auto interval_b = partition_b[gain_object.j][0];
-    partition_b[gain_object.j][0] = Interval(interval_b.begin() + gain_object.size, 1, interval_b.end());
-
-    // Remove node from the partition
-    remove_partition(gain_object.i, partition_a);
-
-    cout << "partition a is " << partition_a << endl;
 }
 
 
@@ -285,9 +224,46 @@ static void update_cost_matrix(
 }
 
 
-GainObject max_diff(CostMatrix& cost_matrix, OrdSet& partition_a, OrdSet& partition_b, const CanonSBG& graph)
+// Partition a and b (A_c and B_c in the definition) are the remining nodes to be visited, not the actual partitions
+static pair<SetPiece, SetPiece> update_sets(
+    OrdSet& partition_a,
+    OrdSet& partition_b,
+    OrdSet& current_moved_partition_a,
+    OrdSet& current_moved_partition_b,
+    const GainObject& gain_object)
 {
-    cout << "max_diff\n";
+    cout << "update_sets" << endl;
+    auto node_a = partition_a[gain_object.j];
+    size_t partition_size_a = node_a.intervals()[0].end() - node_a.intervals()[0].begin() + 1;
+    bool node_a_is_fully_used = partition_size_a == gain_object.size;
+
+    if (not node_a_is_fully_used) {
+        node_a[0] = Interval(node_a[0].begin(), 1, node_a[0].begin() + gain_object.size - 1);
+    }
+
+    auto node_b = partition_b[gain_object.j];
+    size_t partition_size_b = node_b.intervals()[0].end() - node_b.intervals()[0].begin() + 1;
+    bool node_b_is_fully_used = partition_size_b == gain_object.size;
+    if (not node_b_is_fully_used) {
+        node_b[0] = Interval(node_b[0].begin(), 1, node_b[0].begin() + gain_object.size - 1);
+    }
+
+    // At least one of them should be fully used
+    assert(node_a_is_fully_used or node_b_is_fully_used);
+
+    partition_a = difference(partition_a, node_a);
+    partition_b = difference(partition_b, node_b);
+
+    current_moved_partition_a = cup(current_moved_partition_a, node_a);
+    current_moved_partition_b = cup(current_moved_partition_b, node_b);
+
+    return make_pair(node_a, node_b);
+}
+
+
+static GainObject max_diff(CostMatrix& cost_matrix, OrdSet& partition_a, OrdSet& partition_b, const CanonSBG& graph)
+{
+    cout << "max_diff " << cost_matrix.size() << "\n";
     // cost_matrix is sort by gain, so the first is the maximum gain
     auto g = cost_matrix.begin();
 
@@ -297,29 +273,76 @@ GainObject max_diff(CostMatrix& cost_matrix, OrdSet& partition_a, OrdSet& partit
     // remove it, we need to update those values that
     cost_matrix.erase(g);
 
-    bool node_a_is_fully_used = remove_nodes_from_cost_matrix(cost_matrix, partition_a, gain_object);
-    bool node_b_is_fully_used = remove_nodes_from_cost_matrix(cost_matrix, partition_b, gain_object);
-
-    // at least one of them has to be true
-    assert(node_a_is_fully_used or node_b_is_fully_used);
-    // Now, check if one of the nodes is not used completelly
-    // This may not be necessary but we copy partitions and update it taking
-    // into account the elements to be removed.
-    if (not node_a_is_fully_used) {
-        update_partition(partition_b, partition_a, gain_object);
-        update_cost_matrix(partition_b, partition_a, gain_object, graph, cost_matrix);
-    } else {
-        remove_partition(gain_object.i, partition_a);
-    }
-
-    if (not node_b_is_fully_used) {
-        update_partition(partition_a, partition_b, gain_object);
-        update_cost_matrix(partition_a, partition_b, gain_object, graph, cost_matrix);
-    } else {
-        remove_partition(gain_object.j, partition_b);
-    }
-
     return gain_object;
+}
+
+
+static void update_diff(
+    CostMatrix& cost_matrix,
+    OrdSet& partition_a,
+    OrdSet& partition_b,
+    const CanonSBG& graph,
+    const GainObject& gain_object)
+{
+    cout << "update_diff" << endl;
+    if (false) {
+        remove_nodes_from_cost_matrix(cost_matrix, partition_a, gain_object);
+        remove_nodes_from_cost_matrix(cost_matrix, partition_b, gain_object);
+
+        update_cost_matrix(partition_b, partition_a, gain_object, graph, cost_matrix);
+        update_cost_matrix(partition_a, partition_b, gain_object, graph, cost_matrix);
+    }
+    cost_matrix.clear();
+    cost_matrix = generate_gain_matrix(partition_a, partition_b, graph);
+
+}
+
+
+static void update_sum(
+    int& par_sum,
+    int g,
+    int& max_par_sum,
+    pair<OrdSet, OrdSet>& max_par_sum_set,
+    OrdSet& a_v,
+    OrdSet& b_v)
+{
+    par_sum += g;
+    if (par_sum > max_par_sum) {
+        max_par_sum = par_sum;
+        max_par_sum_set = make_pair(a_v, b_v);
+    }
+}
+
+
+void kl_sbg(const CanonSBG& graph, OrdSet& partition_a, OrdSet& partition_b)
+{
+    cout << "Algorithm starts with " << partition_a << ", " << partition_b << endl;
+    auto a_c = partition_a;
+    auto b_c = partition_b;
+    int max_par_sum = 0;
+    auto max_par_sum_set = make_pair(OrdSet(), OrdSet());
+    int par_sum = 0;
+    OrdSet a_v = OrdSet();
+    OrdSet b_v = OrdSet();
+
+    CostMatrix gm = generate_gain_matrix(partition_a, partition_b, graph);
+
+    while ((not isEmpty(a_c)) and (not isEmpty(b_c))) {
+        auto g = max_diff(gm, a_c, b_c, graph);
+        OrdSet a_, b_;
+        tie(a_, b_) = update_sets(a_c, b_c, a_v, b_v, g);
+        update_diff(gm, a_c, b_c, graph, g);
+        update_sum(par_sum, g.gain, max_par_sum, max_par_sum_set, a_v, b_v);
+
+        cout << a_ << ", " << b_ << endl;
+    }
+
+    if (max_par_sum > 0) {
+        partition_a = cup(difference(partition_a, max_par_sum_set.first), max_par_sum_set.second);
+        partition_b = cup(difference(partition_b, max_par_sum_set.second), max_par_sum_set.first);
+    }
+
+    cout << "so it ends with " << max_par_sum << ", " << partition_a << ", " << partition_b << endl;
 }
 
 }
