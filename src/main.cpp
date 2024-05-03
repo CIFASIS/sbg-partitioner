@@ -53,15 +53,6 @@ void version()
 }
 
 
-PartitionGraph create_initial_partition(SBG::LIB::CanonSBG& graph, unsigned number_of_partitions,
-               sbg_partitioner::PartitionAlgorithm algorithm, bool pre_order)
-{
-  PartitionGraph partition_graph(graph, number_of_partitions, algorithm, pre_order);
-
-  return partition_graph;
-}
-
-
 int main(int argc, char** argv)
 {
   int ret = 0;
@@ -123,20 +114,11 @@ int main(int argc, char** argv)
 
   auto sb_graph = build_sb_graph(filename->c_str());
 
-  PartitionGraph pgraph = create_initial_partition(sb_graph, *number_of_partitions, sbg_partitioner::GREEDY, true);
-  cout << pgraph << endl;
-
-  auto p = pgraph.partitions()[0];
-
-  unsigned ec = pgraph.internal_cost(p[0], 0);
-  cout << "External cost for " << p[0] << " is " << ec << endl;
-
-  int g = pgraph.gain({1, pgraph.partitions()[1][0]}, {0, pgraph.partitions()[0][0]});
-  cout << "Gain between " << pgraph.partitions()[1] << " and " << pgraph.partitions()[0] << " is " << g << endl;
+  auto partitions = make_initial_partition(sb_graph, *number_of_partitions, sbg_partitioner::GREEDY, true);
 
   cout << "Exit code: " << ret << endl;
 
-  kl_sbg(sb_graph, pgraph.partitions()[1], pgraph.partitions()[0]);
+  kl_sbg(sb_graph, partitions[1], partitions[0]);
 
   return ret;
 }
