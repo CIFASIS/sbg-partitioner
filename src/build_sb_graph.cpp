@@ -42,18 +42,23 @@ namespace sbg_partitioner {
 
 struct Var {
     string id;
-    INT exp_a;
-    INT exp_b;
+    vector<pair<INT, INT>> exps;
     vector<int> defs;
 };
 
 
 struct Node {
     int id;
-    int interval_start;
-    int interval_end;
+    vector<pair<int, int>> intervals;
     vector<Var> rhs;
     vector<Var> lhs;
+
+    Node(int id, vector<pair<int, int>>&& intervals, vector<Var>&& rhs, vector<Var>&& lhs)
+      : id(id),
+      intervals(intervals),
+      rhs(rhs),
+      lhs(lhs)
+    {}
 };
 
 
@@ -63,13 +68,25 @@ static vector<Var> read_var_object(const rapidjson::Value& var_array)
     vector<Var> vars;
     // vars.reserve(var_array.GetArray().Size());
     for (const auto &value : var_array.GetArray()) {
+        assert(value.HasMember("id") and value["id"].IsString());
         string id = value["id"].GetString();
 
-        auto expression = value["exp"].GetArray();
-        assert(expression.Size() == 2 and "Size of expression object is not as expected");
+        assert(value.HasMember("exp") and value["exp"].IsArray());
+        auto expressions = value["exp"].GetArray();
 
-        int exp_a = expression[0].GetInt();
-        int exp_b = expression[1].GetInt();
+        vector<pair<INT, INT>> exps;
+        assert(expressions.Size() == 1 and "this is just for testing air conditioner example!!");
+        for (const auto& exp_array : expressions) {
+          assert(exp_array.IsArray());
+          const auto expression = exp_array.GetArray();
+
+          assert(expression.Size() == 2 and "Size of expression object is not as expected");
+
+          int exp_a = expression[0].GetInt();
+          int exp_b = expression[1].GetInt();
+
+          exps.push_back(make_pair(exp_a, exp_b));
+        }
 
         auto def_object = value["defs"].GetArray();
         vector<int> defs;
@@ -77,8 +94,7 @@ static vector<Var> read_var_object(const rapidjson::Value& var_array)
         for(const auto& def : def_object) {
             defs.push_back(def.GetInt());
         }
-
-        Var var = Var{id, exp_a, exp_b, defs};
+        Var var = Var{id, exps, defs};
         vars.push_back(var);
     }
 
@@ -92,29 +108,31 @@ static map<int, Node> create_node_objects_from_json(const Document& document)
 {
   auto nodes_array = document["nodes"].GetArray();
   map<int, Node> nodes;
-  int max_counter = 0;
   for (const auto& node : nodes_array) {
-    int id = node["id"].GetInt();
 
-    auto interval = node["interval"].GetArray();
-    assert(interval.Size() == 2 and "Size of interval is not as expected");
+    assert(node.HasMember("id") and node["id"].IsInt());
+    unsigned id = node["id"].GetInt();
 
-    int interval_start = interval[0].GetInt();
-    int interval_end = interval[1].GetInt();
-    max_counter = max(interval_end, max_counter);
+    string error_msg = "Interval " + to_string(id) + " format is wrong";
+    assert(node.HasMember("interval") and node["interval"].IsArray() and error_msg.c_str());
+
+    auto node_intervals = node["interval"].GetArray();
+
+    vector<pair<int, int>> intervals;
+    intervals.reserve(node_intervals.Size());
+    for (const auto& interval : node_intervals) {
+      assert(interval.IsArray() and interval.Size() == 2);
+
+      int interval_start = int(interval[0].GetInt());
+      int interval_end = int(interval[1].GetInt());
+
+      intervals.push_back(make_pair(interval_start, interval_end));
+    }
 
     vector<Var> rhs = read_var_object(node["rhs"]);
     vector<Var> lhs = read_var_object(node["lhs"]);
 
-    Node node_element = Node{id, interval_start, interval_end, vector<Var>(), vector<Var>()};
-
-    for (Var var : rhs) {
-      node_element.rhs.push_back(var);
-    }
-
-    for (Var var : lhs) {
-      node_element.lhs.push_back(var);
-    }
+    Node node_element = Node{int(id), std::move(intervals), std::move(rhs), std::move(lhs)};
 
     nodes.insert({node_element.id, node_element});
   }
@@ -124,11 +142,11 @@ static map<int, Node> create_node_objects_from_json(const Document& document)
 
 
 /// Creates a set of nodes, taking into accout the offset of each one to avoid collisions.
-static OrdSet create_set_of_nodes(const map<int, Node>& nodes, map<int, int>& node_offsets, int& max_value)
+static UnordSet create_set_of_nodes(const map<int, Node>& nodes, map<int, int>& node_offsets, int& max_value)
 {
   // We start to build out set of intervals from 0
   int current_max = 0;
-  OrdSet node_set;
+  UnordSet node_set;
   for (const auto& [id, node] : nodes) {
 
     cout << "Defining interval for node " << id << " ";
@@ -136,18 +154,20 @@ static OrdSet create_set_of_nodes(const map<int, Node>& nodes, map<int, int>& no
     // Define the interval and add it to the node set taking into account the current offset
     // Create an offset for each equation node. We want that each equation has its
     // own domain.
-    int interval_begin = current_max;
-    int interval_end = (node.interval_end - node.interval_start) + current_max;
-    Interval interval(interval_begin, 1, interval_end);
+    for (const auto& node_interval : node.intervals) {
+      int interval_begin = current_max;
+      int interval_end = (node_interval.second - node_interval.first) + current_max;
+      Interval interval(interval_begin, 1, interval_end);
 
-    node_set.emplace_hint(node_set.end(), interval);
-    cout << interval << endl;
+      node_set.emplace_hint(node_set.end(), interval);
+      cout << interval << endl;
 
-    // set this node offset, the difference between the interval and the original one
-    node_offsets[id] =  interval_begin - node.interval_start;
+      // set this node offset, the difference between the interval and the original one
+      node_offsets[id] =  interval_begin - node_interval.first;
 
-    // udpate max value
-    current_max = interval_end + 1;
+      // udpate max value
+      current_max = interval_end + 1;
+    }
   }
 
   // We save max value so edge domain will not collide with node domain
@@ -157,16 +177,21 @@ static OrdSet create_set_of_nodes(const map<int, Node>& nodes, map<int, int>& no
 }
 
 
-static vector<LExp> read_left_vars(const Node& node)
+static vector<Exp> read_left_vars(const Node& node)
 {
   const auto& l_nodes = node.lhs;
 
   assert(l_nodes.size() > 0);
 
-  vector<LExp> exps(l_nodes.size());
+  vector<Exp> exps;
   for (const auto& l_node : l_nodes) {
     Var var = l_node;
-    LExp exp = LExp(RAT(var.exp_a, 1), RAT(var.exp_b, 1));
+    Exp exp;
+
+    for (const auto& values : var.exps) {
+      exp.emplaceBack(LExp(RAT(values.first, 1), RAT(values.second, 1)));
+    }
+
     exps.push_back(exp);
   }
 
@@ -178,37 +203,52 @@ static vector<LExp> read_left_vars(const Node& node)
 /// @param pre_image  Subset of the domain of the expression we want to connect
 /// @param edge_domain  Domain of the map
 /// @param var_exp  Original expression of the variable
-static CanonMap create_map_interval(const OrdPWMDInter& pre_image, const Interval& edge_domain, const LExp& var_exp, int set_offset)
+static BaseMap create_map_interval(const UnordSet pre_image, const UnordSet& edge_domain, const Exp& var_exps, int set_offset)
 {
-  // If the slope is 0, we just return the expression.
-  if (var_exp.slope() == 0) {
-    LExp map_exp = var_exp;
+  BaseMap map;
+
+  map.set_dom(edge_domain);
+
+  Exp map_exps;
+  int i =0;
+  for (const auto& var_exp : var_exps.exps()) {
+    // If the slope is 0, we just return the expression.
+    if (var_exp.slope() == 0) {
+      cout << "Creating constant interval" << endl;
+      LExp map_exp = var_exp;
+      INT offset = var_exp.offset().numerator();
+      offset += set_offset;
+      map_exp.set_offset(RAT(offset, 1));
+      map_exps.emplaceBack(map_exp);
+      continue;
+    }
+
+    // Slope remains the same
+    LExp map_exp;
+    map_exp.set_slope(var_exp.slope());
+
+    // We start from the original offset and substract the domain offset
     INT offset = var_exp.offset().numerator();
     offset += set_offset;
+    offset = offset - minElem(edge_domain)[i];
+
+    // Then we take the minimum element of the pre-image and add the offset
+    INT min_elem = minElem(pre_image)[i];
+    offset += min_elem;
+
+    // We set the offset
     map_exp.set_offset(RAT(offset, 1));
-    return CanonMap(edge_domain, map_exp);
+    map_exps.emplaceBack(map_exp);
+
+    i++;
   }
 
-  // Slope remains the same
-  LExp map_exp;
-  map_exp.set_slope(var_exp.slope());
-
-  // We start from the original offset and substract the domain offset
-  INT offset = set_offset;
-  offset = offset - minElem(edge_domain);
-
-  // Then we take the minimum element of the pre-image and add the offset
-  INT min_elem = minElem(pre_image)[0];
-  offset += min_elem;
-
-  // We set the offset
-  map_exp.set_offset(RAT(offset, 1));
-
   // And create the map
-  CanonMap map = CanonMap(edge_domain, map_exp);
+  map.set_exp(map_exps);
 
   return map;
 }
+
 
 
 /// Ad hoc function to get pre image of an expression from its image.
@@ -228,106 +268,141 @@ Interval get_pre_image(const Interval& image_interval, const LExp& expression)
 /// @param node_offsets 
 /// @param max_value 
 /// @return 
-static tuple<OrdSet, CanonPWMap, CanonPWMap> create_graph_edges(
+static tuple<UnordSet, BasePWMap, BasePWMap> create_graph_edges(
         const std::map<int, Node>& nodes,
         const map<int, int>& node_offsets,
         int& max_value)
 {
-  OrdSet edge_set;  // Our set of edges
-  CanonPWMap map_left_to_right;  // Map object of one of the sides
-  CanonPWMap map_right_to_left; // Map object of one of the other side
+  UnordSet edge_set;  // Our set of edges
+  BasePWMap left_maps;  // Map object of one of the sides
+  BasePWMap right_maps; // Map object of one of the other side
 
   // We iterate the set of nodes read from the input file
   for (const auto& [id, node] : nodes) {
-    cout << "\nLooking for connection in node " << id << endl;
 
-    // Define the equation interval (without offsets)
-    Interval interval(node.interval_start, 1, node.interval_end);
+    // Define the equation intervals (without offsets)
+    UnordSet intervals;
+    SetPiece interval_set_piece;
+    assert(node.intervals.size() == 1);
+    for (const auto& node_interval : node.intervals) {
+      Interval interval(node_interval.first, 1, node_interval.second);
+      interval_set_piece.emplaceBack(interval);
+    }
+    intervals.emplace(interval_set_piece);
+
+    vector<Exp> this_node_exps = read_left_vars(node);
 
     // Now, iterate the right expresions to connect them to their definitions.
     // When we say left_sth we are talking about the variable defined on the left side,
     // Analogous for right_sth
     for (const Var &right_var : node.rhs) {
-      cout << "Looking for connection for var " << right_var.id << endl;
-      LExp right_exp = LExp(RAT(right_var.exp_a, 1), RAT(right_var.exp_b, 1));
-      Interval right_node_image = image(interval, right_exp);
+      Exp right_exps;
+      for (const auto& exp_values : right_var.exps) {
+        LExp right_exp = LExp(RAT(exp_values.first, 1), RAT(exp_values.second, 1));
+        right_exps.emplaceBack(right_exp);
+      }
+
+      auto base_map = BaseMap(intervals, right_exps);
+      auto right_node_image = image(BaseMap(intervals, right_exps));
 
       // Definitions of this variable are on defs field. We iterate it so we
       // can map them.
       for (int i : right_var.defs) {
         cout << "Is it connected to " << i << "?" << endl;
         auto left_node = nodes.at(i);
-        Interval left_interval(left_node.interval_start, 1, left_node.interval_end);
-        vector<LExp> left_exps = read_left_vars(left_node);
+
+        UnordSet left_intervals;
+        SetPiece left_intervals_set_piece;
+        for (const auto& node_interval : left_node.intervals) {
+          Interval left_interval(node_interval.first, 1, node_interval.second);
+          left_intervals_set_piece.emplaceBack(left_interval);
+        }
+        left_intervals.emplace(left_intervals_set_piece);
+
+        vector<Exp> left_exps = read_left_vars(left_node);
         for (const auto& left_exp : left_exps) {
-          Interval left_node_image = image(left_interval, left_exp);
+          auto left_node_image = image(left_intervals, BaseMap(left_intervals, left_exp));
 
           // we want to see if the intersection of the images is not empty
-          Interval image_intersection = intersection(right_node_image, left_node_image);
+          auto image_intersection = intersection(right_node_image, left_node_image);
           if (isEmpty(image_intersection)) {
             cout << "No, it is not" << endl;
             continue;
           }
           cout << "Yes, it is" << endl;
 
-          // Edge domain will be from the current max value and will have the quantity as the intersection
-          INT domain_offset = image_intersection.end() - image_intersection.begin();
+          UnordSet edge_domain_set;
+          auto image_intersection_set = image_intersection[0];
+          for (size_t i = 0; i < image_intersection_set.size(); i++){
+            // Edge domain will be from the current max value and will have the quantity as the intersection
+            auto image_int = image_intersection_set[i];
 
-          // domain for both edges
-          Interval edge_domain(max_value, 1, max_value + domain_offset);
-          edge_set.emplace_hint(edge_set.end(), edge_domain);
+            auto domain_offset = image_int.end() - image_int.begin();
 
-          // Update maximum value
-          max_value = maxElem(edge_domain) + 1;
+            // domain for both edges
+            Interval edge_domain(max_value, 1, max_value + domain_offset);
+            edge_set.emplace_hint(edge_set.end(), edge_domain);
+
+            // Update maximum value
+            max_value = maxElem(edge_domain) + 1;
+
+            edge_domain_set.emplace(edge_domain);
+          }
 
           // Create and save map interval to connect right var to left var
-          // right_exp.set_offset(right_exp.offset() + ); // hack
-          auto pre_image_right_to_left_exp = get_pre_image(image_intersection, right_exp);
-          auto right_map_interval = create_map_interval(pre_image_right_to_left_exp, edge_domain, right_exp, node_offsets.at(id));
-          map_right_to_left.emplace(right_map_interval);
+          BasePWMap maps;
+          for (auto& i : intervals) {
+            auto map = BaseMap(UnordSet(i), right_exps);
+            maps.emplaceBack(map);
+          }
+
+          auto pre_image_right = preImage(image_intersection, maps);
 
           // Create and save map interval to connect left var to right var
-          auto pre_image_left_to_right_exp = get_pre_image(image_intersection, left_exp);
-          auto left_map_interval = create_map_interval(pre_image_left_to_right_exp, edge_domain, left_exp, node_offsets.at(left_node.id));
-          map_left_to_right.emplace(left_map_interval);
+          auto pre_image_left = preImage(image_intersection, maps);
+          auto left_map_interval = create_map_interval(pre_image_left, edge_domain_set, left_exp, node_offsets.at(left_node.id));
+          left_maps.emplace(left_map_interval);
+
+          auto right_map_interval = create_map_interval(pre_image_right, edge_domain_set, this_node_exps[0], node_offsets.at(id));
+          right_maps.emplace(right_map_interval);
         }
       }
     }
   }
 
-  return {edge_set, map_left_to_right, map_right_to_left};
+  return {edge_set, left_maps, right_maps};
 }
 
 
 /// @brief  Add documentation
 /// @param nodes 
 /// @return 
-static CanonSBG create_sb_graph(const std::map<int, Node>& nodes)
+static BaseSBG create_sb_graph(const std::map<int, Node>& nodes)
 {
   int max_value = 0;  // We track the max value, so we avoid domain collision between edges and nodes
   map<int, int> node_offsets;
 
   // Now, we create our set of nodes.
-  OrdSet node_set = create_set_of_nodes(nodes, node_offsets, max_value);
+  UnordSet node_set = create_set_of_nodes(nodes, node_offsets, max_value);
 
   // Now, let's build a graph!
-  CanonSBG graph; // This will be our graph
+  BaseSBG graph; // This will be our graph
 
   /// Firstly, add each node piece to the graph.
   for (SetPiece mdi : node_set.pieces())
-    graph = addSV(OrdSet(mdi), graph);
+    graph = addSV(UnordSet(mdi), graph);
 
   // Then, create edges and maps.
-  const auto [edge_set, map_left_to_right, map_right_to_left] = create_graph_edges(nodes, node_offsets, max_value);
+  const auto [edge_set, left_maps, right_maps] = create_graph_edges(nodes, node_offsets, max_value);
 
   // now add those edges and maps to the graph
-  graph = addSE(map_left_to_right, map_right_to_left, graph);
+  graph = addSE(left_maps, right_maps, graph);
 
   return graph;
 }
 
 
-CanonSBG build_sb_graph(const string& filename)
+BaseSBG build_sb_graph(const string& filename)
 {
   cout << "Reading " << filename << "..." << endl;
 
@@ -341,9 +416,7 @@ CanonSBG build_sb_graph(const string& filename)
   auto nodes = create_node_objects_from_json(document);
 
   // Now, let's get our graph
-  CanonSBG graph = create_sb_graph(nodes);
-
-  cout << graph << endl;
+  auto graph = create_sb_graph(nodes);
 
   return graph;
 }
@@ -357,7 +430,7 @@ static unsigned add_adjacent_nodes(const CanonMap& incoming_map, const CanonMap&
   unsigned qty = 0;
   if (not isEmpty(node_map_intersection)) {
 
-    auto pre_image = preImage(OrdSet(node_map_intersection), incoming_map);//get_pre_image(node_map_intersection[0], incoming_map.exp()[0]);
+    auto pre_image = preImage(OrdSet(node_map_intersection), incoming_map);
     auto adjs = image(pre_image[0], arrival_map.exp());
     qty += adjs[0].end() - adjs[0].begin() + 1;
     adjacents.emplaceBack(adjs[0]);
@@ -375,8 +448,6 @@ OrdSet get_adjacents(const CanonSBG& graph, const SetPiece& node)
   for (size_t map_counter = 0; map_counter < graph.map1().size(); map_counter++) {
       const auto map1 = graph.map1()[map_counter];
       const auto map2 = graph.map2()[map_counter];
-
-      cout << "Maps are " << map1 << ", " << map2 << endl;
 
       acc += add_adjacent_nodes(map1, map2, node, adjacents);
 
