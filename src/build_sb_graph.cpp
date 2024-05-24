@@ -279,6 +279,7 @@ static tuple<UnordSet, BasePWMap, BasePWMap> create_graph_edges(
 
   // We iterate the set of nodes read from the input file
   for (const auto& [id, node] : nodes) {
+    cout << "Looking for connections with " << id << endl;
 
     // Define the equation intervals (without offsets)
     UnordSet intervals;
@@ -329,7 +330,7 @@ static tuple<UnordSet, BasePWMap, BasePWMap> create_graph_edges(
             cout << "No, it is not" << endl;
             continue;
           }
-          cout << "Yes, it is" << endl;
+          cout << "Yes, it is: " << image_intersection << endl;
 
           UnordSet edge_domain_set;
           auto image_intersection_set = image_intersection[0];
@@ -349,20 +350,13 @@ static tuple<UnordSet, BasePWMap, BasePWMap> create_graph_edges(
             edge_domain_set.emplace(edge_domain);
           }
 
-          // Create and save map interval to connect right var to left var
-          BasePWMap maps;
-          for (auto& i : intervals) {
-            auto map = BaseMap(UnordSet(i), right_exps);
-            maps.emplaceBack(map);
-          }
-
-          auto pre_image_right = preImage(image_intersection, maps);
-
-          // Create and save map interval to connect left var to right var
-          auto pre_image_left = preImage(image_intersection, maps);
+          // Create and save lhs map
+          auto pre_image_left = preImage(BaseMap(image_intersection, left_exp));
           auto left_map_interval = create_map_interval(pre_image_left, edge_domain_set, left_exp, node_offsets.at(left_node.id));
           left_maps.emplace(left_map_interval);
 
+          // Create and save rhs map
+          auto pre_image_right = preImage(BaseMap(image_intersection, this_node_exps[0]));
           auto right_map_interval = create_map_interval(pre_image_right, edge_domain_set, this_node_exps[0], node_offsets.at(id));
           right_maps.emplace(right_map_interval);
         }
