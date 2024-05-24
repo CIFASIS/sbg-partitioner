@@ -41,7 +41,7 @@ public:
 
     /// pre_order: True means pre-order, False means post-order. In-order is not taken
     /// into account since the graph is not a binary tree.
-    DFS(SBG::LIB::CanonSBG& graph, unsigned number_of_partitions, std::unique_ptr<PartitionStrategy> partition_strategy, bool pre_order);
+    DFS(SBG::LIB::BaseSBG& graph, unsigned number_of_partitions, std::unique_ptr<PartitionStrategy> partition_strategy, bool pre_order);
 
     void start();
 
@@ -62,7 +62,7 @@ private:
 
     size_t _root_node_idx;
 
-    SBG::LIB::CanonSBG _graph;
+    SBG::LIB::BaseSBG  _graph;
 
     std::unique_ptr<PartitionStrategy> _partition_strategy;
 
@@ -70,7 +70,7 @@ private:
 
     void fill_current_node_stack();
 
-    void add_adjacent_nodes(const node_identifier id, const SBG::LIB::CanonMap& map, const SBG::LIB::SetPiece& edge);
+    void add_adjacent_nodes(const node_identifier id, const SBG::LIB::BaseMap& map, const SBG::LIB::SetPiece& edge);
 
     bool was_visited(node_identifier id);
     bool was_partially_visited(node_identifier id);

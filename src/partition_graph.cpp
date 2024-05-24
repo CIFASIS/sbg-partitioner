@@ -33,9 +33,9 @@ using namespace sbg_partitioner::search;
 namespace sbg_partitioner {
 
 
-map<unsigned, OrdSet> make_initial_partition(CanonSBG& graph, unsigned number_of_partitions, PartitionAlgorithm algorithm, bool pre_order)
+map<unsigned, UnordSet> make_initial_partition(BaseSBG& graph, unsigned number_of_partitions, PartitionAlgorithm algorithm, bool pre_order)
 {
-    map<unsigned, OrdSet> partitions_set;
+    map<unsigned, UnordSet> partitions_set;
     switch (algorithm) {
         case PartitionAlgorithm::GREEDY:
         default:
@@ -44,12 +44,11 @@ map<unsigned, OrdSet> make_initial_partition(CanonSBG& graph, unsigned number_of
             dfs.iterate();
 
             map<unsigned, set<SetPiece>> partitions = dfs.partitions();
-            std::cout << partitions.size() << std::endl;
 
             for (auto& [id, set] : partitions) {
-                SBG::LIB::OrdSet set_piece;
+                SBG::LIB::UnordSet set_piece;
                 for (auto& s : set) {
-                    set_piece.emplaceBack(s.intervals().front());
+                    set_piece.emplace(s.intervals().front());
                 }
                 partitions_set[id] = set_piece;
             }
@@ -60,8 +59,8 @@ map<unsigned, OrdSet> make_initial_partition(CanonSBG& graph, unsigned number_of
 
 
 unordered_set<size_t> get_connectivity_set(
-    CanonSBG& graph,
-    map<unsigned, OrdSet>& partitions,
+    BaseSBG& graph,
+    map<unsigned, UnordSet>& partitions,
     size_t edge_index)
 {
     unordered_set<size_t> connectivity_set = {};
@@ -89,8 +88,8 @@ unordered_set<size_t> get_connectivity_set(
 }
 
 
-size_t connectivity_set_cardinality(CanonSBG& graph,
-    map<unsigned, OrdSet>& partitions,
+size_t connectivity_set_cardinality(BaseSBG& graph,
+    map<unsigned, UnordSet>& partitions,
     size_t edge_index)
 {
     unordered_set<size_t> conn_set = get_connectivity_set(graph, partitions, edge_index);

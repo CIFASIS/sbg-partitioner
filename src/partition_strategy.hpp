@@ -44,7 +44,7 @@ public:
 class PartitionStrategyGreedy : public PartitionStrategy
 {
 public:
-    PartitionStrategyGreedy(unsigned number_of_partitions, const SBG::LIB::CanonSBG graph);
+    PartitionStrategyGreedy(unsigned number_of_partitions, const SBG::LIB::BaseSBG graph);
 
     virtual ~PartitionStrategyGreedy() = default;
 

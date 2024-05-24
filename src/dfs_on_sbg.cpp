@@ -30,7 +30,7 @@ using namespace sbg_partitioner;
 using namespace sbg_partitioner::search;
 
 
-DFS::DFS(CanonSBG& graph, unsigned number_of_partitions, std::unique_ptr<PartitionStrategy> partition_strategy, bool pre_order)
+DFS::DFS(BaseSBG & graph, unsigned number_of_partitions, std::unique_ptr<PartitionStrategy> partition_strategy, bool pre_order)
     : _number_of_partitions(number_of_partitions),
     _pre_order(pre_order),
     _graph(graph),
@@ -72,9 +72,9 @@ void DFS::initialize_adjacents()
 }
 
 
-void DFS::add_adjacent_nodes(const node_identifier id, const CanonMap& map, const SetPiece& edge)
+void DFS::add_adjacent_nodes(const node_identifier id, const BaseMap& map, const SetPiece& edge)
 {
-    const auto edge_map_intersection = intersection(edge.intervals()[0], map.dom());
+    const auto edge_map_intersection = intersection(UnordSet(edge.intervals()[0]), map.dom());
     if (not isEmpty(edge_map_intersection)) {
         const auto map_image = image(edge_map_intersection.pieces().begin()->intervals()[0], map.exp());
 

@@ -55,7 +55,7 @@ static pair<SetPiece, SetPiece> cut_interval(const SetPiece &interval, int cut_v
 }
 
 
-PartitionStrategyGreedy::PartitionStrategyGreedy(unsigned number_of_partitions, const CanonSBG graph)
+PartitionStrategyGreedy::PartitionStrategyGreedy(unsigned number_of_partitions, const BaseSBG graph)
     : PartitionStrategy(),
     _number_of_partitions(number_of_partitions),
     _current_partition(0)
