@@ -28,6 +28,8 @@
 
 namespace sbg_partitioner {
 
+typedef std::map<unsigned, SBG::LIB::UnordSet> PartitionMap;
+
 enum PartitionAlgorithm
 {
     GREEDY = 0,
@@ -36,7 +38,7 @@ enum PartitionAlgorithm
 
 // I wish this was a separate function, not part of PartitionGraph but there were a lot of
 // compile problems if partitions map object is created locally and UnordSet objects are added.
-std::map<unsigned, SBG::LIB::UnordSet>
+PartitionMap
 make_initial_partition(
     SBG::LIB::BaseSBG& graph,
     unsigned number_of_partitions,
@@ -49,7 +51,7 @@ make_initial_partition(
 /// So that, we consider the graph as an undirected graph.
 std::unordered_set<size_t> get_connectivity_set(
     SBG::LIB::BaseSBG& graph,
-    std::map<unsigned, SBG::LIB::UnordSet>& partitions,
+    PartitionMap& partitions,
     size_t edge_index);
 
 
@@ -59,7 +61,9 @@ std::unordered_set<size_t> get_connectivity_set(
 /// @return the cardinality of the connectivity set
 size_t connectivity_set_cardinality(
     SBG::LIB::BaseSBG& graph,
-    std::map<unsigned, SBG::LIB::UnordSet> partitions,
+    PartitionMap partitions,
     size_t edge_index);
+
+std::ostream& operator<<(std::ostream& os, const PartitionMap& partitions);
 
 }

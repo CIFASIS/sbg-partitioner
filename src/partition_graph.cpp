@@ -21,6 +21,7 @@
 
 #include "build_sb_graph.hpp"
 #include "dfs_on_sbg.hpp"
+#include "logger.hpp"
 #include "partition_graph.hpp"
 
 
@@ -33,26 +34,27 @@ using namespace sbg_partitioner::search;
 namespace sbg_partitioner {
 
 
-map<unsigned, UnordSet> make_initial_partition(BaseSBG& graph, unsigned number_of_partitions, PartitionAlgorithm algorithm, bool pre_order)
+PartitionMap make_initial_partition(BaseSBG& graph, unsigned number_of_partitions, PartitionAlgorithm algorithm, bool pre_order)
 {
-    map<unsigned, UnordSet> partitions_set;
+    PartitionMap partitions_set;
     switch (algorithm) {
         case PartitionAlgorithm::GREEDY:
         default:
-            DFS dfs(graph, number_of_partitions, make_unique<PartitionStrategyGreedy>(number_of_partitions, graph), pre_order);
-            dfs.start();
-            dfs.iterate();
-
-            map<unsigned, set<SetPiece>> partitions = dfs.partitions();
-
-            for (auto& [id, set] : partitions) {
-                SBG::LIB::UnordSet set_piece;
-                for (auto& s : set) {
-                    set_piece.emplace(s.intervals().front());
-                }
-                partitions_set[id] = set_piece;
-            }
+            initialize_partitioning(graph, number_of_partitions, make_unique<PartitionStrategyGreedy>(number_of_partitions, graph), pre_order);
     }
+
+    map<unsigned, set<SetPiece>> partitions = partitionate();
+
+    for (auto& [id, set] : partitions) {
+        SBG::LIB::UnordSet set_piece;
+        for (auto& s : set) {
+            set_piece.emplace(s.intervals().front());
+        }
+        partitions_set[id] = set_piece;
+    }
+
+
+    logger("partition_graph.txt", partitions_set);
 
     return partitions_set;
 }
@@ -60,7 +62,7 @@ map<unsigned, UnordSet> make_initial_partition(BaseSBG& graph, unsigned number_o
 
 unordered_set<size_t> get_connectivity_set(
     BaseSBG& graph,
-    map<unsigned, UnordSet>& partitions,
+    PartitionMap& partitions,
     size_t edge_index)
 {
     unordered_set<size_t> connectivity_set = {};
@@ -89,11 +91,21 @@ unordered_set<size_t> get_connectivity_set(
 
 
 size_t connectivity_set_cardinality(BaseSBG& graph,
-    map<unsigned, UnordSet>& partitions,
+    PartitionMap& partitions,
     size_t edge_index)
 {
     unordered_set<size_t> conn_set = get_connectivity_set(graph, partitions, edge_index);
     return conn_set.size();
+}
+
+
+ostream& operator<<(ostream& os, const PartitionMap& partitions)
+{
+    for(const auto& [i, p]: partitions) {
+        os << i << ", " << p << endl;
+    }
+
+    return os;
 }
 
 }

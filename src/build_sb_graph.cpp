@@ -29,6 +29,7 @@
 #include <util/defs.hpp>
 
 #include "build_sb_graph.hpp"
+#include "logger.hpp"
 
 
 using namespace rapidjson;
@@ -411,6 +412,8 @@ BaseSBG build_sb_graph(const string& filename)
 
   // Now, let's get our graph
   auto graph = create_sb_graph(nodes);
+
+  logger("build_sb_graph.txt", graph);
 
   return graph;
 }

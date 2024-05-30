@@ -26,8 +26,35 @@ using namespace std;
 using namespace SBG::LIB;
 using namespace SBG::Util;
 
-using namespace sbg_partitioner;
-using namespace sbg_partitioner::search;
+
+namespace sbg_partitioner {
+
+namespace search {
+
+static bool initialized = false;
+static DFS sort_object;
+
+void initialize_partitioning(
+    BaseSBG& graph,
+    unsigned number_of_partitions,
+    unique_ptr<PartitionStrategy> partition_strategy,
+    bool pre_order)
+{
+    initialized = true;
+    sort_object = DFS(graph, number_of_partitions, make_unique<PartitionStrategyGreedy>(number_of_partitions, graph), pre_order);
+    sort_object.start();
+}
+
+
+map<unsigned, set<SetPiece>> partitionate()
+{
+    assert(initialized and "Partioning was not inialized");
+
+    sort_object.iterate();
+    map<unsigned, set<SetPiece>> partitions = sort_object.partitions();
+
+    return partitions;
+}
 
 
 DFS::DFS(BaseSBG & graph, unsigned number_of_partitions, std::unique_ptr<PartitionStrategy> partition_strategy, bool pre_order)
@@ -139,9 +166,6 @@ void DFS::iterate()
 }
 
 
-map<DFS::node_identifier, set<DFS::node_identifier> > DFS::adjacents() const { return _adjacent; }
-
-
 std::map<unsigned, std::set<SBG::LIB::SetPiece>> DFS::partitions() const { return _partition_strategy->partitions(); }
 
 
@@ -196,4 +220,7 @@ void DFS::add_it_to_a_partition(node_identifier id)
 {
     auto v = _graph.V()[id];
     (*_partition_strategy)(v);
+}
+
+}
 }
