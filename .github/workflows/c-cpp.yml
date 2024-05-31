@@ -22,7 +22,7 @@ jobs:
     - name: Build
       working-directory: .
       run: |
-        make update-sbg-lib sbg_branch=iss-23-refactor repo_checkout=https
+        make update-sbg-lib sbg_branch=sbg-partioner-related-branch repo_checkout=https
         make 
     
     - name: Tests

@@ -1,7 +1,7 @@
 # Target variables
 MODE ?= Debug
 DISTRO := $(shell lsb_release -r 2>/dev/null | grep Release | awk '{ print $$2 }')
-sbg_branch ?= iss-23-refactor
+sbg_branch ?= sbg-partioner-related-branch
 build_sbg ?= True
 repo_checkout ?= ssh
 
@@ -98,6 +98,6 @@ help:
 	@echo "Default values:"
 	@echo ""
 	@echo "MODE=Debug"
-	@echo "sbg_branch=iss-23-refactor"
+	@echo "sbg_branch=sbg-partioner-related-branch"
 	@echo "build_sbg=True"
 	@echo "repo_checkout=ssh"
