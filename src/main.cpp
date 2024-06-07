@@ -26,9 +26,8 @@
 #include <string>
 
 #include "build_sb_graph.hpp"
-#include "partition_graph.hpp"
-
 #include "kernighan_lin_sbg.hpp"
+#include "partition_graph.hpp"
 
 using namespace std;
 
@@ -114,11 +113,15 @@ int main(int argc, char** argv)
 
   auto sb_graph = build_sb_graph(filename->c_str());
 
+  cout << sb_graph << endl;
+
   auto partitions = make_initial_partition(sb_graph, *number_of_partitions, sbg_partitioner::GREEDY, true);
 
-  cout << "Exit code: " << ret << endl;
+  cout << partitions << endl;
 
-  kl_sbg(sb_graph, partitions[1], partitions[0]);
+  // kl_sbg(sb_graph, partitions[1], partitions[0]);
+
+  // cout << "Exit code: " << ret << endl;
 
   return ret;
 }
