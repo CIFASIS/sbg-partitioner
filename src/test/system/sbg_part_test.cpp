@@ -29,10 +29,28 @@ class ISBGPartTests : public testing::TestWithParam<const char*> {
 TEST_P(ISBGPartTests, GenerateGraph)
 {
   const std::string NAME = GetParam();
-  std::cout << "Testing graph: " << NAME << std::endl;
+  std::cout << "Testing model: " << NAME << std::endl;
+  const std::string MODEL = " ./system/gt_data/" + NAME + "/" + NAME + ".json";
+  const std::string FOLDER_CMD = "mkdir ./system/test_data/" + NAME;
+  const std::string SBG_PART = "../../bin/sbg-partitioner";
+  const std::string ARGS = " -p 2 -f " + MODEL;
+  const std::string TEST_CMD = "./system/test_results.sh " + NAME;
+  const std::string RESULT_FILE = "./system/test_data/" + NAME + "/" + NAME + ".passed";
+  const std::string COMP_CMD = SBG_PART + ARGS + MODEL + "; mv SBG.log ./system/test_data/" + NAME + "/";
+
+  std::cout << "Setup data folders for " << NAME << std::endl;
+  std::system(FOLDER_CMD.c_str());
+  std::cout << "Testing model: " << NAME << std::endl;
+  std::system(COMP_CMD.c_str());
+  std::cout << "Check results for model: " << NAME << std::endl;
+  std::system(TEST_CMD.c_str());
+
+  std::ifstream result(RESULT_FILE.c_str());
+  EXPECT_TRUE(result.good());
+
   EXPECT_TRUE(true);
 }
 
-const char* models[] = {"dummy"};
+const char* models[] = {"simple", "toy_example"};
 
 INSTANTIATE_TEST_SUITE_P(Graphs, ISBGPartTests, testing::ValuesIn(models));
