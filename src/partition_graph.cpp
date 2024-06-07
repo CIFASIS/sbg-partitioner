@@ -18,16 +18,17 @@
  ******************************************************************************/
 
 #include <set>
+#include <util/logger.hpp>
 
 #include "build_sb_graph.hpp"
 #include "dfs_on_sbg.hpp"
-#include "logger.hpp"
 #include "partition_graph.hpp"
 
 
 using namespace std;
 
 using namespace SBG::LIB;
+using namespace SBG::Util;
 
 using namespace sbg_partitioner::search;
 
@@ -54,7 +55,7 @@ PartitionMap make_initial_partition(BaseSBG& graph, unsigned number_of_partition
     }
 
 
-    logger("partition_graph.txt", partitions_set);
+    SBG_LOG << partitions_set;
 
     return partitions_set;
 }

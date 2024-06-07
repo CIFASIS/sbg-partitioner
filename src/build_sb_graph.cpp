@@ -27,9 +27,9 @@
 #include <rapidjson/istreamwrapper.h>
 #include <vector>
 #include <util/defs.hpp>
+#include <util/logger.hpp>
 
 #include "build_sb_graph.hpp"
-#include "logger.hpp"
 
 
 using namespace rapidjson;
@@ -204,7 +204,7 @@ static vector<Exp> read_left_vars(const Node& node)
 /// @param pre_image  Subset of the domain of the expression we want to connect
 /// @param edge_domain  Domain of the map
 /// @param var_exp  Original expression of the variable
-static BaseMap create_map_interval(const UnordSet pre_image, const UnordSet& edge_domain, const Exp& var_exps, int set_offset)
+static BaseMap create_set_edge_map(const UnordSet& pre_image, const UnordSet& edge_domain, const Exp& var_exps, int set_offset)
 {
   BaseMap map;
 
@@ -264,21 +264,56 @@ Interval get_pre_image(const Interval& image_interval, const LExp& expression)
 }
 
 
-/// @brief Add documentation
-/// @param nodes 
-/// @param node_offsets 
-/// @param max_value 
-/// @return 
+
+template<typename Set>
+static Set get_node_domain(Node node)
+{
+  // Domain of the node candidate
+  Set node_intervals;
+  SetPiece node_set_piece;
+  for (const auto& node_interval : node.intervals) {
+    Interval interval(node_interval.first, 1, node_interval.second);
+    node_set_piece.emplaceBack(interval);
+  }
+  node_intervals.emplace(node_set_piece);
+
+  return node_intervals;
+}
+
+
+template<typename S, typename T>
+static S get_edge_domain(SetPiece image_intersection_set, T& edge_set, int& max_value)
+{
+  S edge_domain_set;
+  for (size_t i = 0; i < image_intersection_set.size(); i++) {
+    // Edge domain will be from the current max value and will have the quantity as the intersection
+    auto image_int = image_intersection_set[i];
+
+    auto domain_offset = image_int.end() - image_int.begin();
+
+    // domain for both edges
+    Interval edge_domain(max_value, 1, max_value + domain_offset);
+
+    // Update maximum value
+    max_value = maxElem(edge_domain) + 1;
+
+    edge_domain_set.emplace(edge_domain);
+    edge_set.emplace_hint(edge_set.end(), edge_domain);
+  }
+
+  return edge_domain_set;
+}
+
+
 static tuple<UnordSet, BasePWMap, BasePWMap> create_graph_edges(
         const std::map<int, Node>& nodes,
         const map<int, int>& node_offsets,
         int& max_value)
 {
   UnordSet edge_set;  // Our set of edges
-  BasePWMap left_maps;  // Map object of one of the sides
-  BasePWMap right_maps; // Map object of one of the other side
+  BasePWMap rhs_maps;  // Map object of one of the sides
+  BasePWMap lhs_maps; // Map object of one of the other side
 
-  // We iterate the set of nodes read from the input file
   for (const auto& [id, node] : nodes) {
     cout << "Looking for connections with " << id << endl;
 
@@ -294,9 +329,7 @@ static tuple<UnordSet, BasePWMap, BasePWMap> create_graph_edges(
 
     vector<Exp> this_node_exps = read_left_vars(node);
 
-    // Now, iterate the right expresions to connect them to their definitions.
-    // When we say left_sth we are talking about the variable defined on the left side,
-    // Analogous for right_sth
+    // Now, iterate the right hand side expresions to connect them to their definitions.
     for (const Var &right_var : node.rhs) {
       Exp right_exps;
       for (const auto& exp_values : right_var.exps) {
@@ -304,70 +337,56 @@ static tuple<UnordSet, BasePWMap, BasePWMap> create_graph_edges(
         right_exps.emplaceBack(right_exp);
       }
 
-      auto base_map = BaseMap(intervals, right_exps);
-      auto right_node_image = image(BaseMap(intervals, right_exps));
+      // Now, calculate the image of the rhs expression
+      auto rhs_map = BaseMap(intervals, right_exps);
+      // This is the image *used* by this expression, wwe want to
+      // check where is defined.
+      auto used_node_image = image(BaseMap(intervals, right_exps));
 
-      // Definitions of this variable are on defs field. We iterate it so we
-      // can map them.
+      // Definitions of this variable are on defs field. We want to check if
+      // intersects with any node
       for (int i : right_var.defs) {
         cout << "Is it connected to " << i << "?" << endl;
-        auto left_node = nodes.at(i);
+        auto node_candidate = nodes.at(i);
 
-        UnordSet left_intervals;
-        SetPiece left_intervals_set_piece;
-        for (const auto& node_interval : left_node.intervals) {
-          Interval left_interval(node_interval.first, 1, node_interval.second);
-          left_intervals_set_piece.emplaceBack(left_interval);
+        // Domain of the node candidate
+        UnordSet node_candidate_intervals = get_node_domain<UnordSet>(node_candidate);
+
+        // Now, get the image.
+        auto node_candidate_exps = read_left_vars(node_candidate)[0]; // we should check on this, we should define how
+                                                                      // to proceed with these cases when we have more
+                                                                      // than one expression in the left hand side.
+                                                                      // https://github.com/CIFASIS/sbg-partitioner/issues/19
+        auto node_candidate_basemap = BaseMap(node_candidate_intervals, node_candidate_exps);
+        auto node_candidate_image = image(node_candidate_basemap);
+
+        // we want to see if the intersection of the images is not empty
+        auto candidate_image_intersection = intersection(node_candidate_image, used_node_image);
+        if (isEmpty(candidate_image_intersection)) {
+          cout << "No, it is not" << endl;
+          continue;
         }
-        left_intervals.emplace(left_intervals_set_piece);
+        cout << "Yes, it is: " << candidate_image_intersection << endl;
 
-        vector<Exp> left_exps = read_left_vars(left_node);
-        for (const auto& left_exp : left_exps) {
-          auto left_node_image = image(left_intervals, BaseMap(left_intervals, left_exp));
+        // Now we need to create both maps, let's create their domain.
+        auto image_intersection_set = candidate_image_intersection[0];
+        UnordSet edge_domain_set = get_edge_domain<UnordSet>(image_intersection_set, edge_set, max_value);
 
-          // we want to see if the intersection of the images is not empty
-          auto image_intersection = intersection(right_node_image, left_node_image);
-          if (isEmpty(image_intersection)) {
-            cout << "No, it is not" << endl;
-            continue;
-          }
-          cout << "Yes, it is: " << image_intersection << endl;
+        // Create map to node candidate
+        auto node_candidate_map = create_set_edge_map(candidate_image_intersection, edge_domain_set, node_candidate_exps, node_offsets.at(i));
+        rhs_maps.emplace(node_candidate_map);
 
-          UnordSet edge_domain_set;
-          auto image_intersection_set = image_intersection[0];
-          for (size_t i = 0; i < image_intersection_set.size(); i++){
-            // Edge domain will be from the current max value and will have the quantity as the intersection
-            auto image_int = image_intersection_set[i];
-
-            auto domain_offset = image_int.end() - image_int.begin();
-
-            // domain for both edges
-            Interval edge_domain(max_value, 1, max_value + domain_offset);
-            edge_set.emplace_hint(edge_set.end(), edge_domain);
-
-            // Update maximum value
-            max_value = maxElem(edge_domain) + 1;
-
-            edge_domain_set.emplace(edge_domain);
-          }
-
-          // Create and save lhs map
-          auto pre_image_left = preImage(BaseMap(image_intersection, left_exp));
-          auto left_map_interval = create_map_interval(pre_image_left, edge_domain_set, left_exp, node_offsets.at(left_node.id));
-          left_maps.emplace(left_map_interval);
-
-          // Create and save rhs map
-          auto pre_image_right = preImage(BaseMap(image_intersection, this_node_exps[0]));
-          auto right_map_interval = create_map_interval(pre_image_right, edge_domain_set, this_node_exps[0], node_offsets.at(id));
-          right_maps.emplace(right_map_interval);
-        }
+        // Create map to current node
+        auto pre_image_current_node = preImage(UnordSet(image_intersection_set), rhs_map);
+        auto im = image(BaseMap(UnordSet(pre_image_current_node), this_node_exps[0]));
+        auto current_node_map = create_set_edge_map(im, edge_domain_set, this_node_exps[0], node_offsets.at(id));
+        lhs_maps.emplace(current_node_map);
       }
     }
   }
 
-  return {edge_set, left_maps, right_maps};
+  return {edge_set, rhs_maps, lhs_maps};
 }
-
 
 /// @brief  Add documentation
 /// @param nodes 
@@ -384,8 +403,9 @@ static BaseSBG create_sb_graph(const std::map<int, Node>& nodes)
   BaseSBG graph; // This will be our graph
 
   /// Firstly, add each node piece to the graph.
-  for (SetPiece mdi : node_set.pieces())
+  for (SetPiece mdi : node_set.pieces()) {
     graph = addSV(UnordSet(mdi), graph);
+  }
 
   // Then, create edges and maps.
   const auto [edge_set, left_maps, right_maps] = create_graph_edges(nodes, node_offsets, max_value);
@@ -413,7 +433,7 @@ BaseSBG build_sb_graph(const string& filename)
   // Now, let's get our graph
   auto graph = create_sb_graph(nodes);
 
-  logger("build_sb_graph.txt", graph);
+  SBG_LOG << graph;
 
   return graph;
 }
