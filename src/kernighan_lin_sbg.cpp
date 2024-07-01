@@ -102,6 +102,7 @@ static size_t get_c_ab(
 ec_ic compute_EC_IC(
     const UnordSet& partition,
     const UnordSet& nodes,
+    const UnordSet& partition_2,
     const BasePWMap& departure_map,
     const BasePWMap& arrival_map)
 {
@@ -113,6 +114,7 @@ ec_ic compute_EC_IC(
         auto im = image(d, map_2);
         auto ic_nodes = intersection(partition, im);
         auto ec_nodes = difference(im, ic_nodes);
+        ec_nodes = intersection(ec_nodes, partition_2);
         auto ic_ = preImage(ic_nodes, map_2);
         auto ec_ = preImage(ec_nodes, map_2);
         ec = cup(ec_, ec);
@@ -145,10 +147,10 @@ static GainObject compute_diff(
 
     // Now, compute external and internal cost for both maps
     UnordSet ec_nodes_a_1, ic_nodes_a_1;
-    tie(ec_nodes_a_1, ic_nodes_a_1) = compute_EC_IC(partition_a, a, graph.map1(), graph.map2());
+    tie(ec_nodes_a_1, ic_nodes_a_1) = compute_EC_IC(partition_a, a, partition_b, graph.map1(), graph.map2());
 
     UnordSet ec_nodes_a_2, ic_nodes_a_2;
-    tie(ec_nodes_a_2, ic_nodes_a_2) = compute_EC_IC(partition_a, a, graph.map2(), graph.map1());
+    tie(ec_nodes_a_2, ic_nodes_a_2) = compute_EC_IC(partition_a, a, partition_b, graph.map2(), graph.map1());
 
     // Get the union between both external and internal costs for both combination of maps
     UnordSet ec_nodes_a, ic_nodes_a;
@@ -163,10 +165,10 @@ static GainObject compute_diff(
 
     // Same as before for partition b
     UnordSet ec_nodes_b_1, ic_nodes_b_1;
-    tie(ec_nodes_b_1, ec_nodes_b_1) = compute_EC_IC(partition_b, b, graph.map1(), graph.map2());
+    tie(ec_nodes_b_1, ec_nodes_b_1) = compute_EC_IC(partition_b, b, partition_a, graph.map1(), graph.map2());
 
     UnordSet ec_nodes_b_2, ic_nodes_b_2;
-    tie(ec_nodes_b_2, ic_nodes_b_2) = compute_EC_IC(partition_b, b, graph.map2(), graph.map1());
+    tie(ec_nodes_b_2, ic_nodes_b_2) = compute_EC_IC(partition_b, b, partition_a, graph.map2(), graph.map1());
 
     UnordSet ec_nodes_b, ic_nodes_b;
     // ec_nodes_b = intersection(cup(ec_nodes_b_1, ec_nodes_b_2), partition_a);
@@ -348,11 +350,6 @@ void kl_sbg(const BaseSBG& graph, UnordSet& partition_a, UnordSet& partition_b)
     CostMatrix gm = generate_gain_matrix(partition_a, partition_b, graph);
 
     cout << gm << endl;
-
-    if (gm.begin()->gain <=0) {
-        cout << "returning soon since there is no gain" << endl;
-        return;
-    }
 
     while ((not isEmpty(a_c)) and (not isEmpty(b_c))) {
         auto g = max_diff(gm, a_c, b_c, graph);

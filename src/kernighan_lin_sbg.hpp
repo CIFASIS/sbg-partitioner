@@ -45,9 +45,16 @@ struct GainObjectComparator {
 using CostMatrix = std::set<GainObject, GainObjectComparator>;
 
 
+// void kl_sbg_bipart()
+
 void kl_sbg(const SBG::LIB::BaseSBG& graph, SBG::LIB::UnordSet& partition_a, SBG::LIB::UnordSet& partition_b);
 
-ec_ic compute_EC_IC(const SBG::LIB::UnordSet& partition, const SBG::LIB::UnordSet& nodes, const SBG::LIB::BasePWMap& departure_map, const SBG::LIB::BasePWMap& arrival_map);
+ec_ic compute_EC_IC(
+    const SBG::LIB::UnordSet& partition,
+    const SBG::LIB::UnordSet& nodes,
+    const SBG::LIB::UnordSet& partition_2,
+    const SBG::LIB::BasePWMap& departure_map,
+    const SBG::LIB::BasePWMap& arrival_map);
 
 
 std::ostream& operator<<(std::ostream& os, const GainObject& gain);
