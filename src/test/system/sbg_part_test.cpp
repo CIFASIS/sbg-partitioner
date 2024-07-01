@@ -51,6 +51,6 @@ TEST_P(ISBGPartTests, GenerateGraph)
   EXPECT_TRUE(true);
 }
 
-const char* models[] = {"simple", "toy_example"};
+const char* models[] = {"air_conditioners", "simple", "toy_example"};
 
 INSTANTIATE_TEST_SUITE_P(Graphs, ISBGPartTests, testing::ValuesIn(models));

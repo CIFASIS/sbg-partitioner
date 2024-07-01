@@ -20,6 +20,7 @@
 #include <set>
 #include <sbg/sbg.hpp>
 #include <vector>
+#include <util/logger.hpp>
 #include <utility>
 
 #include "kernighan_lin_sbg.hpp"
@@ -31,6 +32,7 @@
 using namespace std;
 
 using namespace SBG::LIB;
+using namespace SBG::Util;
 
 namespace sbg_partitioner {
 
@@ -273,7 +275,7 @@ static pair<SetPiece, SetPiece> update_sets(
 
     // At least one of them should be fully used?
     // cout << node_a_is_fully_used << ", " <<  node_b_is_fully_used << endl;
-    // assert(node_a_is_fully_used or node_b_is_fully_used);
+    assert(node_a_is_fully_used or node_b_is_fully_used);
 
     partition_a = difference(partition_a, node_a);
     partition_b = difference(partition_b, node_b);
@@ -368,6 +370,8 @@ void kl_sbg(const BaseSBG& graph, UnordSet& partition_a, UnordSet& partition_b)
     cout << gm <<endl;
 
     cout << "so it ends with " << gm << ", " << max_par_sum << ", " << partition_a << ", " << partition_b << endl;
+
+    SBG_LOG << partition_a << ", " << partition_b << endl;
 }
 
 }
