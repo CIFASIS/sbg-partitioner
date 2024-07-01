@@ -256,7 +256,7 @@ static pair<SetPiece, SetPiece> update_sets(
     UnordSet& current_moved_partition_b,
     const GainObject& gain_object)
 {
-    auto node_a = partition_a[gain_object.j];
+    auto node_a = partition_a[gain_object.i];
     size_t partition_size_a = node_a.intervals()[0].end() - node_a.intervals()[0].begin() + 1;
     bool node_a_is_fully_used = partition_size_a == gain_object.size;
 
