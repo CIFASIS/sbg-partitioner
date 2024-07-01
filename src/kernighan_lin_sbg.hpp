@@ -25,9 +25,6 @@
 
 namespace sbg_partitioner
 {
-void kl_sbg(const SBG::LIB::CanonSBG& graph, SBG::LIB::OrdSet& partition_a, SBG::LIB::OrdSet& partition_b);
-
-// void kl_sbg_bipart();
 
 struct GainObject {
     size_t i;
@@ -36,6 +33,8 @@ struct GainObject {
     size_t size;
 };
 
+using ec_ic = std::pair<SBG::LIB::UnordPWMDInter , SBG::LIB::UnordPWMDInter>;
+
 struct GainObjectComparator {
     bool operator()(const GainObject& gain_1, const GainObject& gain_2) const
     {
@@ -43,10 +42,16 @@ struct GainObjectComparator {
     }
 };
 
-using ec_ic = std::pair<SBG::LIB::OrdPWMDInter , SBG::LIB::OrdPWMDInter>;
-
 using CostMatrix = std::set<GainObject, GainObjectComparator>;
 
+
+void kl_sbg(const SBG::LIB::BaseSBG& graph, SBG::LIB::UnordSet& partition_a, SBG::LIB::UnordSet& partition_b);
+
+ec_ic compute_EC_IC(const SBG::LIB::UnordSet& partition, const SBG::LIB::UnordSet& nodes, const SBG::LIB::BasePWMap& departure_map, const SBG::LIB::BasePWMap& arrival_map);
+
+
 std::ostream& operator<<(std::ostream& os, const GainObject& gain);
+
+std::ostream& operator<<(std::ostream& os, const CostMatrix& cost_matrix);
 
 }; // namespace sbg_partitioner

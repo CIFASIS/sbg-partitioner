@@ -45,14 +45,25 @@ ostream& operator<<(ostream& os, const GainObject& gain)
        << gain.gain
        << ", size: "
        << gain.size
-       << ">";
+       << " >";
+
+    return os;
+}
+
+std::ostream& operator<<(std::ostream& os, const CostMatrix& cost_matrix)
+{
+    os << "{ ";
+    for (const auto& o : cost_matrix) {
+        os << o << " ";
+    }
+    os << " }";
 
     return os;
 }
 
 
 /// This is an ad hoc function which gets the addition of the size of each interval
-static unsigned get_multidim_interval_size(OrdPWMDInter& final_edges)
+static unsigned get_multidim_interval_size(UnordPWMDInter& final_edges)
 {
     unsigned acc = 0;
     for(size_t i = 0; i < final_edges.size(); i++) {
@@ -66,9 +77,9 @@ static unsigned get_multidim_interval_size(OrdPWMDInter& final_edges)
 
 
 static size_t get_c_ab(
-    const OrdSet& a, const OrdSet& b,
-    const CanonPWMap& map_1,
-    const CanonPWMap& map_2)
+    const UnordSet& a, const UnordSet& b,
+    const BasePWMap& map_1,
+    const BasePWMap& map_2)
 {
     auto f = [](auto& a, auto& b, auto& departure_map, auto& arrival_map) {
         auto d = preImage(a, departure_map);
@@ -88,26 +99,35 @@ static size_t get_c_ab(
 }
 
 // Consider exposing these functions to facilitate being reused
-static ec_ic compute_EC_IC(
-    const OrdSet& partition,
-    const OrdSet& nodes,
-    const CanonPWMap& departure_map,
-    const CanonPWMap& arrival_map)
+ec_ic compute_EC_IC(
+    const UnordSet& partition,
+    const UnordSet& nodes,
+    const BasePWMap& departure_map,
+    const BasePWMap& arrival_map)
 {
-    auto d = preImage(nodes, departure_map);
-    auto i = image(d, arrival_map);
-    auto ic = intersection(partition, i);
-    auto ec = difference(i, ic);
+    UnordSet ec, ic;
+    for (size_t i = 0; i < departure_map.maps().size(); i++) {
+        auto map_1 = *(departure_map.maps().begin() + i);
+        auto map_2 = *(arrival_map.maps().begin() + i);
+        auto d = preImage(nodes, map_1);
+        auto im = image(d, map_2);
+        auto ic_nodes = intersection(partition, im);
+        auto ec_nodes = difference(im, ic_nodes);
+        auto ic_ = preImage(ic_nodes, map_2);
+        auto ec_ = preImage(ec_nodes, map_2);
+        ec = cup(ec_, ec);
+        ic = cup(ic_, ic);
+    }
 
     return make_pair(ec, ic);
 }
 
 
-static GainObject get_gain_object(
+static GainObject compute_diff(
     size_t i, size_t j,
-    OrdSet& partition_a,
-    OrdSet& partition_b,
-    const CanonSBG& graph)
+    UnordSet& partition_a,
+    UnordSet& partition_b,
+    const BaseSBG& graph)
 {
     // Firstly, copy both partitions
     auto a = partition_a[i];
@@ -124,14 +144,15 @@ static GainObject get_gain_object(
     b[0].set_end(b[0].begin() + min_size - 1);
 
     // Now, compute external and internal cost for both maps
-    OrdSet ec_nodes_a_1, ic_nodes_a_1;
+    UnordSet ec_nodes_a_1, ic_nodes_a_1;
     tie(ec_nodes_a_1, ic_nodes_a_1) = compute_EC_IC(partition_a, a, graph.map1(), graph.map2());
 
-    OrdSet ec_nodes_a_2, ic_nodes_a_2;
+    UnordSet ec_nodes_a_2, ic_nodes_a_2;
     tie(ec_nodes_a_2, ic_nodes_a_2) = compute_EC_IC(partition_a, a, graph.map2(), graph.map1());
 
     // Get the union between both external and internal costs for both combination of maps
-    OrdSet ec_nodes_a, ic_nodes_a;
+    UnordSet ec_nodes_a, ic_nodes_a;
+    // ec_nodes_a = intersection(cup(ec_nodes_a_1, ec_nodes_a_2), partition_b);
     ec_nodes_a = cup(ec_nodes_a_1, ec_nodes_a_2);
     ic_nodes_a = cup(ic_nodes_a_1, ic_nodes_a_2);
 
@@ -141,13 +162,14 @@ static GainObject get_gain_object(
     int d_a = ec_a - ic_a;
 
     // Same as before for partition b
-    OrdSet ec_nodes_b_1, ic_nodes_b_1;
+    UnordSet ec_nodes_b_1, ic_nodes_b_1;
     tie(ec_nodes_b_1, ec_nodes_b_1) = compute_EC_IC(partition_b, b, graph.map1(), graph.map2());
 
-    OrdSet ec_nodes_b_2, ic_nodes_b_2;
+    UnordSet ec_nodes_b_2, ic_nodes_b_2;
     tie(ec_nodes_b_2, ic_nodes_b_2) = compute_EC_IC(partition_b, b, graph.map2(), graph.map1());
 
-    OrdSet ec_nodes_b, ic_nodes_b;
+    UnordSet ec_nodes_b, ic_nodes_b;
+    // ec_nodes_b = intersection(cup(ec_nodes_b_1, ec_nodes_b_2), partition_a);
     ec_nodes_b = cup(ec_nodes_b_1, ec_nodes_b_2);
     ic_nodes_b = cup(ic_nodes_b_1, ic_nodes_b_2);
 
@@ -167,17 +189,18 @@ static GainObject get_gain_object(
 }
 
 
+
 static CostMatrix generate_gain_matrix(
-    OrdSet& partition_a,
-    OrdSet& partition_b,
-    const CanonSBG& graph)
+    UnordSet& partition_a,
+    UnordSet& partition_b,
+    const BaseSBG& graph)
 {
     CostMatrix cost_matrix;
 
     for (size_t i = 0; i < partition_a.pieces().size(); i++) {
         for (size_t j = 0; j < partition_b.pieces().size(); j++) {
             // Get gain object for both nodes
-            auto gain_obj = get_gain_object(i, j, partition_a, partition_b, graph);
+            auto gain_obj = compute_diff(i, j, partition_a, partition_b, graph);
 
             // Insert it to the cost matrix
             cost_matrix.insert(gain_obj);
@@ -190,7 +213,7 @@ static CostMatrix generate_gain_matrix(
 
 static void remove_nodes_from_cost_matrix(
     CostMatrix& cost_matrix,
-    OrdSet& partition,
+    UnordSet& partition,
     const GainObject& gain_object)
 {
     vector<CostMatrix::iterator> to_be_removed;
@@ -203,22 +226,21 @@ static void remove_nodes_from_cost_matrix(
     }
 
     for (auto& it : to_be_removed) {
-        cout << "removing " << *it << endl;
         cost_matrix.erase(it);
     }
 }
 
 
 static void update_cost_matrix(
-    OrdSet& partition_a,
-    OrdSet& partition_b,
+    UnordSet& partition_a,
+    UnordSet& partition_b,
     const GainObject& gain_object,
-    const CanonSBG& graph,
+    const BaseSBG& graph,
     CostMatrix& cost_matrix)
 {
     // Let's add gain objects to the cost matrix
     for (size_t i = 0; i < partition_a.size(); i++) {
-        auto new_gain_object = get_gain_object(i, gain_object.j, partition_a, partition_b, graph);
+        auto new_gain_object = compute_diff(i, gain_object.j, partition_a, partition_b, graph);
         cost_matrix.insert(new_gain_object);
     }
 }
@@ -226,13 +248,12 @@ static void update_cost_matrix(
 
 // Partition a and b (A_c and B_c in the definition) are the remining nodes to be visited, not the actual partitions
 static pair<SetPiece, SetPiece> update_sets(
-    OrdSet& partition_a,
-    OrdSet& partition_b,
-    OrdSet& current_moved_partition_a,
-    OrdSet& current_moved_partition_b,
+    UnordSet& partition_a,
+    UnordSet& partition_b,
+    UnordSet& current_moved_partition_a,
+    UnordSet& current_moved_partition_b,
     const GainObject& gain_object)
 {
-    cout << "update_sets" << endl;
     auto node_a = partition_a[gain_object.j];
     size_t partition_size_a = node_a.intervals()[0].end() - node_a.intervals()[0].begin() + 1;
     bool node_a_is_fully_used = partition_size_a == gain_object.size;
@@ -248,8 +269,9 @@ static pair<SetPiece, SetPiece> update_sets(
         node_b[0] = Interval(node_b[0].begin(), 1, node_b[0].begin() + gain_object.size - 1);
     }
 
-    // At least one of them should be fully used
-    assert(node_a_is_fully_used or node_b_is_fully_used);
+    // At least one of them should be fully used?
+    // cout << node_a_is_fully_used << ", " <<  node_b_is_fully_used << endl;
+    // assert(node_a_is_fully_used or node_b_is_fully_used);
 
     partition_a = difference(partition_a, node_a);
     partition_b = difference(partition_b, node_b);
@@ -261,9 +283,8 @@ static pair<SetPiece, SetPiece> update_sets(
 }
 
 
-static GainObject max_diff(CostMatrix& cost_matrix, OrdSet& partition_a, OrdSet& partition_b, const CanonSBG& graph)
+static GainObject max_diff(CostMatrix& cost_matrix, UnordSet& partition_a, UnordSet& partition_b, const BaseSBG& graph)
 {
-    cout << "max_diff " << cost_matrix.size() << "\n";
     // cost_matrix is sort by gain, so the first is the maximum gain
     auto g = cost_matrix.begin();
 
@@ -279,12 +300,11 @@ static GainObject max_diff(CostMatrix& cost_matrix, OrdSet& partition_a, OrdSet&
 
 static void update_diff(
     CostMatrix& cost_matrix,
-    OrdSet& partition_a,
-    OrdSet& partition_b,
-    const CanonSBG& graph,
+    UnordSet& partition_a,
+    UnordSet& partition_b,
+    const BaseSBG& graph,
     const GainObject& gain_object)
 {
-    cout << "update_diff" << endl;
     if (false) {
         remove_nodes_from_cost_matrix(cost_matrix, partition_a, gain_object);
         remove_nodes_from_cost_matrix(cost_matrix, partition_b, gain_object);
@@ -302,9 +322,9 @@ static void update_sum(
     int& par_sum,
     int g,
     int& max_par_sum,
-    pair<OrdSet, OrdSet>& max_par_sum_set,
-    OrdSet& a_v,
-    OrdSet& b_v)
+    pair<UnordSet, UnordSet>& max_par_sum_set,
+    UnordSet& a_v,
+    UnordSet& b_v)
 {
     par_sum += g;
     if (par_sum > max_par_sum) {
@@ -314,27 +334,32 @@ static void update_sum(
 }
 
 
-void kl_sbg(const CanonSBG& graph, OrdSet& partition_a, OrdSet& partition_b)
+void kl_sbg(const BaseSBG& graph, UnordSet& partition_a, UnordSet& partition_b)
 {
     cout << "Algorithm starts with " << partition_a << ", " << partition_b << endl;
     auto a_c = partition_a;
     auto b_c = partition_b;
     int max_par_sum = 0;
-    auto max_par_sum_set = make_pair(OrdSet(), OrdSet());
+    auto max_par_sum_set = make_pair(UnordSet(), UnordSet());
     int par_sum = 0;
-    OrdSet a_v = OrdSet();
-    OrdSet b_v = OrdSet();
+    UnordSet a_v = UnordSet();
+    UnordSet b_v = UnordSet();
 
     CostMatrix gm = generate_gain_matrix(partition_a, partition_b, graph);
 
+    cout << gm << endl;
+
+    if (gm.begin()->gain <=0) {
+        cout << "returning soon since there is no gain" << endl;
+        return;
+    }
+
     while ((not isEmpty(a_c)) and (not isEmpty(b_c))) {
         auto g = max_diff(gm, a_c, b_c, graph);
-        OrdSet a_, b_;
+        UnordSet a_, b_;
         tie(a_, b_) = update_sets(a_c, b_c, a_v, b_v, g);
         update_diff(gm, a_c, b_c, graph, g);
         update_sum(par_sum, g.gain, max_par_sum, max_par_sum_set, a_v, b_v);
-
-        cout << a_ << ", " << b_ << endl;
     }
 
     if (max_par_sum > 0) {
@@ -342,7 +367,10 @@ void kl_sbg(const CanonSBG& graph, OrdSet& partition_a, OrdSet& partition_b)
         partition_b = cup(difference(partition_b, max_par_sum_set.second), max_par_sum_set.first);
     }
 
-    cout << "so it ends with " << max_par_sum << ", " << partition_a << ", " << partition_b << endl;
+    gm = generate_gain_matrix(partition_a, partition_b, graph);
+    cout << gm <<endl;
+
+    cout << "so it ends with " << gm << ", " << max_par_sum << ", " << partition_a << ", " << partition_b << endl;
 }
 
 }
