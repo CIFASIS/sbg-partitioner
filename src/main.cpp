@@ -119,7 +119,7 @@ int main(int argc, char** argv)
 
   cout << partitions << endl;
 
-  // kl_sbg(sb_graph, partitions[1], partitions[0]);
+  kl_sbg_bipart(sb_graph, partitions[0], partitions[1]);
 
   // cout << "Exit code: " << ret << endl;
 

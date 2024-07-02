@@ -23,6 +23,8 @@
 #include <util/logger.hpp>
 #include <utility>
 
+#include <unistd.h>
+
 #include "kernighan_lin_sbg.hpp"
 
 
@@ -184,6 +186,8 @@ static GainObject compute_diff(
     // Get communication between a and b
     size_t c_ab = get_c_ab(a, b, graph.map1(), graph.map2());
 
+    // cout << a << ", " << ec_a << ", " << ic_a << ", " << b << ", " << ec_b << ", " << ic_b << ", " << c_ab << endl;
+
     // calculate gain
     int gain = d_a + d_b - 2 * c_ab;
 
@@ -318,6 +322,7 @@ static void update_diff(
     }
     cost_matrix.clear();
     cost_matrix = generate_gain_matrix(partition_a, partition_b, graph);
+    cout << partition_a << ", " << partition_b << ", " << cost_matrix << endl;
 
 }
 
@@ -359,6 +364,7 @@ void kl_sbg(const BaseSBG& graph, UnordSet& partition_a, UnordSet& partition_b)
         tie(a_, b_) = update_sets(a_c, b_c, a_v, b_v, g);
         update_diff(gm, a_c, b_c, graph, g);
         update_sum(par_sum, g.gain, max_par_sum, max_par_sum_set, a_v, b_v);
+        sleep(2);
     }
 
     if (max_par_sum > 0) {
@@ -367,11 +373,28 @@ void kl_sbg(const BaseSBG& graph, UnordSet& partition_a, UnordSet& partition_b)
     }
 
     gm = generate_gain_matrix(partition_a, partition_b, graph);
-    cout << gm <<endl;
+    // cout << gm <<endl;
 
-    cout << "so it ends with " << gm << ", " << max_par_sum << ", " << partition_a << ", " << partition_b << endl;
+    cout << "so it ends with " << gm << "\n" << max_par_sum << ", " << partition_a << ", " << partition_b << endl;
 
-    SBG_LOG << partition_a << ", " << partition_b << endl;
+    // SBG_LOG << partition_a << ", " << partition_b << endl;
 }
+
+
+void kl_sbg_bipart(const SBG::LIB::BaseSBG& graph, SBG::LIB::UnordSet& partition_a, SBG::LIB::UnordSet& partition_b)
+{
+    auto partition_a_copy = partition_a;
+    auto partition_b_copy = partition_b;
+    kl_sbg(graph, partition_a_copy, partition_b_copy);
+
+    while (not (partition_a_copy == partition_a) and not (partition_b_copy == partition_b)) {
+        partition_a = partition_a_copy;
+        partition_b = partition_b_copy;
+        kl_sbg(graph, partition_a_copy, partition_b_copy);
+    }
+
+    cout << "Final: " << partition_a << ", " << partition_b << endl;
+}
+
 
 }
