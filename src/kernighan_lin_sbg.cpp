@@ -377,6 +377,7 @@ void kl_sbg(const BaseSBG& graph, UnordSet& partition_a, UnordSet& partition_b)
         tie(a_, b_) = update_sets(a_c, b_c, a_v, b_v, g);
         update_diff(gm, a_c, b_c, graph, g);
         update_sum(par_sum, g.gain, max_par_sum, max_par_sum_set, a_v, b_v);
+        // sleep(2);
     }
 
     if (max_par_sum > 0) {
