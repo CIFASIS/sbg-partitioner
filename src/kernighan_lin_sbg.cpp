@@ -70,8 +70,8 @@ std::ostream& operator<<(std::ostream& os, const CostMatrix& cost_matrix)
 static unsigned get_multidim_interval_size(UnordPWMDInter& final_edges)
 {
     unsigned acc = 0;
-    for(size_t i = 0; i < final_edges.size(); i++) {
-        for(size_t j = 0; j < final_edges[i].size(); j++) {
+    for (size_t i = 0; i < final_edges.size(); i++) {
+        for (size_t j = 0; j < final_edges[i].size(); j++) {
             acc += final_edges[i][j].end() - final_edges[i][j].begin() + 1;
         }
     }
@@ -85,22 +85,32 @@ static size_t get_c_ab(
     const BasePWMap& map_1,
     const BasePWMap& map_2)
 {
-    auto f = [](auto& a, auto& b, auto& departure_map, auto& arrival_map) {
-        auto d = preImage(a, departure_map);
-        auto i = image(d, arrival_map);
-        auto inters = intersection(b, i);
-        return inters;
+    auto f = [](auto& a, auto& b, const BasePWMap& departure_map, const BasePWMap& arrival_map) {
+        UnordSet comm_edges;
+        for (size_t i = 0; i < departure_map.maps().size(); i++) {
+            auto map_1 = *(departure_map.maps().begin() + i);
+            auto map_2 = *(arrival_map.maps().begin() + i);
+            auto d = preImage(a, map_1);
+            auto im = image(d, map_2);
+            auto inters = intersection(b, im);
+            auto edges = preImage(inters, map_2);
+            comm_edges = cup(edges, comm_edges);
+        }
+
+        return comm_edges;
     };
 
     auto intersection1 = f(a, b, map_1, map_2);
     auto intersection2 = f(a, b, map_2, map_1);
 
-    auto comm_nodes = cup(intersection1, intersection2);
+    cout << "get_c_ab " << intersection1 << ", " << intersection2 << endl;
+    auto communication_edges = cup(intersection1, intersection2);
 
-    size_t comm_size = get_multidim_interval_size(comm_nodes);
+    size_t comm_size = get_multidim_interval_size(communication_edges);
 
     return comm_size;
 }
+
 
 // Consider exposing these functions to facilitate being reused
 ec_ic compute_EC_IC(
@@ -111,6 +121,7 @@ ec_ic compute_EC_IC(
     const BasePWMap& arrival_map)
 {
     UnordSet ec, ic;
+    cout << "compute_EC_IC " << nodes << endl;
     for (size_t i = 0; i < departure_map.maps().size(); i++) {
         auto map_1 = *(departure_map.maps().begin() + i);
         auto map_2 = *(arrival_map.maps().begin() + i);
@@ -118,8 +129,10 @@ ec_ic compute_EC_IC(
         auto im = image(d, map_2);
         auto ic_nodes = intersection(partition, im);
         auto ec_nodes = difference(im, ic_nodes);
+        cout << "difference between " << im << " and " << ic_nodes << " is " << ec_nodes << endl;
         ec_nodes = intersection(ec_nodes, partition_2);
         auto ic_ = preImage(ic_nodes, map_2);
+        cout << "Pre image of " << ic_nodes << ", " << map_2 << " is " << ic_ << endl;
         auto ec_ = preImage(ec_nodes, map_2);
         ec = cup(ec_, ec);
         ic = cup(ic_, ic);
@@ -186,7 +199,7 @@ static GainObject compute_diff(
     // Get communication between a and b
     size_t c_ab = get_c_ab(a, b, graph.map1(), graph.map2());
 
-    // cout << a << ", " << ec_a << ", " << ic_a << ", " << b << ", " << ec_b << ", " << ic_b << ", " << c_ab << endl;
+    cout << a << ", " << ec_a << ", " << ic_a << ", " << b << ", " << ec_b << ", " << ic_b << ", " << c_ab << endl;
 
     // calculate gain
     int gain = d_a + d_b - 2 * c_ab;
@@ -364,7 +377,6 @@ void kl_sbg(const BaseSBG& graph, UnordSet& partition_a, UnordSet& partition_b)
         tie(a_, b_) = update_sets(a_c, b_c, a_v, b_v, g);
         update_diff(gm, a_c, b_c, graph, g);
         update_sum(par_sum, g.gain, max_par_sum, max_par_sum_set, a_v, b_v);
-        sleep(2);
     }
 
     if (max_par_sum > 0) {
