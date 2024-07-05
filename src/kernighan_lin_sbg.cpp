@@ -386,11 +386,10 @@ void kl_sbg(const BaseSBG& graph, UnordSet& partition_a, UnordSet& partition_b)
     }
 
     gm = generate_gain_matrix(partition_a, partition_b, graph);
-    // cout << gm <<endl;
 
     cout << "so it ends with " << gm << "\n" << max_par_sum << ", " << partition_a << ", " << partition_b << endl;
 
-    // SBG_LOG << partition_a << ", " << partition_b << endl;
+    SBG_LOG << partition_a << ", " << partition_b << endl;
 }
 
 
