@@ -24,6 +24,7 @@
 #include <list>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include "build_sb_graph.hpp"
 #include "kernighan_lin_sbg.hpp"
@@ -119,7 +120,18 @@ int main(int argc, char** argv)
 
   cout << partitions << endl;
 
-  kl_sbg_bipart(sb_graph, partitions[0], partitions[1]);
+  vector<SBG::LIB::UnordSet> pp = {};
+  for(const auto& [i, p]: partitions) {
+    pp.push_back(p);
+  }
+
+  kl_sbg_partitioner(sb_graph, pp);
+
+  // just for debugging
+  for (const auto& x : pp) {
+    cout << x << " ";
+  }
+  cout << endl;
 
   // cout << "Exit code: " << ret << endl;
 

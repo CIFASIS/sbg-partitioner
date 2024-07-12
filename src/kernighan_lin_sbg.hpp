@@ -33,6 +33,13 @@ struct GainObject {
     size_t size;
 };
 
+struct KLBipartResult {
+    SBG::LIB::UnordSet A;
+    SBG::LIB::UnordSet B;
+    int gain;
+};
+
+
 using ec_ic = std::pair<SBG::LIB::UnordPWMDInter , SBG::LIB::UnordPWMDInter>;
 
 struct GainObjectComparator {
@@ -45,9 +52,11 @@ struct GainObjectComparator {
 using CostMatrix = std::set<GainObject, GainObjectComparator>;
 
 
-void kl_sbg_bipart(const SBG::LIB::BaseSBG& graph, SBG::LIB::UnordSet& partition_a, SBG::LIB::UnordSet& partition_b);
+void kl_sbg_partitioner(const SBG::LIB::BaseSBG& graph, std::vector<SBG::LIB::UnordSet>& partitions);
 
-void kl_sbg(const SBG::LIB::BaseSBG& graph, SBG::LIB::UnordSet& partition_a, SBG::LIB::UnordSet& partition_b);
+KLBipartResult kl_sbg_bipart(const SBG::LIB::BaseSBG& graph, SBG::LIB::UnordSet& partition_a, SBG::LIB::UnordSet& partition_b);
+
+int kl_sbg(const SBG::LIB::BaseSBG& graph, SBG::LIB::UnordSet& partition_a, SBG::LIB::UnordSet& partition_b);
 
 ec_ic compute_EC_IC(
     const SBG::LIB::UnordSet& partition,
@@ -60,5 +69,7 @@ ec_ic compute_EC_IC(
 std::ostream& operator<<(std::ostream& os, const GainObject& gain);
 
 std::ostream& operator<<(std::ostream& os, const CostMatrix& cost_matrix);
+
+std::ostream& operator<<(std::ostream& os, const KLBipartResult& result);
 
 }; // namespace sbg_partitioner

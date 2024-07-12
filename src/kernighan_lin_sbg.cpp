@@ -66,6 +66,14 @@ std::ostream& operator<<(std::ostream& os, const CostMatrix& cost_matrix)
 }
 
 
+ostream& operator<<(ostream& os, const KLBipartResult& result)
+{
+    os << "{ gain: " << result.gain << ", A: " << result.A << ", B: " << result.B << "}";
+
+    return os;
+}
+
+
 /// This is an ad hoc function which gets the addition of the size of each interval
 static unsigned get_multidim_interval_size(UnordPWMDInter& final_edges)
 {
@@ -176,7 +184,7 @@ static GainObject compute_diff(
     size_t ec_a = get_multidim_interval_size(ec_nodes_a);
     size_t ic_a = get_multidim_interval_size(ic_nodes_a);
     int d_a = ec_a - ic_a;
-    cout << "nodes: " << a << ": " << ec_a << ", " << ic_a << endl;
+    cout << "nodes: " << a << ": " << ec_nodes_a << ", " << ec_a << ", " << ic_nodes_a << ", "  << ic_a << endl;
 
     // Same as before for partition b
     UnordSet ec_nodes_b_1, ic_nodes_b_1;
@@ -193,7 +201,7 @@ static GainObject compute_diff(
     size_t ec_b = get_multidim_interval_size(ec_nodes_b);
     size_t ic_b = get_multidim_interval_size(ic_nodes_b);
     int d_b = ec_b - ic_b;
-    cout << "nodes: " << b << ": " << ec_b << ", " << ic_b << endl;
+    cout << "nodes: " << b << ": " << ec_nodes_b << ", " << ec_b << ", " << ic_nodes_b << ", "  << ic_b << endl;
 
     // Get communication between a and b
     size_t c_ab = get_c_ab(a, b, graph.map1(), graph.map2());
@@ -354,7 +362,7 @@ static void update_sum(
 }
 
 
-void kl_sbg(const BaseSBG& graph, UnordSet& partition_a, UnordSet& partition_b)
+int kl_sbg(const BaseSBG& graph, UnordSet& partition_a, UnordSet& partition_b)
 {
     cout << "Algorithm starts with " << partition_a << ", " << partition_b << endl;
     auto a_c = partition_a;
@@ -375,7 +383,6 @@ void kl_sbg(const BaseSBG& graph, UnordSet& partition_a, UnordSet& partition_b)
         tie(a_, b_) = update_sets(a_c, b_c, a_v, b_v, g);
         update_diff(gm, a_c, b_c, graph, g);
         update_sum(par_sum, g.gain, max_par_sum, max_par_sum_set, a_v, b_v);
-        // sleep(2);
     }
 
     if (max_par_sum > 0) {
@@ -385,26 +392,69 @@ void kl_sbg(const BaseSBG& graph, UnordSet& partition_a, UnordSet& partition_b)
 
     gm = generate_gain_matrix(partition_a, partition_b, graph);
 
-    cout << "so it ends with " << gm << "\n" << max_par_sum << ", " << partition_a << ", " << partition_b << endl;
+    cout << "so it ends with " << gm << " " << max_par_sum << ", " << partition_a << ", " << partition_b << endl;
 
-    SBG_LOG << partition_a << ", " << partition_b << endl;
+    SBG_LOG << partition_a << ", " << partition_b  << endl;
+
+    return max_par_sum;
 }
 
 
-void kl_sbg_bipart(const SBG::LIB::BaseSBG& graph, SBG::LIB::UnordSet& partition_a, SBG::LIB::UnordSet& partition_b)
+KLBipartResult kl_sbg_bipart(const SBG::LIB::BaseSBG& graph, SBG::LIB::UnordSet& partition_a, SBG::LIB::UnordSet& partition_b)
 {
     auto partition_a_copy = partition_a;
     auto partition_b_copy = partition_b;
-    kl_sbg(graph, partition_a_copy, partition_b_copy);
+    int gain = kl_sbg(graph, partition_a_copy, partition_b_copy);
 
     while (not (partition_a_copy == partition_a) and not (partition_b_copy == partition_b)) {
         partition_a = partition_a_copy;
         partition_b = partition_b_copy;
-        kl_sbg(graph, partition_a_copy, partition_b_copy);
+        gain = max(kl_sbg(graph, partition_a_copy, partition_b_copy), gain);
+        cout << "gaaaaaaaaain: " << gain << endl;
     }
 
     cout << "Final: " << partition_a << ", " << partition_b << endl;
+    return KLBipartResult{partition_a, partition_b, gain};
 }
 
 
+struct kl_sbg_partitioner_result
+{
+    size_t i;
+    size_t j;
+    int gain;
+    UnordSet A;
+    UnordSet B;
+};
+
+void kl_sbg_partitioner(const BaseSBG& graph, vector<UnordSet>& partitions)
+{
+    bool change = true;
+    while (change) {
+        change = false;
+        kl_sbg_partitioner_result best_gain = kl_sbg_partitioner_result{ 0, 0, -1, UnordSet(), UnordSet()};
+        for (size_t i = 0; i < partitions.size(); i++) {
+            for (size_t j = i + 1; j < partitions.size(); j++) {
+                auto p_1_copy = partitions[i];
+                auto p_2_copy = partitions[j];
+                KLBipartResult current_gain = kl_sbg_bipart(graph, p_1_copy, p_2_copy);
+                cout << "current_gain " << current_gain << endl;
+                if (current_gain.gain > best_gain.gain) {
+                    best_gain.i = i;
+                    best_gain.j = j;
+                    best_gain.gain = current_gain.gain;
+                    best_gain.A = current_gain.A;
+                    best_gain.B = current_gain.B;
+                }
+            }
+        }
+
+        // now, apply changes
+        if (best_gain.gain > 0) {
+            change = true;
+            partitions[best_gain.i] = best_gain.A;
+            partitions[best_gain.j] = best_gain.B;
+        }
+    }
+}
 }
