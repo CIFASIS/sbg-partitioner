@@ -103,7 +103,6 @@ static size_t get_c_ab(
     auto intersection1 = f(a, b, map_1, map_2);
     auto intersection2 = f(a, b, map_2, map_1);
 
-    cout << "get_c_ab " << intersection1 << ", " << intersection2 << endl;
     auto communication_edges = cup(intersection1, intersection2);
 
     size_t comm_size = get_multidim_interval_size(communication_edges);
@@ -121,18 +120,16 @@ ec_ic compute_EC_IC(
     const BasePWMap& arrival_map)
 {
     UnordSet ec, ic;
-    cout << "compute_EC_IC " << nodes << endl;
     for (size_t i = 0; i < departure_map.maps().size(); i++) {
         auto map_1 = *(departure_map.maps().begin() + i);
         auto map_2 = *(arrival_map.maps().begin() + i);
         auto d = preImage(nodes, map_1);
         auto im = image(d, map_2);
         auto ic_nodes = intersection(partition, im);
+        ic_nodes = difference(ic_nodes, nodes);
         auto ec_nodes = difference(im, ic_nodes);
-        cout << "difference between " << im << " and " << ic_nodes << " is " << ec_nodes << endl;
         ec_nodes = intersection(ec_nodes, partition_2);
         auto ic_ = preImage(ic_nodes, map_2);
-        cout << "Pre image of " << ic_nodes << ", " << map_2 << " is " << ic_ << endl;
         auto ec_ = preImage(ec_nodes, map_2);
         ec = cup(ec_, ec);
         ic = cup(ic_, ic);
@@ -179,10 +176,11 @@ static GainObject compute_diff(
     size_t ec_a = get_multidim_interval_size(ec_nodes_a);
     size_t ic_a = get_multidim_interval_size(ic_nodes_a);
     int d_a = ec_a - ic_a;
+    cout << "nodes: " << a << ": " << ec_a << ", " << ic_a << endl;
 
     // Same as before for partition b
     UnordSet ec_nodes_b_1, ic_nodes_b_1;
-    tie(ec_nodes_b_1, ec_nodes_b_1) = compute_EC_IC(partition_b, b, partition_a, graph.map1(), graph.map2());
+    tie(ec_nodes_b_1, ic_nodes_b_1) = compute_EC_IC(partition_b, b, partition_a, graph.map1(), graph.map2());
 
     UnordSet ec_nodes_b_2, ic_nodes_b_2;
     tie(ec_nodes_b_2, ic_nodes_b_2) = compute_EC_IC(partition_b, b, partition_a, graph.map2(), graph.map1());
@@ -195,11 +193,11 @@ static GainObject compute_diff(
     size_t ec_b = get_multidim_interval_size(ec_nodes_b);
     size_t ic_b = get_multidim_interval_size(ic_nodes_b);
     int d_b = ec_b - ic_b;
+    cout << "nodes: " << b << ": " << ec_b << ", " << ic_b << endl;
 
     // Get communication between a and b
     size_t c_ab = get_c_ab(a, b, graph.map1(), graph.map2());
-
-    cout << a << ", " << ec_a << ", " << ic_a << ", " << b << ", " << ec_b << ", " << ic_b << ", " << c_ab << endl;
+    cout << "c_ab: " << c_ab << endl;
 
     // calculate gain
     int gain = d_a + d_b - 2 * c_ab;
