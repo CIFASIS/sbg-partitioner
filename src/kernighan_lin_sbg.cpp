@@ -184,7 +184,7 @@ static GainObject compute_diff(
     size_t ec_a = get_multidim_interval_size(ec_nodes_a);
     size_t ic_a = get_multidim_interval_size(ic_nodes_a);
     int d_a = ec_a - ic_a;
-    cout << "nodes: " << a << ": " << ec_nodes_a << ", " << ec_a << ", " << ic_nodes_a << ", "  << ic_a << endl;
+    // cout << "nodes: " << a << ": " << ec_nodes_a << ", " << ec_a << ", " << ic_nodes_a << ", "  << ic_a << endl;
 
     // Same as before for partition b
     UnordSet ec_nodes_b_1, ic_nodes_b_1;
@@ -201,11 +201,11 @@ static GainObject compute_diff(
     size_t ec_b = get_multidim_interval_size(ec_nodes_b);
     size_t ic_b = get_multidim_interval_size(ic_nodes_b);
     int d_b = ec_b - ic_b;
-    cout << "nodes: " << b << ": " << ec_nodes_b << ", " << ec_b << ", " << ic_nodes_b << ", "  << ic_b << endl;
+    // cout << "nodes: " << b << ": " << ec_nodes_b << ", " << ec_b << ", " << ic_nodes_b << ", "  << ic_b << endl;
 
     // Get communication between a and b
     size_t c_ab = get_c_ab(a, b, graph.map1(), graph.map2());
-    cout << "c_ab: " << c_ab << endl;
+    // cout << "c_ab: " << c_ab << endl;
 
     // calculate gain
     int gain = d_a + d_b - 2 * c_ab;
