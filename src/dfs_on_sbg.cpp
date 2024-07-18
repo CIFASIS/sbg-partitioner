@@ -41,7 +41,7 @@ void initialize_partitioning(
     bool pre_order)
 {
     initialized = true;
-    sort_object = DFS(graph, number_of_partitions, make_unique<PartitionStrategyGreedy>(number_of_partitions, graph), pre_order);
+    sort_object = DFS(graph, number_of_partitions, move(partition_strategy), pre_order);
     sort_object.start();
 }
 

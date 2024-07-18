@@ -39,6 +39,9 @@ PartitionMap make_initial_partition(BaseSBG& graph, unsigned number_of_partition
 {
     PartitionMap partitions_set;
     switch (algorithm) {
+        case PartitionAlgorithm::DISTRIBUTED:
+            initialize_partitioning(graph, number_of_partitions, make_unique<PartitionStrategyDistributive>(number_of_partitions, graph), pre_order);
+            break;
         case PartitionAlgorithm::GREEDY:
         default:
             initialize_partitioning(graph, number_of_partitions, make_unique<PartitionStrategyGreedy>(number_of_partitions, graph), pre_order);
@@ -49,13 +52,16 @@ PartitionMap make_initial_partition(BaseSBG& graph, unsigned number_of_partition
     for (auto& [id, set] : partitions) {
         SBG::LIB::UnordSet set_piece;
         for (auto& s : set) {
-            set_piece.emplace(s.intervals().front());
+            if (not s.intervals().empty()) {
+                set_piece.emplace(s.intervals().front());
+            }
         }
         partitions_set[id] = set_piece;
     }
 
 
     SBG_LOG << partitions_set;
+    cout << partitions_set << endl;
 
     return partitions_set;
 }
