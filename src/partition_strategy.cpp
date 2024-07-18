@@ -18,6 +18,7 @@
  ******************************************************************************/
 #include "partition_strategy.hpp"
 
+#include <bits/stdc++.h> 
 
 #define DEBUG_PARTITION_STRATEGY_ENABLED 0
 
@@ -130,6 +131,81 @@ map<unsigned, set<SetPiece>> PartitionStrategyGreedy::partitions() const
 {
     return _partitions;
 }
+
+
+
+
+/* PartitionStrategyDistributive */
+
+
+PartitionStrategyDistributive::PartitionStrategyDistributive(unsigned number_of_partitions, const BaseSBG graph)
+    : PartitionStrategy(),
+    _number_of_partitions(number_of_partitions),
+    _nodes(graph.V())
+{
+    for (unsigned i = 0; i < _number_of_partitions; i++) {
+        auto p = make_pair(i, 0);
+        _current_size_by_partition.insert(p);
+    }
+}
+
+
+static void sort_current_size_by_partition(map<unsigned, unsigned>& current_size_by_partition) {
+    vector<pair<unsigned, unsigned>> pairs;
+    for (const auto [i, p] : current_size_by_partition) {
+        pairs.push_back(make_pair(i, p));
+    }
+
+    sort(pairs.begin(), pairs.end(), [](const pair<unsigned, unsigned>& a, const pair<unsigned, unsigned>& b) {
+        return a.second < b.second;
+    });
+
+    current_size_by_partition.clear();
+    for (auto p : pairs) {
+        current_size_by_partition.insert(p);
+    }
+}
+
+
+void PartitionStrategyDistributive::operator() (const SBG::LIB::SetPiece& node)
+{
+#if DEBUG_PARTITION_STRATEGY_ENABLED
+    cout << "About to add " << node << " distributively to partitions" << endl;
+#endif
+    auto s = get_node_size(node);
+    unsigned size_by_part = s / _number_of_partitions;
+    unsigned surplus = s % _number_of_partitions;
+
+    map<unsigned, unsigned> size_by_partition;
+
+    for (const auto [i, p] : _current_size_by_partition) {
+        size_by_partition[i] = size_by_part;
+        if (surplus > 0) {
+            size_by_partition[i]++;
+            surplus--;
+        }
+    }
+
+    SetPiece node_to_be_added = node;
+    for (const auto [i, n] : size_by_partition) {
+        if (size_by_partition[i] == 0) {
+            continue;
+        }
+        auto &p = _partitions[i];
+        SetPiece temp_node;
+        tie(temp_node, node_to_be_added) = cut_interval(node_to_be_added, node_to_be_added.intervals().front().begin() + size_by_partition[i] - 1);
+#if DEBUG_PARTITION_STRATEGY_ENABLED
+        cout << "About to add " << temp_node << " to " << i << ", remaining: " << node_to_be_added << endl;
+#endif
+        p.insert(temp_node);
+        _current_size_by_partition[i] += get_node_size(temp_node);
+    }
+
+    sort_current_size_by_partition(_current_size_by_partition);
+}
+
+map<unsigned, set<SetPiece>> PartitionStrategyDistributive::partitions() const { return _partitions; }
+
 
 ostream& operator<<(ostream& os, const PartitionStrategy& pgraph)
 {

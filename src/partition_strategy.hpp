@@ -21,6 +21,7 @@
 
 #include <iostream>
 #include <map>
+#include <utility>
 #include <stdlib.h>
 #include <set>
 
@@ -61,6 +62,37 @@ private:
     std::map<unsigned, std::set<SBG::LIB::SetPiece>> _partitions;
     std::map<size_t, size_t> _size_by_partition;
     std::map<size_t, size_t> _current_size_by_partition;
+};
+
+
+struct SizeCmp
+{
+    bool operator () (std::pair<unsigned, unsigned> a, std::pair<unsigned, unsigned> b) const
+    {
+        return std::get<1>(a) < std::get<1>(b);
+    }
+};
+
+class PartitionStrategyDistributive : public PartitionStrategy
+{
+public:
+    PartitionStrategyDistributive(unsigned number_of_partitions, const SBG::LIB::BaseSBG graph);
+
+    virtual ~PartitionStrategyDistributive() = default;
+
+    virtual void operator() (const SBG::LIB::SetPiece& node);
+
+    virtual std::map<unsigned, std::set<SBG::LIB::SetPiece>> partitions() const;
+
+private:
+    unsigned _number_of_partitions;
+    unsigned _current_partition;
+    unsigned _total_of_nodes;
+    unsigned _acceptable_surplus;
+    unsigned _acceptable_amount;
+    std::map<unsigned, std::set<SBG::LIB::SetPiece>> _partitions;
+    std::map<unsigned, unsigned> _current_size_by_partition;
+    SBG::LIB::UnordSet _nodes;
 };
 
 std::ostream& operator<<(std::ostream& os, const PartitionStrategy& pgraph);
