@@ -101,9 +101,9 @@ void DFS::initialize_adjacents()
 
 void DFS::add_adjacent_nodes(const node_identifier id, const BaseMap& map, const SetPiece& edge)
 {
-    const auto edge_map_intersection = intersection(UnordSet(edge.intervals()[0]), map.dom());
+    const auto edge_map_intersection = intersection(edge, map.dom());
     if (not isEmpty(edge_map_intersection)) {
-        const auto map_image = image(edge_map_intersection.pieces().begin()->intervals()[0], map.exp());
+        const auto map_image = image(*edge_map_intersection.pieces().begin(), map.exp());
 
         for (node_identifier node_idx = 0; node_idx < _graph.V().size(); node_idx++) {
             if (node_idx == id) {
@@ -219,6 +219,7 @@ void DFS::add_it_definitely(node_identifier id)
 void DFS::add_it_to_a_partition(node_identifier id)
 {
     auto v = _graph.V()[id];
+    cout << v << endl;
     (*_partition_strategy)(v);
 }
 

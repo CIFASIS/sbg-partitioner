@@ -67,42 +67,113 @@ PartitionMap make_initial_partition(BaseSBG& graph, unsigned number_of_partition
 }
 
 
-unordered_set<size_t> get_connectivity_set(
-    BaseSBG& graph,
-    PartitionMap& partitions,
-    size_t edge_index)
+static size_t get_partition_communication(SBG::LIB::BaseSBG& graph, const PartitionMap& partitions)
 {
-    unordered_set<size_t> connectivity_set = {};
-
-    const size_t n = graph.map1().size();
-    assert (edge_index < n and "Invalid index!");
-
-    auto e1 = graph.map1()[edge_index];
-    auto im1 = image(e1);
-
-    auto e2 = graph.map2()[edge_index];
-    auto im2 = image(e2);
-
-    for (const auto& [proc, set_piece] : partitions) {
-        if (not isEmpty(intersection(im1, set_piece))) {
-            connectivity_set.insert(proc);
-        }
-
-        if (not isEmpty(intersection(im2, set_piece))) {
-            connectivity_set.insert(proc);
-        }
+    SBG::LIB::UnordSet s;
+    for (auto& [i, _] : partitions) {
+        auto ss = get_connectivity_set(graph, partitions, i);
+        s = SBG::LIB::cup(ss, s);
+        cout << "current connectivity set " << s << ", cardinality " << get_unordset_size(s) << endl;
     }
 
-    return connectivity_set;
+    size_t size = get_unordset_size(s);
+
+    return size;
 }
 
 
-size_t connectivity_set_cardinality(BaseSBG& graph,
-    PartitionMap& partitions,
-    size_t edge_index)
+static void aux_function_best_initial_partition(
+    SBG::LIB::BaseSBG& graph,
+    PartitionMap& best_initial_partitions,
+    size_t& best_communication_set_cardinality,
+    unsigned number_of_partitions,
+    PartitionAlgorithm partition_algorithm,
+    bool pre_order)
 {
-    unordered_set<size_t> conn_set = get_connectivity_set(graph, partitions, edge_index);
-    return conn_set.size();
+    PartitionMap temp_intial_partitions =  make_initial_partition(graph, number_of_partitions, PartitionAlgorithm::GREEDY, true);
+    size_t temp_partition_comm_size = get_partition_communication(graph, temp_intial_partitions);
+
+    cout  << "PartitionAlgorithm: " << partition_algorithm << ", pre order " << pre_order << " cardinality " << best_communication_set_cardinality << endl;
+
+    if (temp_partition_comm_size < best_communication_set_cardinality) {
+        best_initial_partitions = std::move(temp_intial_partitions);
+        best_communication_set_cardinality = temp_partition_comm_size;
+    }
+
+}
+
+
+PartitionMap
+best_initial_partition(
+    SBG::LIB::BaseSBG& graph,
+    unsigned number_of_partitions)
+{
+    PartitionMap best_initial_partitions = make_initial_partition(graph, number_of_partitions, PartitionAlgorithm::DISTRIBUTED, true);
+    size_t best_communication_set_cardinality = get_partition_communication(graph, best_initial_partitions);
+
+    cout << "PartitionAlgorithm: " << PartitionAlgorithm::DISTRIBUTED << ", pre order " << true << " cardinality " << best_communication_set_cardinality << endl;
+
+    aux_function_best_initial_partition(graph, best_initial_partitions, best_communication_set_cardinality, number_of_partitions, PartitionAlgorithm::DISTRIBUTED, false);
+
+    aux_function_best_initial_partition(graph, best_initial_partitions, best_communication_set_cardinality, number_of_partitions, PartitionAlgorithm::GREEDY, true);
+
+    aux_function_best_initial_partition(graph, best_initial_partitions, best_communication_set_cardinality, number_of_partitions, PartitionAlgorithm::GREEDY, false);
+
+    cout << "Best is " << best_initial_partitions << " with communication " << best_communication_set_cardinality << endl;
+
+    return best_initial_partitions;
+}
+
+
+static UnordSet get_communication_edges(UnordSet partition, const BasePWMap& map_1, const BasePWMap& map_2)
+{
+    auto pre_image = preImage(partition, map_1);
+    auto image_map_2 = image(pre_image, map_2);
+    auto outside_partition = difference(image_map_2, partition);
+    auto comm_edges = preImage(outside_partition, map_2);
+
+    return comm_edges;
+}
+
+
+UnordSet get_connectivity_set(
+    BaseSBG& graph,
+    const PartitionMap& partitions,
+    size_t partition_index)
+{
+    const auto& partition = partitions.at(partition_index);
+
+    UnordSet edges;
+
+    for (const auto& [i, p] : partitions) {
+        if (i == partition_index) {
+            continue;
+        }
+
+        for (size_t i = 0; i < graph.map1().size(); i++) {
+            auto map_1 = *(graph.map1().maps().begin() + i);
+            auto map_2 = *(graph.map2().maps().begin() + i);
+            auto comm_edges_1 = get_communication_edges(partition, map_1, map_2);
+            auto comm_edges_2 = get_communication_edges(partition, map_2, map_1);
+            auto comm_edges = cup (comm_edges_1, comm_edges_2);
+            edges = cup(edges, comm_edges);
+        }
+    }
+
+    return edges;
+}
+
+
+size_t get_unordset_size(const UnordSet& set)
+{
+    size_t acc = 0;
+    for (auto& set_piece : set.pieces()) {
+        for (auto& interval : set_piece.intervals()) {
+            acc += (interval.end() - interval.begin() + 1);
+        }
+    }
+
+    return acc;
 }
 
 

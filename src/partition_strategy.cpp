@@ -20,7 +20,7 @@
 
 #include <bits/stdc++.h> 
 
-#define DEBUG_PARTITION_STRATEGY_ENABLED 0
+#define DEBUG_PARTITION_STRATEGY_ENABLED 1
 
 
 using namespace std;
@@ -35,7 +35,16 @@ static unsigned get_node_size(const SetPiece& node)
         return 0;
     }
 
-    return node.intervals().front().end() - node.intervals().front().begin() + 1;
+    cout << "get_node_size " << node.intervals().front() << " ";
+    unsigned acc = node.intervals().front().end() - node.intervals().front().begin() + 1;
+
+    // for (size_t i = 0; i < node.intervals().size(); i++) {
+    //     auto interval = node.intervals()[i];
+    //     cout << interval << " ";
+    //     acc = acc * (interval.end() - interval.begin() + 1);
+    // }
+    cout << " acc " << acc << endl;
+    return acc;
 }
 
 
@@ -54,6 +63,7 @@ static pair<SetPiece, SetPiece> cut_interval(const SetPiece &interval, int cut_v
 
     return make_pair(set_1, set_2);
 }
+
 
 
 PartitionStrategyGreedy::PartitionStrategyGreedy(unsigned number_of_partitions, const BaseSBG graph)
@@ -170,11 +180,13 @@ static void sort_current_size_by_partition(map<unsigned, unsigned>& current_size
 void PartitionStrategyDistributive::operator() (const SBG::LIB::SetPiece& node)
 {
 #if DEBUG_PARTITION_STRATEGY_ENABLED
-    cout << "About to add " << node << " distributively to partitions" << endl;
+    cout << "Adding " << node << " distributively to partitions" << endl;
 #endif
     auto s = get_node_size(node);
     unsigned size_by_part = s / _number_of_partitions;
     unsigned surplus = s % _number_of_partitions;
+
+    cout << s << ", " << _number_of_partitions << ", " << size_by_part << surplus << endl;
 
     map<unsigned, unsigned> size_by_partition;
 
@@ -188,6 +200,7 @@ void PartitionStrategyDistributive::operator() (const SBG::LIB::SetPiece& node)
 
     SetPiece node_to_be_added = node;
     for (const auto [i, n] : size_by_partition) {
+        cout << "For partition " << i << " size: " << n << endl;
         if (size_by_partition[i] == 0) {
             continue;
         }

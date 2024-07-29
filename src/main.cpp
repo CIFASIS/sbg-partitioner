@@ -115,8 +115,9 @@ int main(int argc, char** argv)
   auto sb_graph = build_sb_graph(filename->c_str());
 
   cout << sb_graph << endl;
+  cout << "sb graph created!" << endl;
 
-  auto partitions = make_initial_partition(sb_graph, *number_of_partitions, sbg_partitioner::GREEDY, true);
+  auto partitions = best_initial_partition(sb_graph, *number_of_partitions);
 
   cout << partitions << endl;
 

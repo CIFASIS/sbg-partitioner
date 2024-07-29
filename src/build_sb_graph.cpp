@@ -76,7 +76,7 @@ static vector<Var> read_var_object(const rapidjson::Value& var_array)
         auto expressions = value["exp"].GetArray();
 
         vector<pair<INT, INT>> exps;
-        assert(expressions.Size() == 1 and "this is just for testing air conditioner example!!");
+        // assert(expressions.Size() == 1 and "this is just for testing air conditioner example!!");
         for (const auto& exp_array : expressions) {
           assert(exp_array.IsArray());
           const auto expression = exp_array.GetArray();
@@ -138,6 +138,15 @@ static map<int, Node> create_node_objects_from_json(const Document& document)
     nodes.insert({node_element.id, node_element});
   }
 
+  for (auto n: nodes) {
+    cout << "{ ";
+    for (auto [s, e] : n.second.intervals) {
+      cout << "[" << s <<  ", " << e << "] ";
+    }
+    cout << "}";
+  }
+  cout << endl;
+
   return nodes;
 }
 
@@ -146,7 +155,7 @@ static map<int, Node> create_node_objects_from_json(const Document& document)
 static UnordSet create_set_of_nodes(const map<int, Node>& nodes, map<int, int>& node_offsets, int& max_value)
 {
   // We start to build out set of intervals from 0
-  int current_max = 0;
+  vector<int> current_max(nodes.begin()->second.intervals.size());
   UnordSet node_set;
   for (const auto& [id, node] : nodes) {
 
@@ -155,24 +164,27 @@ static UnordSet create_set_of_nodes(const map<int, Node>& nodes, map<int, int>& 
     // Define the interval and add it to the node set taking into account the current offset
     // Create an offset for each equation node. We want that each equation has its
     // own domain.
-    for (const auto& node_interval : node.intervals) {
-      int interval_begin = current_max;
-      int interval_end = (node_interval.second - node_interval.first) + current_max;
+    SetPiece array_of_nodes;
+    for (size_t i = 0; i < node.intervals.size(); i++) {
+      auto node_interval = node.intervals[i];
+      int interval_begin = current_max[i];
+      int interval_end = (node_interval.second - node_interval.first) + current_max[i];
       Interval interval(interval_begin, 1, interval_end);
 
-      node_set.emplace_hint(node_set.end(), interval);
+      array_of_nodes.emplaceBack(interval);
       cout << interval << endl;
 
       // set this node offset, the difference between the interval and the original one
       node_offsets[id] =  interval_begin - node_interval.first;
 
       // udpate max value
-      current_max = interval_end + 1;
+      current_max[i] = interval_end + 1;
     }
+    node_set.emplace_hint(node_set.end(), array_of_nodes);
   }
 
   // We save max value so edge domain will not collide with node domain
-  max_value = current_max;
+  max_value = current_max[0];
 
   return node_set;
 }
@@ -213,6 +225,7 @@ static BaseMap create_set_edge_map(const UnordSet& pre_image, const UnordSet& ed
   Exp map_exps;
   int i =0;
   for (const auto& var_exp : var_exps.exps()) {
+    cout << "var_exp " << var_exp << endl;
     // If the slope is 0, we just return the expression.
     if (var_exp.slope() == 0) {
       cout << "Creating constant interval" << endl;
@@ -231,9 +244,11 @@ static BaseMap create_set_edge_map(const UnordSet& pre_image, const UnordSet& ed
     // We start from the original offset and substract the domain offset
     INT offset = var_exp.offset().numerator();
     offset += set_offset;
-    offset = offset - minElem(edge_domain)[i];
+    cout << "minElem " << endl << minElem(edge_domain).size() << endl;
+    offset = offset - minElem(edge_domain)[0];
 
     // Then we take the minimum element of the pre-image and add the offset
+    cout << "minElem " << minElem(pre_image) << " " << minElem(pre_image).size() << endl;
     INT min_elem = minElem(pre_image)[i];
     offset += min_elem;
 
@@ -284,10 +299,12 @@ static Set get_node_domain(Node node)
 template<typename S, typename T>
 static S get_edge_domain(SetPiece image_intersection_set, T& edge_set, int& max_value)
 {
-  S edge_domain_set;
+  cout << "get_edge_domain " << image_intersection_set << ", " << edge_set << endl;
+  SetPiece edge_domain_set;
   for (size_t i = 0; i < image_intersection_set.size(); i++) {
     // Edge domain will be from the current max value and will have the quantity as the intersection
     auto image_int = image_intersection_set[i];
+    cout << "image_int " << image_int << endl;
 
     auto domain_offset = image_int.end() - image_int.begin();
 
@@ -297,9 +314,9 @@ static S get_edge_domain(SetPiece image_intersection_set, T& edge_set, int& max_
     // Update maximum value
     max_value = maxElem(edge_domain) + 1;
 
-    edge_domain_set.emplace(edge_domain);
-    edge_set.emplace_hint(edge_set.end(), edge_domain);
+    edge_domain_set.emplaceBack(edge_domain);
   }
+  edge_set.emplace_hint(edge_set.end(), edge_domain_set);
 
   return edge_domain_set;
 }
@@ -320,7 +337,7 @@ static tuple<UnordSet, BasePWMap, BasePWMap> create_graph_edges(
     // Define the equation intervals (without offsets)
     UnordSet intervals;
     SetPiece interval_set_piece;
-    assert(node.intervals.size() == 1);
+    // assert(node.intervals.size() == 1);
     for (const auto& node_interval : node.intervals) {
       Interval interval(node_interval.first, 1, node_interval.second);
       interval_set_piece.emplaceBack(interval);
@@ -369,18 +386,24 @@ static tuple<UnordSet, BasePWMap, BasePWMap> create_graph_edges(
         cout << "Yes, it is: " << candidate_image_intersection << endl;
 
         // Now we need to create both maps, let's create their domain.
-        auto image_intersection_set = candidate_image_intersection[0];
-        UnordSet edge_domain_set = get_edge_domain<UnordSet>(image_intersection_set, edge_set, max_value);
+        // for (size_t j = 0; j < candidate_image_intersection[0].size(); j++) {
+          auto image_intersection_set = candidate_image_intersection[0];
+          cout << image_intersection_set << endl;
+          UnordSet edge_domain_set = get_edge_domain<UnordSet>(image_intersection_set, edge_set, max_value);
+          cout << "candidate_image_intersection " << candidate_image_intersection << "image_intersection_set " << UnordSet(image_intersection_set) << " edge_domain_set " << edge_domain_set << endl;
 
-        // Create map to node candidate
-        auto node_candidate_map = create_set_edge_map(candidate_image_intersection, edge_domain_set, node_candidate_exps, node_offsets.at(i));
-        rhs_maps.emplace(node_candidate_map);
+          // Create map to node candidate
+          auto node_candidate_map = create_set_edge_map(candidate_image_intersection, edge_domain_set, node_candidate_exps, node_offsets.at(i));
+          cout << "create_set_edge_map checked" << endl;
+          rhs_maps.emplace(node_candidate_map);
 
-        // Create map to current node
-        auto pre_image_current_node = preImage(UnordSet(image_intersection_set), rhs_map);
-        auto im = image(BaseMap(UnordSet(pre_image_current_node), this_node_exps[0]));
-        auto current_node_map = create_set_edge_map(im, edge_domain_set, this_node_exps[0], node_offsets.at(id));
-        lhs_maps.emplace(current_node_map);
+          // Create map to current node
+          cout << UnordSet(image_intersection_set) << ", " <<  rhs_map << endl;
+          auto pre_image_current_node = preImage(UnordSet(image_intersection_set), rhs_map);
+          auto im = image(BaseMap(UnordSet(pre_image_current_node), this_node_exps[0]));
+          auto current_node_map = create_set_edge_map(im, edge_domain_set, this_node_exps[0], node_offsets.at(id));
+          lhs_maps.emplace(current_node_map);
+        // }
       }
     }
   }
@@ -398,19 +421,18 @@ static BaseSBG create_sb_graph(const std::map<int, Node>& nodes)
 
   // Now, we create our set of nodes.
   UnordSet node_set = create_set_of_nodes(nodes, node_offsets, max_value);
+  cout << "node_set " << node_set << endl;
 
   // Now, let's build a graph!
   BaseSBG graph; // This will be our graph
 
-  /// Firstly, add each node piece to the graph.
-  for (SetPiece mdi : node_set.pieces()) {
-    graph = addSV(UnordSet(mdi), graph);
-  }
+  // Firstly, add nodes to the graph.
+  graph = addSV(node_set, graph);
 
   // Then, create edges and maps.
   const auto [edge_set, left_maps, right_maps] = create_graph_edges(nodes, node_offsets, max_value);
 
-  // now add those edges and maps to the graph
+  // Now add those edges and maps to the graph
   graph = addSE(left_maps, right_maps, graph);
 
   return graph;

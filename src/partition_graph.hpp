@@ -46,23 +46,23 @@ make_initial_partition(
     bool pre_order);
 
 
+PartitionMap
+best_initial_partition(
+    SBG::LIB::BaseSBG& graph,
+    unsigned number_of_partitions);
+
+
 /// Returns the connectivity set of a set of edges contained in map1 and map2 of
 /// the graph (I mean, edges in BaseSBG::map1()[edge_index] and BaseSBG::map2()[edge_index]).
 /// So that, we consider the graph as an undirected graph.
-std::unordered_set<size_t> get_connectivity_set(
+SBG::LIB::UnordSet get_connectivity_set(
     SBG::LIB::BaseSBG& graph,
-    PartitionMap& partitions,
+    const PartitionMap& partitions,
     size_t edge_index);
 
 
-/// This function returns the cardinality of a connectivity set.
-/// @param pgraph graph partition
-/// @param edge_index index of the edges to get the connectivity set.
-/// @return the cardinality of the connectivity set
-size_t connectivity_set_cardinality(
-    SBG::LIB::BaseSBG& graph,
-    PartitionMap partitions,
-    size_t edge_index);
+/// This function returns the cardinality of a UnordSet.
+size_t get_unordset_size(const SBG::LIB::UnordSet& set);
 
 std::ostream& operator<<(std::ostream& os, const PartitionMap& partitions);
 
