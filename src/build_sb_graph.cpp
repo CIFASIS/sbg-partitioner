@@ -225,15 +225,17 @@ static BaseMap create_set_edge_map(const UnordSet& pre_image, const UnordSet& ed
   Exp map_exps;
   int i =0;
   for (const auto& var_exp : var_exps.exps()) {
-    cout << "var_exp " << var_exp << endl;
     // If the slope is 0, we just return the expression.
     if (var_exp.slope() == 0) {
       cout << "Creating constant interval" << endl;
       LExp map_exp = var_exp;
       INT offset = var_exp.offset().numerator();
-      offset += set_offset;
+      if (i == 0) {
+        offset += set_offset;
+      }
       map_exp.set_offset(RAT(offset, 1));
       map_exps.emplaceBack(map_exp);
+      i++;
       continue;
     }
 
@@ -243,9 +245,11 @@ static BaseMap create_set_edge_map(const UnordSet& pre_image, const UnordSet& ed
 
     // We start from the original offset and substract the domain offset
     INT offset = var_exp.offset().numerator();
-    offset += set_offset;
-    cout << "minElem " << endl << minElem(edge_domain).size() << endl;
-    offset = offset - minElem(edge_domain)[0];
+    if (i == 0) {
+      offset += set_offset;
+    }
+    cout << "minElem " << minElem(edge_domain).size() << endl;
+    offset = offset - minElem(edge_domain)[i];
 
     // Then we take the minimum element of the pre-image and add the offset
     cout << "minElem " << minElem(pre_image) << " " << minElem(pre_image).size() << endl;
@@ -308,11 +312,16 @@ static S get_edge_domain(SetPiece image_intersection_set, T& edge_set, int& max_
 
     auto domain_offset = image_int.end() - image_int.begin();
 
-    // domain for both edges
-    Interval edge_domain(max_value, 1, max_value + domain_offset);
+    Interval edge_domain;
+    if (i == 0) {
+      // domain for both edges
+      edge_domain = Interval(max_value, 1, max_value + domain_offset);
 
-    // Update maximum value
-    max_value = maxElem(edge_domain) + 1;
+      // Update maximum value
+      max_value = maxElem(edge_domain) + 1;
+    } else {
+      edge_domain = Interval(image_int.begin(), 1, image_int.end());
+    }
 
     edge_domain_set.emplaceBack(edge_domain);
   }
