@@ -392,8 +392,6 @@ int kl_sbg(const BaseSBG& graph, UnordSet& partition_a, UnordSet& partition_b)
 
     cout << "so it ends with " << gm << " " << max_par_sum << ", " << partition_a << ", " << partition_b << endl;
 
-    SBG_LOG << partition_a << ", " << partition_b  << endl;
-
     return max_par_sum;
 }
 
@@ -408,7 +406,7 @@ KLBipartResult kl_sbg_bipart(const SBG::LIB::BaseSBG& graph, SBG::LIB::UnordSet&
         partition_a = partition_a_copy;
         partition_b = partition_b_copy;
         gain = max(kl_sbg(graph, partition_a_copy, partition_b_copy), gain);
-        cout << "gaaaaaaaaain: " << gain << endl;
+        cout << "gain: " << gain << endl;
     }
 
     cout << "Final: " << partition_a << ", " << partition_b << endl;
@@ -453,6 +451,10 @@ void kl_sbg_partitioner(const BaseSBG& graph, PartitionMap& partitions)
             partitions[best_gain.i] = best_gain.A;
             partitions[best_gain.j] = best_gain.B;
         }
+    }
+
+    for (size_t i = 0; i < partitions.size(); i++) {
+        SBG_LOG << i << ": " << partitions[i] << endl;
     }
 }
 }
