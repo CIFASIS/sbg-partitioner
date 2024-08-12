@@ -52,7 +52,7 @@ struct GainObjectComparator {
 using CostMatrix = std::set<GainObject, GainObjectComparator>;
 
 
-void kl_sbg_partitioner(const SBG::LIB::BaseSBG& graph, std::vector<SBG::LIB::UnordSet>& partitions);
+void kl_sbg_partitioner(const SBG::LIB::BaseSBG& graph, PartitionMap& partitions);
 
 KLBipartResult kl_sbg_bipart(const SBG::LIB::BaseSBG& graph, SBG::LIB::UnordSet& partition_a, SBG::LIB::UnordSet& partition_b);
 

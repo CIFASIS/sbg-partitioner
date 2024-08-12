@@ -30,6 +30,9 @@
 #include "kernighan_lin_sbg.hpp"
 #include "partition_graph.hpp"
 
+
+#include "partition_strategy.hpp"
+
 using namespace std;
 
 using namespace sbg_partitioner;
@@ -121,20 +124,18 @@ int main(int argc, char** argv)
 
   cout << partitions << endl;
 
-  vector<SBG::LIB::UnordSet> pp = {};
-  for(const auto& [i, p]: partitions) {
-    pp.push_back(p);
-  }
-
-  kl_sbg_partitioner(sb_graph, pp);
+  kl_sbg_partitioner(sb_graph, partitions);
 
   // just for debugging
-  for (const auto& x : pp) {
-    cout << x << " ";
+  cout << endl;
+  for (unsigned i = 0; i < partitions.size(); i++) {
+    cout << i << " " << partitions[i] << endl;
   }
   cout << endl;
 
-  // cout << "Exit code: " << ret << endl;
+  sanity_check(sb_graph, partitions, *number_of_partitions);
+
+  cout << "Exit code: " << ret << endl;
 
   return ret;
 }

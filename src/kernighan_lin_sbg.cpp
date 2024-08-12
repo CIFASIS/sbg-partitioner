@@ -25,6 +25,7 @@
 
 #include <unistd.h>
 
+#include "build_sb_graph.hpp"
 #include "kernighan_lin_sbg.hpp"
 
 
@@ -154,18 +155,19 @@ static GainObject compute_diff(
     const BaseSBG& graph)
 {
     // Firstly, copy both partitions
-    auto a = partition_a[i];
-    auto b = partition_b[j];
+    auto a = UnordSet(partition_a[i]);
+    auto b = UnordSet(partition_b[j]);
 
     // Take the minimum partition size. We add 1 because it includes the last element
-    size_t size_node_a = a[0].end() - a[0].begin() + 1;
-    size_t size_node_b = b[0].end() - b[0].begin() + 1;
+    size_t size_node_a = get_node_size(a);
+    size_t size_node_b = get_node_size(b);
     size_t min_size = min(size_node_a, size_node_b);
 
     // No problem here, a is just a copy of partition_a[i], same for b
     // We substract 1 because it includes the last element
-    a[0].set_end(a[0].begin() + min_size - 1);
-    b[0].set_end(b[0].begin() + min_size - 1);
+    UnordSet rest_a, rest_b;
+    tie(a, rest_a) = cut_interval_by_dimension(a, min_size);
+    tie(b, rest_b) = cut_interval_by_dimension(b, min_size);
 
     // Now, compute external and internal cost for both maps
     UnordSet ec_nodes_a_1, ic_nodes_a_1;
@@ -176,7 +178,6 @@ static GainObject compute_diff(
 
     // Get the union between both external and internal costs for both combination of maps
     UnordSet ec_nodes_a, ic_nodes_a;
-    // ec_nodes_a = intersection(cup(ec_nodes_a_1, ec_nodes_a_2), partition_b);
     ec_nodes_a = cup(ec_nodes_a_1, ec_nodes_a_2);
     ic_nodes_a = cup(ic_nodes_a_1, ic_nodes_a_2);
 
@@ -184,7 +185,6 @@ static GainObject compute_diff(
     size_t ec_a = get_multidim_interval_size(ec_nodes_a);
     size_t ic_a = get_multidim_interval_size(ic_nodes_a);
     int d_a = ec_a - ic_a;
-    // cout << "nodes: " << a << ": " << ec_nodes_a << ", " << ec_a << ", " << ic_nodes_a << ", "  << ic_a << endl;
 
     // Same as before for partition b
     UnordSet ec_nodes_b_1, ic_nodes_b_1;
@@ -194,18 +194,15 @@ static GainObject compute_diff(
     tie(ec_nodes_b_2, ic_nodes_b_2) = compute_EC_IC(partition_b, b, partition_a, graph.map2(), graph.map1());
 
     UnordSet ec_nodes_b, ic_nodes_b;
-    // ec_nodes_b = intersection(cup(ec_nodes_b_1, ec_nodes_b_2), partition_a);
     ec_nodes_b = cup(ec_nodes_b_1, ec_nodes_b_2);
     ic_nodes_b = cup(ic_nodes_b_1, ic_nodes_b_2);
 
     size_t ec_b = get_multidim_interval_size(ec_nodes_b);
     size_t ic_b = get_multidim_interval_size(ic_nodes_b);
     int d_b = ec_b - ic_b;
-    // cout << "nodes: " << b << ": " << ec_nodes_b << ", " << ec_b << ", " << ic_nodes_b << ", "  << ic_b << endl;
 
     // Get communication between a and b
     size_t c_ab = get_c_ab(a, b, graph.map1(), graph.map2());
-    // cout << "c_ab: " << c_ab << endl;
 
     // calculate gain
     int gain = d_a + d_b - 2 * c_ab;
@@ -274,26 +271,27 @@ static void update_cost_matrix(
 
 
 // Partition a and b (A_c and B_c in the definition) are the remining nodes to be visited, not the actual partitions
-static pair<SetPiece, SetPiece> update_sets(
+static pair<UnordSet, UnordSet> update_sets(
     UnordSet& partition_a,
     UnordSet& partition_b,
     UnordSet& current_moved_partition_a,
     UnordSet& current_moved_partition_b,
     const GainObject& gain_object)
 {
-    auto node_a = partition_a[gain_object.i];
-    size_t partition_size_a = node_a.intervals()[0].end() - node_a.intervals()[0].begin() + 1;
+    auto node_a = UnordSet(partition_a[gain_object.i]);
+    size_t partition_size_a = get_node_size(node_a);
     bool node_a_is_fully_used = partition_size_a == gain_object.size;
-
     if (not node_a_is_fully_used) {
-        node_a[0] = Interval(node_a[0].begin(), 1, node_a[0].begin() + gain_object.size - 1);
+        UnordSet rest_a;
+        tie(node_a, rest_a) = cut_interval_by_dimension(node_a, gain_object.size);
     }
 
-    auto node_b = partition_b[gain_object.j];
-    size_t partition_size_b = node_b.intervals()[0].end() - node_b.intervals()[0].begin() + 1;
+    auto node_b = UnordSet(partition_b[gain_object.j]);
+    size_t partition_size_b = get_node_size(node_b); //node_b.intervals()[0].end() - node_b.intervals()[0].begin() + 1;
     bool node_b_is_fully_used = partition_size_b == gain_object.size;
     if (not node_b_is_fully_used) {
-        node_b[0] = Interval(node_b[0].begin(), 1, node_b[0].begin() + gain_object.size - 1);
+        UnordSet rest_b;
+        tie(node_b, rest_b) = cut_interval_by_dimension(node_b, gain_object.size);
     }
 
     // At least one of them should be fully used?
@@ -427,7 +425,7 @@ struct kl_sbg_partitioner_result
     UnordSet B;
 };
 
-void kl_sbg_partitioner(const BaseSBG& graph, vector<UnordSet>& partitions)
+void kl_sbg_partitioner(const BaseSBG& graph, PartitionMap& partitions)
 {
     bool change = true;
     while (change) {

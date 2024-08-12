@@ -25,6 +25,9 @@
 #include "partition_graph.hpp"
 
 
+#define PARTITION_SANITY_CHECK 1
+
+
 using namespace std;
 
 using namespace SBG::LIB;
@@ -52,13 +55,19 @@ PartitionMap make_initial_partition(BaseSBG& graph, unsigned number_of_partition
     for (auto& [id, set] : partitions) {
         SBG::LIB::UnordSet set_piece;
         for (auto& s : set) {
+            SBG::LIB::SetPiece intervals;
             if (not s.intervals().empty()) {
-                set_piece.emplace(s.intervals().front());
+                for (size_t i = 0; i < s.intervals().size(); i++) {
+                    Interval interv = s.intervals()[i];
+                    intervals.emplaceBack(interv);
+                }
             }
+            set_piece.emplace(intervals);
         }
         partitions_set[id] = set_piece;
     }
 
+    sanity_check(graph, partitions_set, number_of_partitions);
 
     SBG_LOG << partitions_set;
     cout << partitions_set << endl;
@@ -90,7 +99,7 @@ static void aux_function_best_initial_partition(
     PartitionAlgorithm partition_algorithm,
     bool pre_order)
 {
-    PartitionMap temp_intial_partitions =  make_initial_partition(graph, number_of_partitions, PartitionAlgorithm::GREEDY, true);
+    PartitionMap temp_intial_partitions =  make_initial_partition(graph, number_of_partitions, partition_algorithm, pre_order);
     size_t temp_partition_comm_size = get_partition_communication(graph, temp_intial_partitions);
 
     cout  << "PartitionAlgorithm: " << partition_algorithm << ", pre order " << pre_order << " cardinality " << best_communication_set_cardinality << endl;
@@ -99,7 +108,6 @@ static void aux_function_best_initial_partition(
         best_initial_partitions = std::move(temp_intial_partitions);
         best_communication_set_cardinality = temp_partition_comm_size;
     }
-
 }
 
 
@@ -108,16 +116,17 @@ best_initial_partition(
     SBG::LIB::BaseSBG& graph,
     unsigned number_of_partitions)
 {
-    PartitionMap best_initial_partitions = make_initial_partition(graph, number_of_partitions, PartitionAlgorithm::DISTRIBUTED, true);
+    constexpr bool pre_order = true;
+    PartitionMap best_initial_partitions = make_initial_partition(graph, number_of_partitions, PartitionAlgorithm::DISTRIBUTED, pre_order);
     size_t best_communication_set_cardinality = get_partition_communication(graph, best_initial_partitions);
 
-    cout << "PartitionAlgorithm: " << PartitionAlgorithm::DISTRIBUTED << ", pre order " << true << " cardinality " << best_communication_set_cardinality << endl;
+    cout << "PartitionAlgorithm: " << PartitionAlgorithm::DISTRIBUTED << ", pre order " << pre_order << " cardinality " << best_communication_set_cardinality << endl;
 
-    aux_function_best_initial_partition(graph, best_initial_partitions, best_communication_set_cardinality, number_of_partitions, PartitionAlgorithm::DISTRIBUTED, false);
+    aux_function_best_initial_partition(graph, best_initial_partitions, best_communication_set_cardinality, number_of_partitions, PartitionAlgorithm::DISTRIBUTED, not pre_order);
 
-    aux_function_best_initial_partition(graph, best_initial_partitions, best_communication_set_cardinality, number_of_partitions, PartitionAlgorithm::GREEDY, true);
+    aux_function_best_initial_partition(graph, best_initial_partitions, best_communication_set_cardinality, number_of_partitions, PartitionAlgorithm::GREEDY, pre_order);
 
-    aux_function_best_initial_partition(graph, best_initial_partitions, best_communication_set_cardinality, number_of_partitions, PartitionAlgorithm::GREEDY, false);
+    aux_function_best_initial_partition(graph, best_initial_partitions, best_communication_set_cardinality, number_of_partitions, PartitionAlgorithm::GREEDY, not pre_order);
 
     cout << "Best is " << best_initial_partitions << " with communication " << best_communication_set_cardinality << endl;
 
@@ -174,6 +183,30 @@ size_t get_unordset_size(const UnordSet& set)
     }
 
     return acc;
+}
+
+void sanity_check(const BaseSBG &graph, PartitionMap& partitions_set, unsigned number_of_partitions)
+{
+# if PARTITION_SANITY_CHECK
+    // This is just a sanity check
+    UnordSet nodes_to_check;
+    for (unsigned i = 0; i < number_of_partitions; i++) {
+        nodes_to_check = cup(nodes_to_check, partitions_set[i]);
+    }
+    UnordSet diff_1 = difference(graph.V(), nodes_to_check);
+    UnordSet diff_2 = difference(nodes_to_check, graph.V());
+    assert(get_node_size(diff_1) == 0 and "The intial partition has less elements than the graph");
+    assert(get_node_size(diff_2) == 0 and "The intial partition has more elements than the graph");
+    for (unsigned i = 0; i < number_of_partitions; i++) {
+        for (unsigned j = i + 1; j < number_of_partitions; j++) {
+            auto p_1 = partitions_set[i];
+            auto p_2 = partitions_set[j];
+            stringstream error_msg;
+            error_msg << "Intersection between " << i << " and " << j << " is not empty." << endl;
+            assert(intersection(p_1, p_2).pieces().empty() and error_msg.str().c_str());
+        }
+    }
+#endif //PARTITION_SANITY_CHECK
 }
 
 

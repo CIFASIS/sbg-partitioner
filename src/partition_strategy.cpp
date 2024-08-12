@@ -16,9 +16,11 @@
  along with SBG Partitioner.  If not, see <http://www.gnu.org/licenses/>.
 
  ******************************************************************************/
+
+#include "build_sb_graph.hpp"
 #include "partition_strategy.hpp"
 
-#include <bits/stdc++.h> 
+#include <bits/stdc++.h>
 
 #define DEBUG_PARTITION_STRATEGY_ENABLED 1
 
@@ -28,42 +30,6 @@ using namespace std;
 using namespace SBG::LIB;
 
 namespace sbg_partitioner {
-
-static unsigned get_node_size(const SetPiece& node)
-{
-    if (node.intervals().empty()) {
-        return 0;
-    }
-
-    cout << "get_node_size " << node.intervals().front() << " ";
-    unsigned acc = node.intervals().front().end() - node.intervals().front().begin() + 1;
-
-    // for (size_t i = 0; i < node.intervals().size(); i++) {
-    //     auto interval = node.intervals()[i];
-    //     cout << interval << " ";
-    //     acc = acc * (interval.end() - interval.begin() + 1);
-    // }
-    cout << " acc " << acc << endl;
-    return acc;
-}
-
-
-static pair<SetPiece, SetPiece> cut_interval(const SetPiece &interval, int cut_value)
-{
-    int interval_begin = interval.intervals().front().begin();
-    int interval_end = interval.intervals().front().end();
-    Interval interval_1(interval_begin, 1, cut_value);
-    Interval interval_2(cut_value + 1, 1, interval_end);
-
-    SetPiece set_1;
-    set_1.emplaceBack(interval_1);
-
-    SetPiece set_2;
-    set_2.emplaceBack(interval_2);
-
-    return make_pair(set_1, set_2);
-}
-
 
 
 PartitionStrategyGreedy::PartitionStrategyGreedy(unsigned number_of_partitions, const BaseSBG graph)
@@ -75,7 +41,7 @@ PartitionStrategyGreedy::PartitionStrategyGreedy(unsigned number_of_partitions, 
     _total_of_nodes = 0;
     auto nodes = graph.V();
     for (auto& node : nodes) {
-        int node_size = node.intervals().front().end() - node.intervals().front().begin() + 1;
+        int node_size = get_node_size(node);//node.intervals().front().end() - node.intervals().front().begin() + 1;
         _total_of_nodes += node_size;
     }
 
@@ -84,10 +50,16 @@ PartitionStrategyGreedy::PartitionStrategyGreedy(unsigned number_of_partitions, 
     unsigned acceptable_surplus = ceil(min_amount_by_partition * 0.05);
 
     for (unsigned i = 0; i < number_of_partitions; i++) {
-        unsigned local_surplus = surplus <= acceptable_surplus ? surplus : acceptable_surplus;
-        surplus -= local_surplus;
-        _size_by_partition[i] = min_amount_by_partition + local_surplus;
+        _size_by_partition[i] = min_amount_by_partition;
         _current_size_by_partition[i] = 0;
+    }
+
+    while (surplus > 0) {
+        for (unsigned i = 0; i < number_of_partitions; i++) {
+            unsigned local_surplus = surplus <= acceptable_surplus ? surplus : acceptable_surplus;
+            surplus -= local_surplus;
+            _size_by_partition[i] += local_surplus;
+        }
     }
 
 #if DEBUG_PARTITION_STRATEGY_ENABLED
@@ -104,7 +76,7 @@ void PartitionStrategyGreedy::operator() (const SetPiece& node)
 #if DEBUG_PARTITION_STRATEGY_ENABLED
     cout << "Adding node " << node << endl;
 #endif
-    SetPiece node_to_be_added = node;
+    UnordSet node_to_be_added = node;
     unsigned pending_node_size = get_node_size(node);
 
     for (size_t i = 0; i < _number_of_partitions; i++) {
@@ -124,13 +96,17 @@ void PartitionStrategyGreedy::operator() (const SetPiece& node)
 
         size_t available = _size_by_partition[i] - _current_size_by_partition[i];
         if (available < pending_node_size) {
-            SetPiece temp_node;
-            tie(temp_node, node_to_be_added) = cut_interval(node_to_be_added, node_to_be_added.intervals().front().begin() + available - 1);
-            p.insert(temp_node);
+            UnordSet temp_node;
+            tie(temp_node, node_to_be_added) = cut_interval_by_dimension(node_to_be_added, available);
+            if (temp_node.size() == 0) {
+                continue;
+            }
+
+            for_each(temp_node.pieces().begin(), temp_node.pieces().end(), [&p](const SetPiece& s) { p.insert(s); });
             pending_node_size = get_node_size(node_to_be_added);
             _current_size_by_partition[i] += available;
         } else {
-            p.insert(node_to_be_added);
+            for_each(node_to_be_added.pieces().begin(), node_to_be_added.pieces().end(), [&p](const SetPiece& s) { p.insert(s); });
             _current_size_by_partition[i] += pending_node_size;
             break;
         }
@@ -198,19 +174,20 @@ void PartitionStrategyDistributive::operator() (const SBG::LIB::SetPiece& node)
         }
     }
 
-    SetPiece node_to_be_added = node;
+    UnordSet node_to_be_added = node;
     for (const auto [i, n] : size_by_partition) {
         cout << "For partition " << i << " size: " << n << endl;
         if (size_by_partition[i] == 0) {
             continue;
         }
         auto &p = _partitions[i];
-        SetPiece temp_node;
-        tie(temp_node, node_to_be_added) = cut_interval(node_to_be_added, node_to_be_added.intervals().front().begin() + size_by_partition[i] - 1);
+        UnordSet temp_node;
+
+        tie(temp_node, node_to_be_added) = cut_interval_by_dimension(node_to_be_added, size_by_partition[i]);
 #if DEBUG_PARTITION_STRATEGY_ENABLED
         cout << "About to add " << temp_node << " to " << i << ", remaining: " << node_to_be_added << endl;
 #endif
-        p.insert(temp_node);
+        for_each(temp_node.pieces().begin(), temp_node.pieces().end(), [&p](const SetPiece& s) { p.insert(s); });
         _current_size_by_partition[i] += get_node_size(temp_node);
     }
 

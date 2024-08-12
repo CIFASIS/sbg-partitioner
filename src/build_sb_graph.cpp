@@ -155,7 +155,7 @@ static map<int, Node> create_node_objects_from_json(const Document& document)
 static UnordSet create_set_of_nodes(const map<int, Node>& nodes, map<int, int>& node_offsets, int& max_value)
 {
   // We start to build out set of intervals from 0
-  vector<int> current_max(nodes.begin()->second.intervals.size());
+  int current_max = 0;
   UnordSet node_set;
   for (const auto& [id, node] : nodes) {
 
@@ -167,9 +167,16 @@ static UnordSet create_set_of_nodes(const map<int, Node>& nodes, map<int, int>& 
     SetPiece array_of_nodes;
     for (size_t i = 0; i < node.intervals.size(); i++) {
       auto node_interval = node.intervals[i];
-      int interval_begin = current_max[i];
-      int interval_end = (node_interval.second - node_interval.first) + current_max[i];
-      Interval interval(interval_begin, 1, interval_end);
+
+      int interval_begin, interval_end;
+      if ( i == 0) {
+        interval_begin = current_max;
+        interval_end = (node_interval.second - node_interval.first) + current_max;
+      } else {
+        interval_begin = node_interval.first;
+        interval_end = node_interval.second;
+      }
+      Interval interval = Interval(interval_begin, 1, interval_end);
 
       array_of_nodes.emplaceBack(interval);
       cout << interval << endl;
@@ -178,13 +185,15 @@ static UnordSet create_set_of_nodes(const map<int, Node>& nodes, map<int, int>& 
       node_offsets[id] =  interval_begin - node_interval.first;
 
       // udpate max value
-      current_max[i] = interval_end + 1;
+      if (i == 0) {
+        current_max = interval_end + 1;
+      }
     }
     node_set.emplace_hint(node_set.end(), array_of_nodes);
   }
 
   // We save max value so edge domain will not collide with node domain
-  max_value = current_max[0];
+  max_value = current_max;
 
   return node_set;
 }
@@ -510,6 +519,135 @@ OrdSet get_adjacents(const CanonSBG& graph, const SetPiece& node)
 
   cout << "Comunication is " << acc <<endl;
   return adjacents;
+}
+
+
+static pair<SetPiece, SetPiece> cut_interval(const SetPiece &interval, int cut_value)
+{
+    int interval_begin = interval.intervals().front().begin();
+    int interval_end = interval.intervals().front().end();
+    Interval interval_1(interval_begin, 1, cut_value);
+    Interval interval_2(cut_value + 1, 1, interval_end);
+
+    SetPiece set_1;
+    set_1.emplaceBack(interval_1);
+
+    SetPiece set_2;
+    set_2.emplaceBack(interval_2);
+
+    return make_pair(set_1, set_2);
+}
+
+
+pair<UnordSet, UnordSet> cut_bidimensional_interval(const SetPiece &set_piece, size_t s)
+{
+    cout << "cutting interval " << set_piece << ", " << s << endl;
+    // auto size_node_1 = get_node_size(SetPiece(set_piece.intervals().front()));
+    auto size_node_2 = get_node_size(SetPiece(set_piece.intervals()[1]));
+    // unsigned total_size = size_node_1 * size_node_2;
+    unsigned ammount_of_rows = s / size_node_2;
+    unsigned rest = s % size_node_2;
+
+    cout << "Ammount of rows " << ammount_of_rows << endl;
+
+    UnordSet unordset_ret;
+    SetPiece interval_2 = *set_piece.intervals().begin();
+
+    if (ammount_of_rows > 0) {
+        SetPiece interval_1;
+        tie(interval_1, interval_2) = cut_interval(set_piece.intervals().front(), set_piece.intervals().front().begin() + ammount_of_rows - 1);
+        cout << "Interval cut in " << ammount_of_rows << ": " << interval_1 << ", " << interval_2 << endl;
+        if (interval_2.size() == 0 and rest > 0) {
+            interval_2 = Interval(interval_1.intervals().front().end(), 1, interval_1.intervals().front().end());
+        }
+        interval_1.emplaceBack(set_piece.intervals()[1]);
+        unordset_ret.emplace(interval_1);
+    }
+
+    if (rest > 0){
+        SetPiece rest_set_piece;
+        rest_set_piece.emplaceBack(Interval(interval_2.intervals().front().begin(), 1, interval_2.intervals().front().begin()));
+        SetPiece interval_3, interval_4;
+        tie(interval_3, interval_4) = cut_interval(set_piece.intervals()[1], set_piece.intervals()[1].begin() + rest - 1);
+        rest_set_piece.emplaceBack(interval_3.intervals().front());
+
+        unordset_ret.emplace(rest_set_piece);
+    }
+
+    UnordSet remaining = difference(UnordSet(set_piece), unordset_ret);
+
+    cout << "original " << UnordSet(set_piece) << ", " << unordset_ret << ", " << remaining << endl;
+
+    return make_pair(unordset_ret, remaining);
+}
+
+
+pair<UnordSet, UnordSet> cut_interval_by_dimension(UnordSet& set_piece, size_t size)
+{
+    if (set_piece.pieces().size() == 0) {
+        return make_pair(UnordSet(), UnordSet());
+    }
+
+    if (set_piece.pieces().begin()->intervals().size() == 1) {
+        SetPiece p_1, p_2;
+        tie(p_1, p_2) = cut_interval(set_piece.pieces().begin()->intervals().front(), set_piece.pieces().begin()->intervals().front().begin() + size - 1);
+        return make_pair(UnordSet(p_1), UnordSet(p_2));
+    }
+
+    if (set_piece.pieces().begin()->intervals().size() == 2) {
+        UnordSet cut_node;
+        UnordSet remaining_node = set_piece;
+        for (const auto& piece : set_piece.pieces()) {
+          size_t pice_size = get_node_size(piece);
+          size_t size_to_cut = min(pice_size, size);
+          UnordSet cut_node_piece, remaining_node_piece;
+          tie(cut_node_piece, remaining_node_piece) = cut_bidimensional_interval(piece, size_to_cut);
+          cut_node = cup(cut_node, cut_node_piece);
+          remaining_node = difference(remaining_node, cut_node);
+
+          if (remaining_node.pieces().empty()) {
+            return make_pair(cut_node, remaining_node);
+          }
+        }
+
+        return make_pair(cut_node, remaining_node);
+    }
+
+    cout << "Unexpected dimension: " << set_piece.pieces().begin()->intervals().size() << endl;
+
+    throw 1;
+}
+
+
+unsigned get_node_size(SetPiece node)
+{
+    if (node.size() == 0) {
+        return 0;
+    }
+
+    unsigned acc = node.intervals().front().end() - node.intervals().front().begin() + 1;
+
+    for (size_t i = 1; i < node.intervals().size(); i++) {
+        auto interval = node.intervals()[i];
+        acc = acc * (interval.end() - interval.begin() + 1);
+    }
+
+    return acc;
+}
+
+
+unsigned get_node_size(const UnordSet& node)
+{
+    if (node.pieces().empty()) {
+        return 0;
+    }
+
+  unsigned size = 0;
+  for (auto set_piece : node.pieces()) {
+    size += get_node_size(set_piece);
+  }
+
+  return size;
 }
 
 }

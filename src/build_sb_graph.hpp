@@ -44,4 +44,11 @@ SBG::LIB::Interval get_pre_image(const SBG::LIB::Interval& image_interval, const
 /// @param node set of nodes we want to know its connections.
 /// @return a set of nodes connected to the function parameter.
 SBG::LIB::OrdSet get_adjacents(const SBG::LIB::CanonSBG& graph, const SBG::LIB::SetPiece& node);
+
+
+unsigned get_node_size(SBG::LIB::SetPiece node);
+
+unsigned get_node_size(const SBG::LIB::UnordSet& node);
+
+std::pair<SBG::LIB::UnordSet, SBG::LIB::UnordSet> cut_interval_by_dimension(SBG::LIB::UnordSet& set_piece, size_t size);
 }

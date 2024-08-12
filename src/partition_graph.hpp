@@ -64,6 +64,10 @@ SBG::LIB::UnordSet get_connectivity_set(
 /// This function returns the cardinality of a UnordSet.
 size_t get_unordset_size(const SBG::LIB::UnordSet& set);
 
+
+void sanity_check(const SBG::LIB::BaseSBG &graph, PartitionMap& partitions_set, unsigned number_of_partitions);
+
+
 std::ostream& operator<<(std::ostream& os, const PartitionMap& partitions);
 
 }
