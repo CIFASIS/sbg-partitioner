@@ -17,6 +17,10 @@
 
  ******************************************************************************/
 
+#include <rapidjson/document.h>
+#include <rapidjson/filewritestream.h>
+#include <rapidjson/prettywriter.h>
+#include <rapidjson/writer.h>
 #include <set>
 #include <util/logger.hpp>
 
@@ -207,6 +211,51 @@ void sanity_check(const BaseSBG &graph, PartitionMap& partitions_set, unsigned n
         }
     }
 #endif //PARTITION_SANITY_CHECK
+}
+
+
+void write_output(const string filename, const PartitionMap& partition_map)
+{
+    rapidjson::Document json_doc;
+    rapidjson::Document::AllocatorType& allocator = json_doc.GetAllocator();
+    json_doc.SetObject();
+
+    rapidjson::Value obj_partitions(rapidjson::kArrayType);
+    for (size_t i = 0; i < partition_map.size(); i++) {
+        rapidjson::Value obj_partition(rapidjson::kArrayType);
+        const auto& partition = partition_map.at(i);
+        for (const SetPiece& set_piece : partition.pieces()) {
+            rapidjson::Value obj_intervals(rapidjson::kArrayType);
+            obj_intervals.SetArray();
+            for (const Interval& interval : set_piece.intervals()) {
+                rapidjson::Value obj_interval(rapidjson::kArrayType);
+                rapidjson::Value begin(rapidjson::kNumberType);
+                begin.SetUint(interval.begin());
+                obj_interval.PushBack(begin, allocator);
+                rapidjson::Value end(rapidjson::kNumberType);
+                end.SetUint(interval.end());
+                obj_interval.PushBack(end, allocator);
+
+                obj_intervals.PushBack(obj_interval, allocator);
+            }
+
+            obj_partition.PushBack(obj_intervals, allocator);
+        }
+
+        obj_partitions.PushBack(obj_partition, allocator);
+    }
+
+    json_doc.AddMember("partitions", obj_partitions, allocator);
+
+    // Write the JSON data to the file
+    // Open the output file
+    rapidjson::StringBuffer s;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(s);
+    json_doc.Accept(writer);
+    std::cout << s.GetString() << std::endl;
+
+    std::ofstream of (filename);
+    of << s.GetString();
 }
 
 

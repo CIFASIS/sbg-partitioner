@@ -65,6 +65,9 @@ SBG::LIB::UnordSet get_connectivity_set(
 size_t get_unordset_size(const SBG::LIB::UnordSet& set);
 
 
+void write_output(const std::string filename, const PartitionMap& partition_map);
+
+
 void sanity_check(const SBG::LIB::BaseSBG &graph, PartitionMap& partitions_set, unsigned number_of_partitions);
 
 

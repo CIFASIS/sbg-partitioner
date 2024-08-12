@@ -58,22 +58,23 @@ void version()
 
 int main(int argc, char** argv)
 {
-  int ret = 0;
   int opt;
   optional<string> filename = nullopt;
   optional<unsigned> number_of_partitions = nullopt;
+  optional<string> output_file = nullopt;
 
   while (true) {
 
     static struct option long_options[] = {
       {"filename", required_argument, 0, 'f'},
       {"partitions", required_argument, 0, 'p'},
+      {"output", required_argument, 0, 'o'},
       {"version", no_argument, 0, 'v'},
       {"help", no_argument, 0, 'h'}
     };
 
     int option_index = 0;
-    opt = getopt_long(argc, argv, "f:p:vh:", long_options, &option_index);
+    opt = getopt_long(argc, argv, "f:p:o:vh:", long_options, &option_index);
     if (opt == EOF) break;
 
     switch (opt) {
@@ -86,6 +87,12 @@ int main(int argc, char** argv)
     case 'p':
       if (optarg) {
         number_of_partitions = atoi(optarg);
+      }
+      break;
+
+    case 'o':
+      if (optarg) {
+        output_file = string(optarg);
       }
       break;
 
@@ -107,7 +114,7 @@ int main(int argc, char** argv)
     }
   }
 
-  if (!filename or !number_of_partitions) {
+  if (not filename or not number_of_partitions or not output_file) {
     usage();
     exit(1);
   }
@@ -135,7 +142,7 @@ int main(int argc, char** argv)
 
   sanity_check(sb_graph, partitions, *number_of_partitions);
 
-  cout << "Exit code: " << ret << endl;
+  write_output(*output_file, partitions);
 
-  return ret;
+  return 0;
 }
