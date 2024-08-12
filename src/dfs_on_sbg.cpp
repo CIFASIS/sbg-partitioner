@@ -219,7 +219,6 @@ void DFS::add_it_definitely(node_identifier id)
 void DFS::add_it_to_a_partition(node_identifier id)
 {
     auto v = _graph.V()[id];
-    cout << v << endl;
     (*_partition_strategy)(v);
 }
 
