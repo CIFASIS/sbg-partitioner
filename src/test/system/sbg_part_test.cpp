@@ -33,7 +33,7 @@ TEST_P(ISBGPartTests, GenerateGraph)
   const std::string MODEL = " ./system/gt_data/" + NAME + "/" + NAME + ".json";
   const std::string FOLDER_CMD = "mkdir ./system/test_data/" + NAME;
   const std::string SBG_PART = "../../bin/sbg-partitioner";
-  const std::string ARGS = " -p 2 -f " + MODEL;
+  const std::string ARGS = " -p 2 -o /tmp/output -f " + MODEL;
   const std::string TEST_CMD = "./system/test_results.sh " + NAME;
   const std::string RESULT_FILE = "./system/test_data/" + NAME + "/" + NAME + ".passed";
   const std::string COMP_CMD = SBG_PART + ARGS + MODEL + "; mv SBG.log ./system/test_data/" + NAME + "/";
