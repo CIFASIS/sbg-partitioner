@@ -28,13 +28,14 @@
 #include <sbg/sbg.hpp>
 
 #include "partition_strategy.hpp"
+#include "weighted_sb_graph.hpp"
 
 
 namespace sbg_partitioner {
 
 namespace search {
 
-void initialize_partitioning(SBG::LIB::BaseSBG& graph, unsigned number_of_partitions, std::unique_ptr<PartitionStrategy> partition_strategy, bool pre_order);
+void initialize_partitioning(WeightedSBGraph& graph, unsigned number_of_partitions, std::unique_ptr<PartitionStrategy> partition_strategy, bool pre_order);
 
 std::map<unsigned, std::set<SBG::LIB::SetPiece>> partitionate();
 
@@ -45,7 +46,7 @@ public:
 
     /// pre_order: True means pre-order, False means post-order. In-order is not taken
     /// into account since the graph is not a binary tree.
-    DFS(SBG::LIB::BaseSBG& graph, unsigned number_of_partitions, std::unique_ptr<PartitionStrategy> partition_strategy, bool pre_order);
+    DFS(WeightedSBGraph& graph, unsigned number_of_partitions, std::unique_ptr<PartitionStrategy> partition_strategy, bool pre_order);
 
     DFS& operator= (const DFS&) = delete;   //deleted copy-assignment operator
     DFS(DFS&&) = default;
@@ -72,7 +73,7 @@ private:
 
     size_t _root_node_idx;
 
-    SBG::LIB::BaseSBG  _graph;
+    WeightedSBGraph _graph;
 
     std::unique_ptr<PartitionStrategy> _partition_strategy;
 

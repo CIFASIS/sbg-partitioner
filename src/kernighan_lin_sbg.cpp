@@ -155,7 +155,7 @@ static GainObject compute_diff(
     size_t i, size_t j,
     UnordSet& partition_a,
     UnordSet& partition_b,
-    const BaseSBG& graph)
+    const WeightedSBGraph& graph)
 {
     // Firstly, copy both partitions
     auto a = UnordSet(partition_a[i]);
@@ -220,7 +220,7 @@ static GainObject compute_diff(
 static CostMatrix generate_gain_matrix(
     UnordSet& partition_a,
     UnordSet& partition_b,
-    const BaseSBG& graph)
+    const WeightedSBGraph& graph)
 {
     CostMatrix cost_matrix;
 
@@ -262,7 +262,7 @@ static void update_cost_matrix(
     UnordSet& partition_a,
     UnordSet& partition_b,
     const GainObject& gain_object,
-    const BaseSBG& graph,
+    const WeightedSBGraph& graph,
     CostMatrix& cost_matrix)
 {
     // Let's add gain objects to the cost matrix
@@ -317,7 +317,7 @@ static pair<UnordSet, UnordSet> update_sets(
 }
 
 
-static GainObject max_diff(CostMatrix& cost_matrix, UnordSet& partition_a, UnordSet& partition_b, const BaseSBG& graph)
+static GainObject max_diff(CostMatrix& cost_matrix, UnordSet& partition_a, UnordSet& partition_b, const WeightedSBGraph& graph)
 {
     // cost_matrix is sort by gain, so the first is the maximum gain
     auto g = cost_matrix.begin();
@@ -338,7 +338,7 @@ static void update_diff(
     CostMatrix& cost_matrix,
     UnordSet& partition_a,
     UnordSet& partition_b,
-    const BaseSBG& graph,
+    const WeightedSBGraph& graph,
     const GainObject& gain_object)
 {
     if (false) {
@@ -373,7 +373,7 @@ static void update_sum(
 }
 
 
-int kl_sbg(const BaseSBG& graph, UnordSet& partition_a, UnordSet& partition_b)
+int kl_sbg(const WeightedSBGraph& graph, UnordSet& partition_a, UnordSet& partition_b)
 {
 #if KERNIGHAN_LIN_SBG_DEBUG
     cout << "Algorithm starts with " << partition_a << ", " << partition_b << endl;
@@ -415,7 +415,7 @@ int kl_sbg(const BaseSBG& graph, UnordSet& partition_a, UnordSet& partition_b)
 }
 
 
-KLBipartResult kl_sbg_bipart(const SBG::LIB::BaseSBG& graph, SBG::LIB::UnordSet& partition_a, SBG::LIB::UnordSet& partition_b)
+KLBipartResult kl_sbg_bipart(const WeightedSBGraph& graph, SBG::LIB::UnordSet& partition_a, SBG::LIB::UnordSet& partition_b)
 {
     auto partition_a_copy = partition_a;
     auto partition_b_copy = partition_b;
@@ -446,7 +446,7 @@ struct kl_sbg_partitioner_result
     UnordSet B;
 };
 
-void kl_sbg_partitioner(const BaseSBG& graph, PartitionMap& partitions)
+void kl_sbg_partitioner(const WeightedSBGraph& graph, PartitionMap& partitions)
 {
     bool change = true;
     while (change) {

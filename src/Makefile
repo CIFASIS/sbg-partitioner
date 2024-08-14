@@ -33,7 +33,8 @@ SOURCES := build_sb_graph.cpp \
 		   kernighan_lin_sbg.cpp \
 		   main.cpp \
 		   partition_graph.cpp \
-		   partition_strategy.cpp
+		   partition_strategy.cpp \
+		   weighted_sb_graph.cpp
 
 # Flags, Libraries and Includes
 INCLUDES := -I. -I$(SBG_LIB_PATH)/$(SBG_DEV)/usr/include -I$(BOOST_LIB_PATH)/include -I$(3RD_PARTY_DIR)/rapidjson/include

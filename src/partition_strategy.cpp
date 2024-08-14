@@ -32,7 +32,7 @@ using namespace SBG::LIB;
 namespace sbg_partitioner {
 
 
-PartitionStrategyGreedy::PartitionStrategyGreedy(unsigned number_of_partitions, const BaseSBG graph)
+PartitionStrategyGreedy::PartitionStrategyGreedy(unsigned number_of_partitions, const WeightedSBGraph graph)
     : PartitionStrategy(),
     _number_of_partitions(number_of_partitions),
     _current_partition(0)
@@ -124,7 +124,7 @@ map<unsigned, set<SetPiece>> PartitionStrategyGreedy::partitions() const
 /* PartitionStrategyDistributive */
 
 
-PartitionStrategyDistributive::PartitionStrategyDistributive(unsigned number_of_partitions, const BaseSBG graph)
+PartitionStrategyDistributive::PartitionStrategyDistributive(unsigned number_of_partitions, const WeightedSBGraph graph)
     : PartitionStrategy(),
     _number_of_partitions(number_of_partitions),
     _nodes(graph.V())
