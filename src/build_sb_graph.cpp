@@ -249,13 +249,13 @@ static UnordSet create_set_of_nodes(const map<int, Node>& nodes, map<int, int>& 
 }
 
 
-static map<string, Exp> read_left_vars(const Node& node)
+static vector<pair<Var, Exp>> read_left_vars(const Node& node)
 {
   const auto& l_nodes = node.lhs;
 
   assert(l_nodes.size() > 0);
 
-  map<string, Exp> exps;
+  vector<pair<Var, Exp>> exps;
   for (const auto& l_node : l_nodes) {
     Var var = l_node;
     Exp exp;
@@ -264,7 +264,7 @@ static map<string, Exp> read_left_vars(const Node& node)
       exp.emplaceBack(LExp(RAT(values.first, 1), RAT(values.second, 1)));
     }
 
-    exps[l_node.id] = exp;
+    exps.push_back({var, exp});
   }
 
   return exps;
@@ -327,7 +327,6 @@ static BaseMap create_set_edge_map(const UnordSet& pre_image, const UnordSet& ed
 }
 
 
-
 /// Ad hoc function to get pre image of an expression from its image.
 /// @param image_interval  Image we want to get the pre image from
 /// @param expression  Expression to get the pre image
@@ -338,7 +337,6 @@ Interval get_pre_image(const Interval& image_interval, const LExp& expression)
   Interval pre_image = image(image_interval, inv_exp);
   return pre_image;
 }
-
 
 
 template<typename Set>
@@ -410,7 +408,7 @@ static tuple<UnordSet, BasePWMap, BasePWMap, map<UnordSet, unsigned>> create_gra
     }
     intervals.emplace(interval_set_piece);
 
-    map<string, Exp> this_node_exps = read_left_vars(node);
+    vector<pair<Var, Exp>> this_node_exps = read_left_vars(node);
 
     // Now, iterate the right hand side expresions to connect them to their definitions.
     for (const Var &right_var : node.rhs) {
@@ -437,8 +435,8 @@ static tuple<UnordSet, BasePWMap, BasePWMap, map<UnordSet, unsigned>> create_gra
 
         // look for definitions of the same variable
         auto exps_and_var_names = read_left_vars(node_candidate);
-        for (const auto& [name, node_candidate_exps] : exps_and_var_names) {
-          if (name != right_var.id) {
+        for (const auto& [var, node_candidate_exps] : exps_and_var_names) {
+          if (var.id != right_var.id) {
             continue;
           }
 
@@ -470,7 +468,7 @@ static tuple<UnordSet, BasePWMap, BasePWMap, map<UnordSet, unsigned>> create_gra
             auto current_node_map = create_set_edge_map(im, edge_domain_set, exp, node_offsets.at(id));
             lhs_maps.emplace(current_node_map);
 
-            weights.insert({edge_domain_set, right_var.weight});
+            weights.insert({edge_domain_set, var.weight});
           }
         }
       }

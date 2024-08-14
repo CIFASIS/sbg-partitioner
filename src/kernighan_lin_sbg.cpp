@@ -79,12 +79,19 @@ ostream& operator<<(ostream& os, const KLBipartResult& result)
 
 
 /// This is an ad hoc function which gets the addition of the size of each interval
-static unsigned get_multidim_interval_size(UnordPWMDInter& final_edges)
+static unsigned get_multidim_interval_size(UnordSet& final_edges,const map<UnordSet, unsigned>& weights)
 {
     unsigned acc = 0;
     for (size_t i = 0; i < final_edges.size(); i++) {
         for (size_t j = 0; j < final_edges[i].size(); j++) {
-            acc += final_edges[i][j].end() - final_edges[i][j].begin() + 1;
+            unsigned weight = 1;
+            UnordSet final_edges_set = UnordSet(final_edges);
+            for (const auto [edge_set, w] : weights) {
+                if (intersection(final_edges_set, edge_set).size() > 0) {
+                    weight = weights.at(edge_set);
+                }
+            }
+            acc += (final_edges[i][j].end() - final_edges[i][j].begin() + 1) * weight;
         }
     }
 
@@ -95,7 +102,8 @@ static unsigned get_multidim_interval_size(UnordPWMDInter& final_edges)
 static size_t get_c_ab(
     const UnordSet& a, const UnordSet& b,
     const BasePWMap& map_1,
-    const BasePWMap& map_2)
+    const BasePWMap& map_2,
+    const map<UnordSet, unsigned>& weights)
 {
     auto f = [](auto& a, auto& b, const BasePWMap& departure_map, const BasePWMap& arrival_map) {
         UnordSet comm_edges;
@@ -117,7 +125,7 @@ static size_t get_c_ab(
 
     auto communication_edges = cup(intersection1, intersection2);
 
-    size_t comm_size = get_multidim_interval_size(communication_edges);
+    size_t comm_size = get_multidim_interval_size(communication_edges, weights);
 
     return comm_size;
 }
@@ -185,8 +193,8 @@ static GainObject compute_diff(
     ic_nodes_a = cup(ic_nodes_a_1, ic_nodes_a_2);
 
     // Calculate the dimension of each node
-    size_t ec_a = get_multidim_interval_size(ec_nodes_a);
-    size_t ic_a = get_multidim_interval_size(ic_nodes_a);
+    size_t ec_a = get_multidim_interval_size(ec_nodes_a, graph.get_weights());
+    size_t ic_a = get_multidim_interval_size(ic_nodes_a, graph.get_weights());
     int d_a = ec_a - ic_a;
 
     // Same as before for partition b
@@ -200,12 +208,12 @@ static GainObject compute_diff(
     ec_nodes_b = cup(ec_nodes_b_1, ec_nodes_b_2);
     ic_nodes_b = cup(ic_nodes_b_1, ic_nodes_b_2);
 
-    size_t ec_b = get_multidim_interval_size(ec_nodes_b);
-    size_t ic_b = get_multidim_interval_size(ic_nodes_b);
+    size_t ec_b = get_multidim_interval_size(ec_nodes_b, graph.get_weights());
+    size_t ic_b = get_multidim_interval_size(ic_nodes_b, graph.get_weights());
     int d_b = ec_b - ic_b;
 
     // Get communication between a and b
-    size_t c_ab = get_c_ab(a, b, graph.map1(), graph.map2());
+    size_t c_ab = get_c_ab(a, b, graph.map1(), graph.map2(), graph.get_weights());
 
     // calculate gain
     int gain = d_a + d_b - 2 * c_ab;
