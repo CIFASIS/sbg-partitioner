@@ -1,0 +1,309 @@
+{
+    "nodes": [
+        {
+            "id": 1,
+            "interval": [[1, 300]],
+            "lhs": [
+                {
+                    "id": "v",
+                    "exp": [[1, 0]],
+                    "defs": []
+                }
+            ],
+            "rhs": [
+                {
+                    "id": "v",
+                    "exp": [[1, 0]],
+                    "defs": [1, 4, 5]
+                },
+                {
+                    "id": "gex",
+                    "exp": [[1, 0]],
+                    "defs": [2, 4, 5, 6]
+                },
+                {
+                    "id": "ginh",
+                    "exp": [[1, 0]],
+                    "defs": [3, 4, 5, 7]
+                },
+                {
+                    "id": "active",
+                    "exp": [[1, 0]],
+                    "defs": [4,5,8]
+                }
+            ]
+        },
+        {
+            "id": 2,
+            "interval": [[1, 300]],
+            "lhs": [
+                {
+                    "id": "gex",
+                    "exp": [[1, 0]],
+                    "defs": []
+                }
+            ],
+            "rhs": [
+                {
+                    "id": "gex",
+                    "exp": [[1, 0]],
+                    "defs": [2, 4, 5, 6]
+                }
+            ]
+        },
+        {
+            "id": 3,
+            "interval": [[1, 300]],
+            "lhs": [
+                {
+                    "id": "ginh",
+                    "exp": [[1, 0]],
+                    "defs": []
+                }
+            ],
+            "rhs": [
+                {
+                    "id": "ginh",
+                    "exp": [[1, 0]],
+                    "defs": [3, 4, 5, 7]
+                }
+            ]
+        },
+        {
+            "id": 4,
+            "interval": [[1, 292]],
+            "lhs": [
+                {
+                    "id": "ev_1",
+                    "exp": [[1, 0]],
+                    "defs": []
+                },
+                {
+                    "id": "v",
+                    "exp": [[1, 0]],
+                    "defs": []
+                },
+                {
+                    "id": "ginh",
+                    "exp": [[1, 0]],
+                    "defs": []
+                },
+                {
+                    "id": "gex",
+                    "exp": [[1, 0]],
+                    "defs": []
+                },
+                {
+                    "id": "active",
+                    "exp": [[1, 0]],
+                    "defs": []
+                },
+                {
+                    "id": "tfire",
+                    "exp": [[1, 0]],
+                    "defs": []
+                },
+                {
+                    "id": "gex",
+                    "exp": [[1, 0]],
+                    "defs": []
+                },
+                {
+                    "id": "exReinit",
+                    "exp": [[1, 1]],
+                    "defs": []
+                },
+                {
+                    "id": "exReinit",
+                    "exp": [[1, 2]],
+                    "defs": []
+                },
+                {
+                    "id": "exReinit",
+                    "exp": [[1, 3]],
+                    "defs": []
+                },
+                {
+                    "id": "exReinit",
+                    "exp": [[1, 4]],
+                    "defs": []
+                },
+                {
+                    "id": "exReinit",
+                    "exp": [[1, 5]],
+                    "defs": []
+                },
+                {
+                    "id": "exReinit",
+                    "exp": [[1, 6]],
+                    "defs": []
+                },
+                {
+                    "id": "exReinit",
+                    "exp": [[1, 7]],
+                    "defs": []
+                },
+                {
+                    "id": "exReinit",
+                    "exp": [[1, 8]],
+                    "defs": []
+                }
+            ],
+            "rhs": [
+                {
+                    "id": "v",
+                    "exp": [[1, 0]],
+                    "defs": [1, 4, 5]
+                }
+            ]
+        },
+        {
+            "id": 5,
+            "interval": [[1, 298]],
+            "lhs": [
+                {
+                    "id": "ev_2",
+                    "exp": [[1, 0]],
+                    "defs": []
+                },
+                {
+                    "id": "v",
+                    "exp": [[1, 0]],
+                    "defs": []
+                },
+                {
+                    "id": "ginh",
+                    "exp": [[1, 0]],
+                    "defs": []
+                },
+                {
+                    "id": "gex",
+                    "exp": [[1, 0]],
+                    "defs": []
+                },
+                {
+                    "id": "active",
+                    "exp": [[1, 0]],
+                    "defs": []
+                },
+                {
+                    "id": "tfire",
+                    "exp": [[1, 0]],
+                    "defs": []
+                },
+                {
+                    "id": "gex",
+                    "exp": [[1, 0]],
+                    "defs": []
+                },
+                {
+                    "id": "inhReinit",
+                    "exp": [[1, 1]],
+                    "defs": []
+                },
+                {
+                    "id": "inhReinit",
+                    "exp": [[1, 2]],
+                    "defs": []
+                }
+            ],
+            "rhs": [
+                {
+                    "id": "v",
+                    "exp": [[1, 0]],
+                    "defs": [1, 4, 5]
+                }
+            ]
+        },
+        {
+            "id": 6,
+            "interval": [[1, 300]],
+            "lhs": [
+                {
+                    "id": "ev_3",
+                    "exp": [[1, 0]],
+                    "defs": []
+                },
+                {
+                    "id": "gex",
+                    "exp": [[1, 0]],
+                    "defs": []
+                },
+                {
+                    "id": "exReinit",
+                    "exp": [[1, 0]],
+                    "defs": []
+                }
+            ],
+            "rhs": [
+                {
+                    "id": "exReinit",
+                    "exp": [[1, 0]],
+                    "defs": []
+                },
+                {
+                    "id": "gex",
+                    "exp": [[1, 0]],
+                    "defs": []
+                }
+            ]
+        },
+        {
+            "id": 7,
+            "interval": [[1, 300]],
+            "lhs": [
+                {
+                    "id": "ev_4",
+                    "exp": [[1, 0]],
+                    "defs": []
+                },
+                {
+                    "id": "ginh",
+                    "exp": [[1, 0]],
+                    "defs": []
+                },
+                {
+                    "id": "inhReinit",
+                    "exp": [[1, 0]],
+                    "defs": []
+                }
+            ],
+            "rhs": [
+                {
+                    "id": "inhReinit",
+                    "exp": [[1, 0]],
+                    "defs": []
+                },
+                {
+                    "id": "ginh",
+                    "exp": [[1, 0]],
+                    "defs": []
+                }
+            ]
+        },
+        {
+            "id": 8,
+            "interval": [[1, 300]],
+            "lhs": [
+                {
+                    "id": "ev_5",
+                    "exp": [[1, 0]],
+                    "defs": []
+                },
+                {
+                    "id": "active",
+                    "exp": [[1, 0]],
+                    "defs": []
+                }
+            ],
+            "rhs": [
+                {
+                    "id": "tfire",
+                    "exp": [[1, 0]],
+                    "defs": []
+                }
+            ]
+        }
+    ]
+}
+
