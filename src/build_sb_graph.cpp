@@ -47,6 +47,23 @@ struct Var {
     vector<int> defs;
 };
 
+static std::ostream& operator<<(std::ostream& os, const Var& var)
+{
+  os << "id: \"" << var.id << "\"";
+
+  os << ", exps: ";
+  for (const auto& exp : var.exps) {
+    os << "[" << exp.first << ", " << exp.second << "]";
+  }
+
+  os << ", defs:";
+  for (const auto& v : var.defs) {
+    os << " " << v;
+  }
+
+  return os;
+}
+
 
 struct Node {
     int id;
@@ -61,6 +78,30 @@ struct Node {
       lhs(lhs)
     {}
 };
+
+
+static std::ostream& operator<<(std::ostream& os, const Node& node)
+{
+  os << "id: \"" << node.id << "\" " << endl;
+
+  os << "intervals: ";
+  for (const auto& interval : node.intervals) {
+    os << "[" << interval.first << ", " << interval.second << "] ";
+  }
+
+  os << endl << "lhs: ";
+  for (const auto& l : node.lhs) {
+    os << l << "; ";
+  }
+
+  os << "\b\b " << endl << "rhs: ";
+  for (const auto& r : node.rhs) {
+    os << r << "; ";
+  }
+  os << "\b\b " << endl;
+
+  return os;
+}
 
 
 /// This funcion takes a json array and returns a list of parsed variable objects (Var)
@@ -138,12 +179,8 @@ static map<int, Node> create_node_objects_from_json(const Document& document)
     nodes.insert({node_element.id, node_element});
   }
 
-  for (auto n: nodes) {
-    cout << "{ ";
-    for (auto [s, e] : n.second.intervals) {
-      cout << "[" << s <<  ", " << e << "] ";
-    }
-    cout << "}";
+  for (const auto& [i, n]: nodes) {
+    cout << n << endl;
   }
   cout << endl;
 
@@ -199,13 +236,13 @@ static UnordSet create_set_of_nodes(const map<int, Node>& nodes, map<int, int>& 
 }
 
 
-static vector<Exp> read_left_vars(const Node& node)
+static map<string, Exp> read_left_vars(const Node& node)
 {
   const auto& l_nodes = node.lhs;
 
   assert(l_nodes.size() > 0);
 
-  vector<Exp> exps;
+  map<string, Exp> exps;
   for (const auto& l_node : l_nodes) {
     Var var = l_node;
     Exp exp;
@@ -214,7 +251,7 @@ static vector<Exp> read_left_vars(const Node& node)
       exp.emplaceBack(LExp(RAT(values.first, 1), RAT(values.second, 1)));
     }
 
-    exps.push_back(exp);
+    exps[l_node.id] = exp;
   }
 
   return exps;
@@ -362,7 +399,7 @@ static tuple<UnordSet, BasePWMap, BasePWMap> create_graph_edges(
     }
     intervals.emplace(interval_set_piece);
 
-    vector<Exp> this_node_exps = read_left_vars(node);
+    map<string, Exp> this_node_exps = read_left_vars(node);
 
     // Now, iterate the right hand side expresions to connect them to their definitions.
     for (const Var &right_var : node.rhs) {
@@ -387,41 +424,44 @@ static tuple<UnordSet, BasePWMap, BasePWMap> create_graph_edges(
         // Domain of the node candidate
         UnordSet node_candidate_intervals = get_node_domain<UnordSet>(node_candidate);
 
-        // Now, get the image.
-        auto node_candidate_exps = read_left_vars(node_candidate)[0]; // we should check on this, we should define how
-                                                                      // to proceed with these cases when we have more
-                                                                      // than one expression in the left hand side.
-                                                                      // https://github.com/CIFASIS/sbg-partitioner/issues/19
-        auto node_candidate_basemap = BaseMap(node_candidate_intervals, node_candidate_exps);
-        auto node_candidate_image = image(node_candidate_basemap);
+        // look for definitions of the same variable
+        auto exps_and_var_names = read_left_vars(node_candidate);
+        for (const auto& [name, node_candidate_exps] : exps_and_var_names) {
+          cout << "VAR NAMES: " << name << ", " << right_var.id << endl;
+          if (name != right_var.id) {
+            continue;
+          }
 
-        // we want to see if the intersection of the images is not empty
-        auto candidate_image_intersection = intersection(node_candidate_image, used_node_image);
-        if (isEmpty(candidate_image_intersection)) {
-          cout << "No, it is not" << endl;
-          continue;
-        }
-        cout << "Yes, it is: " << candidate_image_intersection << endl;
+          // Now, get the image.
+          auto node_candidate_basemap = BaseMap(node_candidate_intervals, node_candidate_exps);
+          auto node_candidate_image = image(node_candidate_basemap);
 
-        // Now we need to create both maps, let's create their domain.
-        // for (size_t j = 0; j < candidate_image_intersection[0].size(); j++) {
+          // we want to see if the intersection of the images is not empty
+          auto candidate_image_intersection = intersection(node_candidate_image, used_node_image);
+          if (isEmpty(candidate_image_intersection)) {
+            cout << "No, it is not" << endl;
+            continue;
+          }
+          cout << "Yes, it is: " << candidate_image_intersection << endl;
+
+          // Now we need to create both maps, let's create their domain.
           auto image_intersection_set = candidate_image_intersection[0];
           cout << image_intersection_set << endl;
-          UnordSet edge_domain_set = get_edge_domain<UnordSet>(image_intersection_set, edge_set, max_value);
-          cout << "candidate_image_intersection " << candidate_image_intersection << "image_intersection_set " << UnordSet(image_intersection_set) << " edge_domain_set " << edge_domain_set << endl;
 
-          // Create map to node candidate
-          auto node_candidate_map = create_set_edge_map(candidate_image_intersection, edge_domain_set, node_candidate_exps, node_offsets.at(i));
-          cout << "create_set_edge_map checked" << endl;
-          rhs_maps.emplace(node_candidate_map);
+          // we need to create an edge for each left hand side variable, that means a couple of maps for each one
+         for (const auto& [_, exp] : this_node_exps) {
+            UnordSet edge_domain_set = get_edge_domain<UnordSet>(image_intersection_set, edge_set, max_value);
+            // Create map to node candidate
+            auto node_candidate_map = create_set_edge_map(candidate_image_intersection, edge_domain_set, node_candidate_exps, node_offsets.at(i));
+            rhs_maps.emplace(node_candidate_map);
 
-          // Create map to current node
-          cout << UnordSet(image_intersection_set) << ", " <<  rhs_map << endl;
-          auto pre_image_current_node = preImage(UnordSet(image_intersection_set), rhs_map);
-          auto im = image(BaseMap(UnordSet(pre_image_current_node), this_node_exps[0]));
-          auto current_node_map = create_set_edge_map(im, edge_domain_set, this_node_exps[0], node_offsets.at(id));
-          lhs_maps.emplace(current_node_map);
-        // }
+            // Create map to current node
+            auto pre_image_current_node = preImage(UnordSet(image_intersection_set), rhs_map);
+            auto im = image(BaseMap(UnordSet(pre_image_current_node), exp));
+            auto current_node_map = create_set_edge_map(im, edge_domain_set, exp, node_offsets.at(id));
+            lhs_maps.emplace(current_node_map);
+          }
+        }
       }
     }
   }

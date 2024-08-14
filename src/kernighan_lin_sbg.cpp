@@ -29,6 +29,9 @@
 #include "kernighan_lin_sbg.hpp"
 
 
+#define KERNIGHAN_LIN_SBG_DEBUG 1
+
+
 // This code is based on https://github.com/CIFASIS/sbg-partitioner/discussions/17
 
 
@@ -295,7 +298,9 @@ static pair<UnordSet, UnordSet> update_sets(
     }
 
     // At least one of them should be fully used?
-    // cout << node_a_is_fully_used << ", " <<  node_b_is_fully_used << endl;
+#if KERNIGHAN_LIN_SBG_DEBUG
+    cout << node_a_is_fully_used << ", " <<  node_b_is_fully_used << endl;
+#endif
     assert(node_a_is_fully_used or node_b_is_fully_used);
 
     partition_a = difference(partition_a, node_a);
@@ -314,7 +319,9 @@ static GainObject max_diff(CostMatrix& cost_matrix, UnordSet& partition_a, Unord
     auto g = cost_matrix.begin();
 
     auto gain_object = *g;
+#if KERNIGHAN_LIN_SBG_DEBUG
     cout << "The best is " << *g << endl;
+#endif
 
     // remove it, we need to update those values that
     cost_matrix.erase(g);
@@ -339,7 +346,9 @@ static void update_diff(
     }
     cost_matrix.clear();
     cost_matrix = generate_gain_matrix(partition_a, partition_b, graph);
+#if KERNIGHAN_LIN_SBG_DEBUG
     cout << partition_a << ", " << partition_b << ", " << cost_matrix << endl;
+#endif
 
 }
 
@@ -362,7 +371,9 @@ static void update_sum(
 
 int kl_sbg(const BaseSBG& graph, UnordSet& partition_a, UnordSet& partition_b)
 {
+#if KERNIGHAN_LIN_SBG_DEBUG
     cout << "Algorithm starts with " << partition_a << ", " << partition_b << endl;
+#endif
     auto a_c = partition_a;
     auto b_c = partition_b;
     int max_par_sum = 0;
@@ -373,7 +384,9 @@ int kl_sbg(const BaseSBG& graph, UnordSet& partition_a, UnordSet& partition_b)
 
     CostMatrix gm = generate_gain_matrix(partition_a, partition_b, graph);
 
+#if KERNIGHAN_LIN_SBG_DEBUG
     cout << gm << endl;
+#endif
 
     while ((not isEmpty(a_c)) and (not isEmpty(b_c))) {
         auto g = max_diff(gm, a_c, b_c, graph);
@@ -390,7 +403,9 @@ int kl_sbg(const BaseSBG& graph, UnordSet& partition_a, UnordSet& partition_b)
 
     gm = generate_gain_matrix(partition_a, partition_b, graph);
 
+#if KERNIGHAN_LIN_SBG_DEBUG
     cout << "so it ends with " << gm << " " << max_par_sum << ", " << partition_a << ", " << partition_b << endl;
+#endif
 
     return max_par_sum;
 }
@@ -406,10 +421,14 @@ KLBipartResult kl_sbg_bipart(const SBG::LIB::BaseSBG& graph, SBG::LIB::UnordSet&
         partition_a = partition_a_copy;
         partition_b = partition_b_copy;
         gain = max(kl_sbg(graph, partition_a_copy, partition_b_copy), gain);
+#if KERNIGHAN_LIN_SBG_DEBUG
         cout << "gain: " << gain << endl;
+#endif
     }
 
+#if KERNIGHAN_LIN_SBG_DEBUG
     cout << "Final: " << partition_a << ", " << partition_b << endl;
+#endif
     return KLBipartResult{partition_a, partition_b, gain};
 }
 
@@ -434,7 +453,9 @@ void kl_sbg_partitioner(const BaseSBG& graph, PartitionMap& partitions)
                 auto p_1_copy = partitions[i];
                 auto p_2_copy = partitions[j];
                 KLBipartResult current_gain = kl_sbg_bipart(graph, p_1_copy, p_2_copy);
+#if KERNIGHAN_LIN_SBG_DEBUG
                 cout << "current_gain " << current_gain << endl;
+#endif
                 if (current_gain.gain > best_gain.gain) {
                     best_gain.i = i;
                     best_gain.j = j;

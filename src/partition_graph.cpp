@@ -189,6 +189,7 @@ size_t get_unordset_size(const UnordSet& set)
     return acc;
 }
 
+
 void sanity_check(const BaseSBG &graph, PartitionMap& partitions_set, unsigned number_of_partitions)
 {
 # if PARTITION_SANITY_CHECK
@@ -242,13 +243,15 @@ void write_output(const string filename, const PartitionMap& partition_map)
             obj_partition.PushBack(obj_intervals, allocator);
         }
 
-        obj_partitions.PushBack(obj_partition, allocator);
+        rapidjson::Value obj_nodes(rapidjson::kObjectType);
+        obj_nodes.AddMember("nodes", obj_partition, allocator);
+
+        obj_partitions.PushBack(obj_nodes, allocator);
     }
 
     json_doc.AddMember("partitions", obj_partitions, allocator);
 
     // Write the JSON data to the file
-    // Open the output file
     rapidjson::StringBuffer s;
     rapidjson::Writer<rapidjson::StringBuffer> writer(s);
     json_doc.Accept(writer);
