@@ -299,9 +299,13 @@ static pair<UnordSet, UnordSet> update_sets(
 
     // At least one of them should be fully used?
 #if KERNIGHAN_LIN_SBG_DEBUG
-    cout << node_a_is_fully_used << ", " <<  node_b_is_fully_used << endl;
+    cout << boolalpha
+         << "node_a_is_fully_used: "
+         << node_a_is_fully_used
+         << ", node_b_is_fully_used "
+         << node_b_is_fully_used
+         << endl;
 #endif
-    assert(node_a_is_fully_used or node_b_is_fully_used);
 
     partition_a = difference(partition_a, node_a);
     partition_b = difference(partition_b, node_b);

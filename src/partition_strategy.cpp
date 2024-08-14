@@ -162,8 +162,6 @@ void PartitionStrategyDistributive::operator() (const SBG::LIB::SetPiece& node)
     unsigned size_by_part = s / _number_of_partitions;
     unsigned surplus = s % _number_of_partitions;
 
-    cout << s << ", " << _number_of_partitions << ", " << size_by_part << surplus << endl;
-
     map<unsigned, unsigned> size_by_partition;
 
     for (const auto [i, p] : _current_size_by_partition) {
@@ -176,7 +174,9 @@ void PartitionStrategyDistributive::operator() (const SBG::LIB::SetPiece& node)
 
     UnordSet node_to_be_added = node;
     for (const auto [i, n] : size_by_partition) {
+#if DEBUG_PARTITION_STRATEGY_ENABLED
         cout << "For partition " << i << " size: " << n << endl;
+#endif
         if (size_by_partition[i] == 0) {
             continue;
         }

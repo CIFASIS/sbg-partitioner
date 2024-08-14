@@ -294,11 +294,9 @@ static BaseMap create_set_edge_map(const UnordSet& pre_image, const UnordSet& ed
     if (i == 0) {
       offset += set_offset;
     }
-    cout << "minElem " << minElem(edge_domain).size() << endl;
     offset = offset - minElem(edge_domain)[i];
 
     // Then we take the minimum element of the pre-image and add the offset
-    cout << "minElem " << minElem(pre_image) << " " << minElem(pre_image).size() << endl;
     INT min_elem = minElem(pre_image)[i];
     offset += min_elem;
 
@@ -354,7 +352,6 @@ static S get_edge_domain(SetPiece image_intersection_set, T& edge_set, int& max_
   for (size_t i = 0; i < image_intersection_set.size(); i++) {
     // Edge domain will be from the current max value and will have the quantity as the intersection
     auto image_int = image_intersection_set[i];
-    cout << "image_int " << image_int << endl;
 
     auto domain_offset = image_int.end() - image_int.begin();
 
@@ -427,7 +424,6 @@ static tuple<UnordSet, BasePWMap, BasePWMap> create_graph_edges(
         // look for definitions of the same variable
         auto exps_and_var_names = read_left_vars(node_candidate);
         for (const auto& [name, node_candidate_exps] : exps_and_var_names) {
-          cout << "VAR NAMES: " << name << ", " << right_var.id << endl;
           if (name != right_var.id) {
             continue;
           }
@@ -446,7 +442,6 @@ static tuple<UnordSet, BasePWMap, BasePWMap> create_graph_edges(
 
           // Now we need to create both maps, let's create their domain.
           auto image_intersection_set = candidate_image_intersection[0];
-          cout << image_intersection_set << endl;
 
           // we need to create an edge for each left hand side variable, that means a couple of maps for each one
          for (const auto& [_, exp] : this_node_exps) {
