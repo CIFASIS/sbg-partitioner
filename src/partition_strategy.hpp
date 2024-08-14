@@ -26,6 +26,7 @@
 #include <set>
 
 #include "sbg/sbg.hpp"
+#include "weighted_sb_graph.hpp"
 
 
 namespace sbg_partitioner {
@@ -45,7 +46,7 @@ public:
 class PartitionStrategyGreedy : public PartitionStrategy
 {
 public:
-    PartitionStrategyGreedy(unsigned number_of_partitions, const SBG::LIB::BaseSBG graph);
+    PartitionStrategyGreedy(unsigned number_of_partitions, const WeightedSBGraph graph);
 
     virtual ~PartitionStrategyGreedy() = default;
 
@@ -76,7 +77,7 @@ struct SizeCmp
 class PartitionStrategyDistributive : public PartitionStrategy
 {
 public:
-    PartitionStrategyDistributive(unsigned number_of_partitions, const SBG::LIB::BaseSBG graph);
+    PartitionStrategyDistributive(unsigned number_of_partitions, const WeightedSBGraph graph);
 
     virtual ~PartitionStrategyDistributive() = default;
 

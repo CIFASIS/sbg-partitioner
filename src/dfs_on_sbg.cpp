@@ -20,6 +20,7 @@
 #include <iostream>
 
 #include "dfs_on_sbg.hpp"
+#include "weighted_sb_graph.hpp"
 
 using namespace std;
 
@@ -35,7 +36,7 @@ static bool initialized = false;
 static DFS sort_object;
 
 void initialize_partitioning(
-    BaseSBG& graph,
+    WeightedSBGraph& graph,
     unsigned number_of_partitions,
     unique_ptr<PartitionStrategy> partition_strategy,
     bool pre_order)
@@ -57,7 +58,7 @@ map<unsigned, set<SetPiece>> partitionate()
 }
 
 
-DFS::DFS(BaseSBG & graph, unsigned number_of_partitions, std::unique_ptr<PartitionStrategy> partition_strategy, bool pre_order)
+DFS::DFS(WeightedSBGraph & graph, unsigned number_of_partitions, std::unique_ptr<PartitionStrategy> partition_strategy, bool pre_order)
     : _number_of_partitions(number_of_partitions),
     _pre_order(pre_order),
     _graph(graph),

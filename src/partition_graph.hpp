@@ -40,7 +40,7 @@ enum PartitionAlgorithm
 // compile problems if partitions map object is created locally and UnordSet objects are added.
 PartitionMap
 make_initial_partition(
-    SBG::LIB::BaseSBG& graph,
+    WeightedSBGraph& graph,
     unsigned number_of_partitions,
     PartitionAlgorithm algorithm,
     bool pre_order);
@@ -48,7 +48,7 @@ make_initial_partition(
 
 PartitionMap
 best_initial_partition(
-    SBG::LIB::BaseSBG& graph,
+    WeightedSBGraph& graph,
     unsigned number_of_partitions);
 
 
@@ -68,7 +68,7 @@ size_t get_unordset_size(const SBG::LIB::UnordSet& set);
 void write_output(const std::string filename, const PartitionMap& partition_map);
 
 
-void sanity_check(const SBG::LIB::BaseSBG &graph, PartitionMap& partitions_set, unsigned number_of_partitions);
+void sanity_check(const WeightedSBGraph& graph, PartitionMap& partitions_set, unsigned number_of_partitions);
 
 
 std::ostream& operator<<(std::ostream& os, const PartitionMap& partitions);

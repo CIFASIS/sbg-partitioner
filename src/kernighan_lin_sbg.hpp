@@ -52,11 +52,11 @@ struct GainObjectComparator {
 using CostMatrix = std::set<GainObject, GainObjectComparator>;
 
 
-void kl_sbg_partitioner(const SBG::LIB::BaseSBG& graph, PartitionMap& partitions);
+void kl_sbg_partitioner(const WeightedSBGraph& graph, PartitionMap& partitions);
 
-KLBipartResult kl_sbg_bipart(const SBG::LIB::BaseSBG& graph, SBG::LIB::UnordSet& partition_a, SBG::LIB::UnordSet& partition_b);
+KLBipartResult kl_sbg_bipart(const WeightedSBGraph& graph, SBG::LIB::UnordSet& partition_a, SBG::LIB::UnordSet& partition_b);
 
-int kl_sbg(const SBG::LIB::BaseSBG& graph, SBG::LIB::UnordSet& partition_a, SBG::LIB::UnordSet& partition_b);
+int kl_sbg(const WeightedSBGraph& graph, SBG::LIB::UnordSet& partition_a, SBG::LIB::UnordSet& partition_b);
 
 ec_ic compute_EC_IC(
     const SBG::LIB::UnordSet& partition,

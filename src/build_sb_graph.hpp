@@ -21,13 +21,15 @@
 
 #include <sbg/sbg.hpp>
 
+#include "weighted_sb_graph.hpp"
+
 namespace sbg_partitioner {
 
 /// Takes a path to a json file, reads it and then builds a sb graph with
 /// a node for each access to a variable and an edge for each connection
 /// between variables.
 /// If a variable appears on the left and on the right side, an edge is created.
-SBG::LIB::BaseSBG build_sb_graph(const std::string& filename);
+WeightedSBGraph build_sb_graph(const std::string& filename);
 
 
 /// Ad hoc function to get pre image of an expression from its image.

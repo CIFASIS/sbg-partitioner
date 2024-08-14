@@ -22,6 +22,7 @@
 #include <fstream>
 #include <iostream>
 #include <map>
+#include <optional>
 #include <rapidjson/document.h>
 #include <rapidjson/pointer.h>
 #include <rapidjson/istreamwrapper.h>
@@ -30,6 +31,7 @@
 #include <util/logger.hpp>
 
 #include "build_sb_graph.hpp"
+#include "weighted_sb_graph.hpp"
 
 
 using namespace rapidjson;
@@ -45,7 +47,9 @@ struct Var {
     string id;
     vector<pair<INT, INT>> exps;
     vector<int> defs;
+    unsigned weight = 1;
 };
+
 
 static std::ostream& operator<<(std::ostream& os, const Var& var)
 {
@@ -60,6 +64,8 @@ static std::ostream& operator<<(std::ostream& os, const Var& var)
   for (const auto& v : var.defs) {
     os << " " << v;
   }
+
+  os << " weight: " << var.weight;
 
   return os;
 }
@@ -136,7 +142,14 @@ static vector<Var> read_var_object(const rapidjson::Value& var_array)
         for(const auto& def : def_object) {
             defs.push_back(def.GetInt());
         }
+
         Var var = Var{id, exps, defs};
+
+        if (value.HasMember("weight")) {
+          unsigned weight = value["weight"].GetUint();
+          var.weight = weight;
+        }
+
         vars.push_back(var);
     }
 
@@ -374,7 +387,7 @@ static S get_edge_domain(SetPiece image_intersection_set, T& edge_set, int& max_
 }
 
 
-static tuple<UnordSet, BasePWMap, BasePWMap> create_graph_edges(
+static tuple<UnordSet, BasePWMap, BasePWMap, map<UnordSet, unsigned>> create_graph_edges(
         const std::map<int, Node>& nodes,
         const map<int, int>& node_offsets,
         int& max_value)
@@ -382,6 +395,7 @@ static tuple<UnordSet, BasePWMap, BasePWMap> create_graph_edges(
   UnordSet edge_set;  // Our set of edges
   BasePWMap rhs_maps;  // Map object of one of the sides
   BasePWMap lhs_maps; // Map object of one of the other side
+  map<UnordSet, unsigned> weights; // Weight of edges
 
   for (const auto& [id, node] : nodes) {
     cout << "Looking for connections with " << id << endl;
@@ -455,19 +469,21 @@ static tuple<UnordSet, BasePWMap, BasePWMap> create_graph_edges(
             auto im = image(BaseMap(UnordSet(pre_image_current_node), exp));
             auto current_node_map = create_set_edge_map(im, edge_domain_set, exp, node_offsets.at(id));
             lhs_maps.emplace(current_node_map);
+
+            weights.insert({edge_domain_set, right_var.weight});
           }
         }
       }
     }
   }
 
-  return {edge_set, rhs_maps, lhs_maps};
+  return {edge_set, rhs_maps, lhs_maps, weights};
 }
 
 /// @brief  Add documentation
 /// @param nodes 
 /// @return 
-static BaseSBG create_sb_graph(const std::map<int, Node>& nodes)
+static WeightedSBGraph create_sb_graph(const std::map<int, Node>& nodes)
 {
   int max_value = 0;  // We track the max value, so we avoid domain collision between edges and nodes
   map<int, int> node_offsets;
@@ -477,22 +493,22 @@ static BaseSBG create_sb_graph(const std::map<int, Node>& nodes)
   cout << "node_set " << node_set << endl;
 
   // Now, let's build a graph!
-  BaseSBG graph; // This will be our graph
+  WeightedSBGraph graph; // This will be our graph
 
   // Firstly, add nodes to the graph.
   graph = addSV(node_set, graph);
 
   // Then, create edges and maps.
-  const auto [edge_set, left_maps, right_maps] = create_graph_edges(nodes, node_offsets, max_value);
+  auto [edge_set, left_maps, right_maps, weights] = create_graph_edges(nodes, node_offsets, max_value);
 
   // Now add those edges and maps to the graph
-  graph = addSE(left_maps, right_maps, graph);
+  graph = addSEW(left_maps, right_maps, weights, graph);
 
   return graph;
 }
 
 
-BaseSBG build_sb_graph(const string& filename)
+WeightedSBGraph build_sb_graph(const string& filename)
 {
   cout << "Reading " << filename << "..." << endl;
 

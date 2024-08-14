@@ -42,7 +42,7 @@ using namespace sbg_partitioner::search;
 namespace sbg_partitioner {
 
 
-PartitionMap make_initial_partition(BaseSBG& graph, unsigned number_of_partitions, PartitionAlgorithm algorithm, bool pre_order)
+PartitionMap make_initial_partition(WeightedSBGraph& graph, unsigned number_of_partitions, PartitionAlgorithm algorithm, bool pre_order)
 {
     PartitionMap partitions_set;
     switch (algorithm) {
@@ -80,7 +80,7 @@ PartitionMap make_initial_partition(BaseSBG& graph, unsigned number_of_partition
 }
 
 
-static size_t get_partition_communication(SBG::LIB::BaseSBG& graph, const PartitionMap& partitions)
+static size_t get_partition_communication(WeightedSBGraph& graph, const PartitionMap& partitions)
 {
     SBG::LIB::UnordSet s;
     for (auto& [i, _] : partitions) {
@@ -96,7 +96,7 @@ static size_t get_partition_communication(SBG::LIB::BaseSBG& graph, const Partit
 
 
 static void aux_function_best_initial_partition(
-    SBG::LIB::BaseSBG& graph,
+    WeightedSBGraph& graph,
     PartitionMap& best_initial_partitions,
     size_t& best_communication_set_cardinality,
     unsigned number_of_partitions,
@@ -117,7 +117,7 @@ static void aux_function_best_initial_partition(
 
 PartitionMap
 best_initial_partition(
-    SBG::LIB::BaseSBG& graph,
+    WeightedSBGraph& graph,
     unsigned number_of_partitions)
 {
     constexpr bool pre_order = true;
@@ -190,7 +190,7 @@ size_t get_unordset_size(const UnordSet& set)
 }
 
 
-void sanity_check(const BaseSBG &graph, PartitionMap& partitions_set, unsigned number_of_partitions)
+void sanity_check(const WeightedSBGraph &graph, PartitionMap& partitions_set, unsigned number_of_partitions)
 {
 # if PARTITION_SANITY_CHECK
     // This is just a sanity check
