@@ -25,6 +25,9 @@
 
 namespace sbg_partitioner {
 
+using EdgeCost = std::map<SBG::LIB::UnordSet, unsigned>;
+
+using NodeWeight = std::map<SBG::LIB::UnordSet, int>;
 
 struct WeightedSBGraph : public SBG::LIB::BaseSBG
 {
@@ -33,22 +36,32 @@ public:
     WeightedSBGraph(SBG::LIB::BaseSBG& graph) : SBG::LIB::BaseSBG(graph) {}
     WeightedSBGraph(SBG::LIB::BaseSBG&& graph) : SBG::LIB::BaseSBG(graph) {}
 
-    void set_weights(std::map<SBG::LIB::UnordSet, unsigned>& weights) { _weights = std::move(weights); }
+    void set_node_weights(NodeWeight& node_weights) { _node_weights = std::move(node_weights); }
 
-    std::map<SBG::LIB::UnordSet, unsigned> get_weights() const { return _weights; }
+    NodeWeight get_node_weights() const { return _node_weights; }
 
-    void set_weight(const SBG::LIB::UnordSet& edge_set, unsigned weight)
-    {
-        _weights[edge_set] = weight;
-    }
+    void set_node_weight(const SBG::LIB::UnordSet& node_set, int weight) { _node_weights[node_set] = weight; }
 
-    unsigned get_weight(const SBG::LIB::UnordSet& edge_set) const { return _weights.at(edge_set); }
+    int get_node_weight(const SBG::LIB::UnordSet& node_set) const { return _node_weights.at(node_set); }
+
+
+    void set_edge_costs(EdgeCost& edge_costs) { _edge_costs = std::move(edge_costs); }
+
+    EdgeCost get_edge_costs() const { return _edge_costs; }
+
+    void set_edge_cost(const SBG::LIB::UnordSet& edge_set, unsigned cost) { _edge_costs[edge_set] = cost; }
+
+    unsigned get_edge_cost(const SBG::LIB::UnordSet& edge_set) const { return _edge_costs.at(edge_set); }
 
 private:
-    std::map<SBG::LIB::UnordSet, unsigned> _weights;
+    NodeWeight _node_weights;
+
+    EdgeCost _edge_costs;
 };
 
-WeightedSBGraph addSEW(SBG::LIB::BasePWMap pw1, SBG::LIB::BasePWMap pw2, std::map<SBG::LIB::UnordSet, unsigned> weights, WeightedSBGraph g);
+WeightedSBGraph addSVW(SBG::LIB::UnordSet nodes, NodeWeight weights, WeightedSBGraph g);
+
+WeightedSBGraph addSEW(SBG::LIB::BasePWMap pw1, SBG::LIB::BasePWMap pw2, EdgeCost costs, WeightedSBGraph g);
 
 std::ostream& operator<<(std::ostream& os, const WeightedSBGraph& graph);
 
