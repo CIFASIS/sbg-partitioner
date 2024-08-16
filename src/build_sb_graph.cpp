@@ -47,7 +47,7 @@ struct Var {
     string id;
     vector<pair<INT, INT>> exps;
     vector<int> defs;
-    unsigned weight = 1;
+    unsigned cost = 1;
 };
 
 
@@ -65,7 +65,7 @@ static std::ostream& operator<<(std::ostream& os, const Var& var)
     os << " " << v;
   }
 
-  os << " weight: " << var.weight;
+  os << " cost: " << var.cost;
 
   return os;
 }
@@ -73,12 +73,14 @@ static std::ostream& operator<<(std::ostream& os, const Var& var)
 
 struct Node {
     int id;
+    int weight;
     vector<pair<int, int>> intervals;
     vector<Var> rhs;
     vector<Var> lhs;
 
-    Node(int id, vector<pair<int, int>>&& intervals, vector<Var>&& rhs, vector<Var>&& lhs)
+    Node(int id, int weight, vector<pair<int, int>>&& intervals, vector<Var>&& rhs, vector<Var>&& lhs)
       : id(id),
+      weight(weight),
       intervals(intervals),
       rhs(rhs),
       lhs(lhs)
@@ -90,6 +92,8 @@ static std::ostream& operator<<(std::ostream& os, const Node& node)
 {
   os << "id: \"" << node.id << "\" " << endl;
 
+  os << "weight: " << node.weight << endl;
+
   os << "intervals: ";
   for (const auto& interval : node.intervals) {
     os << "[" << interval.first << ", " << interval.second << "] ";
@@ -100,11 +104,11 @@ static std::ostream& operator<<(std::ostream& os, const Node& node)
     os << l << "; ";
   }
 
-  os << "\b\b " << endl << "rhs: ";
+  os << "\b " << endl << "rhs: ";
   for (const auto& r : node.rhs) {
     os << r << "; ";
   }
-  os << "\b\b " << endl;
+  os << "\b " << endl;
 
   return os;
 }
@@ -145,9 +149,9 @@ static vector<Var> read_var_object(const rapidjson::Value& var_array)
 
         Var var = Var{id, exps, defs};
 
-        if (value.HasMember("weight")) {
-          unsigned weight = value["weight"].GetUint();
-          var.weight = weight;
+        if (value.HasMember("cost")) {
+          unsigned weight = value["cost"].GetUint();
+          var.cost = weight;
         }
 
         vars.push_back(var);
@@ -168,6 +172,12 @@ static map<int, Node> create_node_objects_from_json(const Document& document)
     assert(node.HasMember("id") and node["id"].IsInt());
     unsigned id = node["id"].GetInt();
 
+    int node_weight = 1; // default value
+    if (node.HasMember("weight")) {
+      assert(node["weight"].IsInt());
+      node_weight = node["weight"].GetInt();
+    }
+
     string error_msg = "Interval " + to_string(id) + " format is wrong";
     assert(node.HasMember("interval") and node["interval"].IsArray() and error_msg.c_str());
 
@@ -187,7 +197,7 @@ static map<int, Node> create_node_objects_from_json(const Document& document)
     vector<Var> rhs = read_var_object(node["rhs"]);
     vector<Var> lhs = read_var_object(node["lhs"]);
 
-    Node node_element = Node{int(id), std::move(intervals), std::move(rhs), std::move(lhs)};
+    Node node_element = Node{int(id), node_weight, std::move(intervals), std::move(rhs), std::move(lhs)};
 
     nodes.insert({node_element.id, node_element});
   }
@@ -202,11 +212,13 @@ static map<int, Node> create_node_objects_from_json(const Document& document)
 
 
 /// Creates a set of nodes, taking into accout the offset of each one to avoid collisions.
-static UnordSet create_set_of_nodes(const map<int, Node>& nodes, map<int, int>& node_offsets, int& max_value)
+static tuple<UnordSet, NodeWeight> create_set_of_nodes(const map<int, Node>& nodes, map<int, int>& node_offsets, int& max_value)
 {
   // We start to build out set of intervals from 0
   int current_max = 0;
   UnordSet node_set;
+  NodeWeight weights;
+
   for (const auto& [id, node] : nodes) {
 
     cout << "Defining interval for node " << id << " ";
@@ -240,12 +252,13 @@ static UnordSet create_set_of_nodes(const map<int, Node>& nodes, map<int, int>& 
       }
     }
     node_set.emplace_hint(node_set.end(), array_of_nodes);
+    weights.insert({array_of_nodes, node.weight});
   }
 
   // We save max value so edge domain will not collide with node domain
   max_value = current_max;
 
-  return node_set;
+  return {node_set, weights};
 }
 
 
@@ -385,7 +398,7 @@ static S get_edge_domain(SetPiece image_intersection_set, T& edge_set, int& max_
 }
 
 
-static tuple<UnordSet, BasePWMap, BasePWMap, map<UnordSet, unsigned>> create_graph_edges(
+static tuple<UnordSet, BasePWMap, BasePWMap, EdgeCost> create_graph_edges(
         const std::map<int, Node>& nodes,
         const map<int, int>& node_offsets,
         int& max_value)
@@ -393,7 +406,7 @@ static tuple<UnordSet, BasePWMap, BasePWMap, map<UnordSet, unsigned>> create_gra
   UnordSet edge_set;  // Our set of edges
   BasePWMap rhs_maps;  // Map object of one of the sides
   BasePWMap lhs_maps; // Map object of one of the other side
-  map<UnordSet, unsigned> weights; // Weight of edges
+  EdgeCost costs; // Weight of edges
 
   for (const auto& [id, node] : nodes) {
     cout << "Looking for connections with " << id << endl;
@@ -468,14 +481,14 @@ static tuple<UnordSet, BasePWMap, BasePWMap, map<UnordSet, unsigned>> create_gra
             auto current_node_map = create_set_edge_map(im, edge_domain_set, exp, node_offsets.at(id));
             lhs_maps.emplace(current_node_map);
 
-            weights.insert({edge_domain_set, var.weight});
+            costs.insert({edge_domain_set, var.cost});
           }
         }
       }
     }
   }
 
-  return {edge_set, rhs_maps, lhs_maps, weights};
+  return {edge_set, rhs_maps, lhs_maps, costs};
 }
 
 /// @brief  Add documentation
@@ -487,20 +500,20 @@ static WeightedSBGraph create_sb_graph(const std::map<int, Node>& nodes)
   map<int, int> node_offsets;
 
   // Now, we create our set of nodes.
-  UnordSet node_set = create_set_of_nodes(nodes, node_offsets, max_value);
+  auto [node_set, weights] = create_set_of_nodes(nodes, node_offsets, max_value);
   cout << "node_set " << node_set << endl;
 
   // Now, let's build a graph!
   WeightedSBGraph graph; // This will be our graph
 
   // Firstly, add nodes to the graph.
-  graph = addSV(node_set, graph);
+  graph = addSVW(node_set, weights, graph);
 
   // Then, create edges and maps.
-  auto [edge_set, left_maps, right_maps, weights] = create_graph_edges(nodes, node_offsets, max_value);
+  auto [edge_set, left_maps, right_maps, costs] = create_graph_edges(nodes, node_offsets, max_value);
 
   // Now add those edges and maps to the graph
-  graph = addSEW(left_maps, right_maps, weights, graph);
+  graph = addSEW(left_maps, right_maps, costs, graph);
 
   return graph;
 }
@@ -591,10 +604,11 @@ static pair<SetPiece, SetPiece> cut_interval(const SetPiece &interval, int cut_v
 pair<UnordSet, UnordSet> cut_bidimensional_interval(const SetPiece &set_piece, size_t s)
 {
     cout << "cutting interval " << set_piece << ", " << s << endl;
-    // auto size_node_1 = get_node_size(SetPiece(set_piece.intervals().front()));
-    auto size_node_2 = get_node_size(SetPiece(set_piece.intervals()[1]));
-    // unsigned total_size = size_node_1 * size_node_2;
+
+    auto size_node_2 = get_node_size(SetPiece(set_piece.intervals()[1]), NodeWeight());
+
     unsigned ammount_of_rows = s / size_node_2;
+
     unsigned rest = s % size_node_2;
 
     cout << "Ammount of rows " << ammount_of_rows << endl;
@@ -631,15 +645,17 @@ pair<UnordSet, UnordSet> cut_bidimensional_interval(const SetPiece &set_piece, s
 }
 
 
-pair<UnordSet, UnordSet> cut_interval_by_dimension(UnordSet& set_piece, size_t size)
+pair<UnordSet, UnordSet> cut_interval_by_dimension(UnordSet& set_piece, const NodeWeight& node_weight, size_t size)
 {
     if (set_piece.pieces().size() == 0) {
         return make_pair(UnordSet(), UnordSet());
     }
 
+    size_t actual_size = size / unsigned(get_set_cost(*set_piece.pieces().begin(), node_weight));
+
     if (set_piece.pieces().begin()->intervals().size() == 1) {
         SetPiece p_1, p_2;
-        tie(p_1, p_2) = cut_interval(set_piece.pieces().begin()->intervals().front(), set_piece.pieces().begin()->intervals().front().begin() + size - 1);
+        tie(p_1, p_2) = cut_interval(set_piece.pieces().begin()->intervals().front(), set_piece.pieces().begin()->intervals().front().begin() + actual_size - 1);
         return make_pair(UnordSet(p_1), UnordSet(p_2));
     }
 
@@ -647,8 +663,8 @@ pair<UnordSet, UnordSet> cut_interval_by_dimension(UnordSet& set_piece, size_t s
         UnordSet cut_node;
         UnordSet remaining_node = set_piece;
         for (const auto& piece : set_piece.pieces()) {
-          size_t pice_size = get_node_size(piece);
-          size_t size_to_cut = min(pice_size, size);
+          size_t pice_size = get_node_size(piece, node_weight);
+          size_t size_to_cut = min(pice_size, actual_size);
           UnordSet cut_node_piece, remaining_node_piece;
           tie(cut_node_piece, remaining_node_piece) = cut_bidimensional_interval(piece, size_to_cut);
           cut_node = cup(cut_node, cut_node_piece);
@@ -668,11 +684,13 @@ pair<UnordSet, UnordSet> cut_interval_by_dimension(UnordSet& set_piece, size_t s
 }
 
 
-unsigned get_node_size(SetPiece node)
+unsigned get_node_size(const SetPiece& node, const NodeWeight& node_weight)
 {
     if (node.size() == 0) {
         return 0;
     }
+
+    int weight = get_set_cost(node, node_weight);
 
     unsigned acc = node.intervals().front().end() - node.intervals().front().begin() + 1;
 
@@ -681,19 +699,21 @@ unsigned get_node_size(SetPiece node)
         acc = acc * (interval.end() - interval.begin() + 1);
     }
 
+    acc *= weight;
+
     return acc;
 }
 
 
-unsigned get_node_size(const UnordSet& node)
+unsigned get_node_size(const UnordSet& node, const NodeWeight& node_weight)
 {
     if (node.pieces().empty()) {
         return 0;
     }
 
   unsigned size = 0;
-  for (auto set_piece : node.pieces()) {
-    size += get_node_size(set_piece);
+  for (const auto& set_piece : node.pieces()) {
+    size += get_node_size(set_piece, node_weight);
   }
 
   return size;

@@ -27,10 +27,23 @@ using namespace SBG::LIB;
 
 namespace sbg_partitioner {
 
-WeightedSBGraph addSEW(BasePWMap pw1, BasePWMap pw2, std::map<UnordSet, unsigned> weights, WeightedSBGraph g)
+WeightedSBGraph addSEW(BasePWMap pw1, BasePWMap pw2, EdgeCost costs, WeightedSBGraph g)
 {
+    //save node weights
+    auto weights = g.get_node_weights();
     WeightedSBGraph graph = addSE(pw1, pw2, g);
-    graph.set_weights(weights);
+    graph.set_node_weights(weights);
+    graph.set_edge_costs(costs);
+
+    return graph;
+}
+
+
+WeightedSBGraph addSVW(UnordSet nodes, NodeWeight weights, WeightedSBGraph g)
+{
+    for (const auto& [i, n] : weights) cout << i << ", " << n << endl;
+    WeightedSBGraph graph = addSV(nodes, g);
+    graph.set_node_weights(weights);
 
     return graph;
 }
@@ -40,12 +53,19 @@ ostream& operator<<(ostream& os, const WeightedSBGraph& graph)
 {
     os << BaseSBG(graph);
 
-    os << "weights: ";
-    for (const auto& [set, weight] : graph.get_weights()) {
-        os << "{" << set << " : " << weight << "} ";
+    os << "node weight = << ";
+    for (const auto& [set, weight] : graph.get_node_weights()) {
+        os << set << " ↦ " << weight << ", ";
     }
 
-    os << endl;
+    os << "\b\b >>" << endl;
+
+    os << "edge costs = << ";
+    for (const auto& [set, weight] : graph.get_edge_costs()) {
+        os << set << " ↦ " << weight << ", ";
+    }
+
+    os << "\b\b >>" << endl;
 
     return os;
 }
