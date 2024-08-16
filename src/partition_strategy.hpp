@@ -61,8 +61,9 @@ private:
     unsigned _acceptable_surplus;
     unsigned _acceptable_amount;
     std::map<unsigned, std::set<SBG::LIB::SetPiece>> _partitions;
-    std::map<size_t, size_t> _size_by_partition;
-    std::map<size_t, size_t> _current_size_by_partition;
+    size_t _expected_size_by_partition;
+    std::map<unsigned, unsigned> _current_size_by_partition;
+    NodeWeight _node_weight;
 };
 
 
@@ -94,6 +95,7 @@ private:
     std::map<unsigned, std::set<SBG::LIB::SetPiece>> _partitions;
     std::map<unsigned, unsigned> _current_size_by_partition;
     SBG::LIB::UnordSet _nodes;
+    NodeWeight _node_weight;
 };
 
 std::ostream& operator<<(std::ostream& os, const PartitionStrategy& pgraph);
