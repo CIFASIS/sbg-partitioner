@@ -79,18 +79,12 @@ ostream& operator<<(ostream& os, const KLBipartResult& result)
 
 
 /// This is an ad hoc function which gets the addition of the size of each interval
-static unsigned get_multidim_interval_size(UnordSet& final_edges,const map<UnordSet, unsigned>& weights)
+static unsigned get_edge_set_size(UnordSet& final_edges, const EdgeCost& costs)
 {
     unsigned acc = 0;
     for (size_t i = 0; i < final_edges.size(); i++) {
+        unsigned weight = get_set_cost(final_edges[i], costs);
         for (size_t j = 0; j < final_edges[i].size(); j++) {
-            unsigned weight = 1;
-            UnordSet final_edges_set = UnordSet(final_edges);
-            for (const auto [edge_set, w] : weights) {
-                if (intersection(final_edges_set, edge_set).size() > 0) {
-                    weight = weights.at(edge_set);
-                }
-            }
             acc += (final_edges[i][j].end() - final_edges[i][j].begin() + 1) * weight;
         }
     }
@@ -103,7 +97,7 @@ static size_t get_c_ab(
     const UnordSet& a, const UnordSet& b,
     const BasePWMap& map_1,
     const BasePWMap& map_2,
-    const map<UnordSet, unsigned>& weights)
+    const EdgeCost& costs)
 {
     auto f = [](auto& a, auto& b, const BasePWMap& departure_map, const BasePWMap& arrival_map) {
         UnordSet comm_edges;
@@ -125,7 +119,7 @@ static size_t get_c_ab(
 
     auto communication_edges = cup(intersection1, intersection2);
 
-    size_t comm_size = get_multidim_interval_size(communication_edges, weights);
+    size_t comm_size = get_edge_set_size(communication_edges, costs);
 
     return comm_size;
 }
@@ -170,15 +164,15 @@ static GainObject compute_diff(
     auto b = UnordSet(partition_b[j]);
 
     // Take the minimum partition size. We add 1 because it includes the last element
-    size_t size_node_a = get_node_size(a);
-    size_t size_node_b = get_node_size(b);
+    size_t size_node_a = get_node_size(a, graph.get_node_weights());
+    size_t size_node_b = get_node_size(b, graph.get_node_weights());
     size_t min_size = min(size_node_a, size_node_b);
 
     // No problem here, a is just a copy of partition_a[i], same for b
     // We substract 1 because it includes the last element
     UnordSet rest_a, rest_b;
-    tie(a, rest_a) = cut_interval_by_dimension(a, min_size);
-    tie(b, rest_b) = cut_interval_by_dimension(b, min_size);
+    tie(a, rest_a) = cut_interval_by_dimension(a, graph.get_node_weights(), min_size);
+    tie(b, rest_b) = cut_interval_by_dimension(b, graph.get_node_weights(), min_size);
 
     // Now, compute external and internal cost for both maps
     UnordSet ec_nodes_a_1, ic_nodes_a_1;
@@ -193,8 +187,8 @@ static GainObject compute_diff(
     ic_nodes_a = cup(ic_nodes_a_1, ic_nodes_a_2);
 
     // Calculate the dimension of each node
-    size_t ec_a = get_multidim_interval_size(ec_nodes_a, graph.get_weights());
-    size_t ic_a = get_multidim_interval_size(ic_nodes_a, graph.get_weights());
+    size_t ec_a = get_edge_set_size(ec_nodes_a, graph.get_edge_costs());
+    size_t ic_a = get_edge_set_size(ic_nodes_a, graph.get_edge_costs());
     int d_a = ec_a - ic_a;
 
     // Same as before for partition b
@@ -208,12 +202,12 @@ static GainObject compute_diff(
     ec_nodes_b = cup(ec_nodes_b_1, ec_nodes_b_2);
     ic_nodes_b = cup(ic_nodes_b_1, ic_nodes_b_2);
 
-    size_t ec_b = get_multidim_interval_size(ec_nodes_b, graph.get_weights());
-    size_t ic_b = get_multidim_interval_size(ic_nodes_b, graph.get_weights());
+    size_t ec_b = get_edge_set_size(ec_nodes_b, graph.get_edge_costs());
+    size_t ic_b = get_edge_set_size(ic_nodes_b, graph.get_edge_costs());
     int d_b = ec_b - ic_b;
 
     // Get communication between a and b
-    size_t c_ab = get_c_ab(a, b, graph.map1(), graph.map2(), graph.get_weights());
+    size_t c_ab = get_c_ab(a, b, graph.map1(), graph.map2(), graph.get_edge_costs());
 
     // calculate gain
     int gain = d_a + d_b - 2 * c_ab;
@@ -287,22 +281,23 @@ static pair<UnordSet, UnordSet> update_sets(
     UnordSet& partition_b,
     UnordSet& current_moved_partition_a,
     UnordSet& current_moved_partition_b,
-    const GainObject& gain_object)
+    const GainObject& gain_object,
+    const NodeWeight& node_weight)
 {
     auto node_a = UnordSet(partition_a[gain_object.i]);
-    size_t partition_size_a = get_node_size(node_a);
+    size_t partition_size_a = get_node_size(node_a, node_weight);
     bool node_a_is_fully_used = partition_size_a == gain_object.size;
     if (not node_a_is_fully_used) {
         UnordSet rest_a;
-        tie(node_a, rest_a) = cut_interval_by_dimension(node_a, gain_object.size);
+        tie(node_a, rest_a) = cut_interval_by_dimension(node_a, node_weight, gain_object.size);
     }
 
     auto node_b = UnordSet(partition_b[gain_object.j]);
-    size_t partition_size_b = get_node_size(node_b); //node_b.intervals()[0].end() - node_b.intervals()[0].begin() + 1;
+    size_t partition_size_b = get_node_size(node_b, node_weight);
     bool node_b_is_fully_used = partition_size_b == gain_object.size;
     if (not node_b_is_fully_used) {
         UnordSet rest_b;
-        tie(node_b, rest_b) = cut_interval_by_dimension(node_b, gain_object.size);
+        tie(node_b, rest_b) = cut_interval_by_dimension(node_b, node_weight, gain_object.size);
     }
 
     // At least one of them should be fully used?
@@ -403,7 +398,7 @@ int kl_sbg(const WeightedSBGraph& graph, UnordSet& partition_a, UnordSet& partit
     while ((not isEmpty(a_c)) and (not isEmpty(b_c))) {
         auto g = max_diff(gm, a_c, b_c, graph);
         UnordSet a_, b_;
-        tie(a_, b_) = update_sets(a_c, b_c, a_v, b_v, g);
+        tie(a_, b_) = update_sets(a_c, b_c, a_v, b_v, g, graph.get_node_weights());
         update_diff(gm, a_c, b_c, graph, g);
         update_sum(par_sum, g.gain, max_par_sum, max_par_sum_set, a_v, b_v);
     }

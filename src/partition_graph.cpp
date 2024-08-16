@@ -121,7 +121,7 @@ best_initial_partition(
     unsigned number_of_partitions)
 {
     constexpr bool pre_order = true;
-    PartitionMap best_initial_partitions = make_initial_partition(graph, number_of_partitions, PartitionAlgorithm::DISTRIBUTED, pre_order);
+    PartitionMap best_initial_partitions = make_initial_partition(graph, number_of_partitions, PartitionAlgorithm::GREEDY, pre_order);
     size_t best_communication_set_cardinality = get_partition_communication(graph, best_initial_partitions);
 
     cout << "PartitionAlgorithm: " << PartitionAlgorithm::DISTRIBUTED << ", pre order " << pre_order << " cardinality " << best_communication_set_cardinality << endl;
@@ -200,8 +200,8 @@ void sanity_check(const WeightedSBGraph &graph, PartitionMap& partitions_set, un
     }
     UnordSet diff_1 = difference(graph.V(), nodes_to_check);
     UnordSet diff_2 = difference(nodes_to_check, graph.V());
-    assert(get_node_size(diff_1) == 0 and "The intial partition has less elements than the graph");
-    assert(get_node_size(diff_2) == 0 and "The intial partition has more elements than the graph");
+    assert(get_node_size(diff_1, graph.get_node_weights()) == 0 and "The intial partition has less elements than the graph");
+    assert(get_node_size(diff_2, graph.get_node_weights()) == 0 and "The intial partition has more elements than the graph");
     for (unsigned i = 0; i < number_of_partitions; i++) {
         for (unsigned j = i + 1; j < number_of_partitions; j++) {
             auto p_1 = partitions_set[i];
