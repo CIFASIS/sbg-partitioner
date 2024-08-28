@@ -719,4 +719,65 @@ unsigned get_node_size(const UnordSet& node, const NodeWeight& node_weight)
   return size;
 }
 
+
+void flatten_set(UnordSet &set, const BaseSBG& graph)
+{
+    cout << set << endl;
+    UnordSet new_partition;
+    for (const auto& v : graph.V()) {
+        vector<Interval> set_piece_this_node_vector;
+        for (auto& set_piece : set.pieces()) {
+
+            if (not isEmpty(intersection(v, set_piece))) {
+                for (size_t i = 0; i < set_piece.intervals().size(); i++) {
+                    set_piece_this_node_vector.push_back(set_piece.intervals()[i]);
+                }
+            }
+
+        }
+
+        // sort it
+        sort(set_piece_this_node_vector.begin(), set_piece_this_node_vector.end(), [](const Interval& a, const Interval& b) {
+                return a.begin() < b.begin();
+            });
+
+        bool change = true;
+        while (change) {
+            change = false;
+
+            vector<Interval> new_set_piece_this_node;
+            new_set_piece_this_node.reserve(set_piece_this_node_vector.size());
+
+            for (size_t i = 1; i < set_piece_this_node_vector.size(); i++) {
+                if (change) {
+                    new_set_piece_this_node.emplace_back(set_piece_this_node_vector[i]);
+                }
+
+                auto prev_interval = set_piece_this_node_vector[i - 1];
+                auto next_interval = set_piece_this_node_vector[i];
+                if (prev_interval.end() + prev_interval.step() == next_interval.begin()) {
+                    auto new_interval = Interval(prev_interval.begin(), prev_interval.step(), next_interval.end());
+                    new_set_piece_this_node.emplace_back(new_interval);
+                    change = true;
+                } else {
+                    new_set_piece_this_node.emplace_back(prev_interval);
+                }
+            }
+
+            if (change) {
+                set_piece_this_node_vector.swap(new_set_piece_this_node);
+            }
+        }
+
+        for_each(set_piece_this_node_vector.begin(), set_piece_this_node_vector.end(), [&new_partition] (auto &s) { new_partition.emplace(move(s)); });
+    }
+
+    auto diff = difference(set, new_partition);
+    cout << "difference " << set << ", " << new_partition << diff << ", " << isEmpty(diff) << endl;
+    assert(isEmpty(diff));
+
+    set = new_partition;
+}
+
+
 }
