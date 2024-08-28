@@ -59,6 +59,9 @@ unsigned get_node_size(const SBG::LIB::SetPiece& node, const NodeWeight& node_we
 unsigned get_node_size(const SBG::LIB::UnordSet& node, const NodeWeight& node_weight);
 
 
+void flatten_set(SBG::LIB::UnordSet &set, const SBG::LIB::BaseSBG& graph);
+
+
 /// It returns the edge cost or node weight of the input set. It looks for a key in cost that intersects
 /// the input set, and returns its value. If no key intersects the input set, it will return 1.
 /// @param set input set we want to know the cost or weight/

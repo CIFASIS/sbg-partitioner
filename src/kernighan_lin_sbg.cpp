@@ -168,6 +168,13 @@ static GainObject compute_diff(
     size_t size_node_b = get_node_size(b, graph.get_node_weights());
     size_t min_size = min(size_node_a, size_node_b);
 
+    int weight_a = get_set_cost(partition_a[i], graph.get_node_weights());
+    int weight_b = get_set_cost(partition_b[j], graph.get_node_weights());
+
+    if (min_size < size_t(weight_a) or min_size < size_t(weight_b)) {
+        return GainObject{i, j, 0, 0};
+    }
+
     // No problem here, a is just a copy of partition_a[i], same for b
     // We substract 1 because it includes the last element
     UnordSet rest_a, rest_b;
@@ -344,7 +351,7 @@ static void update_diff(
     const WeightedSBGraph& graph,
     const GainObject& gain_object)
 {
-    if (false) {
+    if (false) { // we shoudl check on this
         remove_nodes_from_cost_matrix(cost_matrix, partition_a, gain_object);
         remove_nodes_from_cost_matrix(cost_matrix, partition_b, gain_object);
 
@@ -408,10 +415,8 @@ int kl_sbg(const WeightedSBGraph& graph, UnordSet& partition_a, UnordSet& partit
         partition_b = cup(difference(partition_b, max_par_sum_set.second), max_par_sum_set.first);
     }
 
-    gm = generate_gain_matrix(partition_a, partition_b, graph);
-
 #if KERNIGHAN_LIN_SBG_DEBUG
-    cout << "so it ends with " << gm << " " << max_par_sum << ", " << partition_a << ", " << partition_b << endl;
+    cout << "so it ends with " << max_par_sum << ", " << partition_a << ", " << partition_b << endl;
 #endif
 
     return max_par_sum;
@@ -479,6 +484,9 @@ void kl_sbg_partitioner(const WeightedSBGraph& graph, PartitionMap& partitions)
             partitions[best_gain.i] = best_gain.A;
             partitions[best_gain.j] = best_gain.B;
         }
+
+        flatten_set(partitions[best_gain.i], graph);
+        flatten_set(partitions[best_gain.j], graph);
     }
 
     for (size_t i = 0; i < partitions.size(); i++) {
