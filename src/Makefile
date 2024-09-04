@@ -38,7 +38,7 @@ SOURCES := build_sb_graph.cpp \
 
 # Flags, Libraries and Includes
 INCLUDES := -I. -I$(SBG_LIB_PATH)/$(SBG_DEV)/usr/include -I$(BOOST_LIB_PATH)/include -I$(3RD_PARTY_DIR)/rapidjson/include
-CXXFLAGS := -std=c++17 -Wall -Werror -Wno-reorder -O3 
+CXXFLAGS := -std=c++17 -Wall -Werror -Wno-reorder -O3 -pthread
 ifeq ($(MODE),Debug)
 CXXFLAGS 	+= -ggdb  
 endif

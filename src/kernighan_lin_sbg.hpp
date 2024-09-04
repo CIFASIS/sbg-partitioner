@@ -26,6 +26,8 @@
 namespace sbg_partitioner
 {
 
+constexpr bool multithreading_enabled = false;
+
 struct GainObject {
     size_t i;
     size_t j;
@@ -52,6 +54,16 @@ struct GainObjectComparator {
 using CostMatrix = std::set<GainObject, GainObjectComparator>;
 
 
+struct kl_sbg_partitioner_result
+{
+    size_t i;
+    size_t j;
+    int gain;
+    SBG::LIB::UnordSet A;
+    SBG::LIB::UnordSet B;
+};
+
+
 void kl_sbg_partitioner(const WeightedSBGraph& graph, PartitionMap& partitions);
 
 KLBipartResult kl_sbg_bipart(const WeightedSBGraph& graph, SBG::LIB::UnordSet& partition_a, SBG::LIB::UnordSet& partition_b);
@@ -71,5 +83,7 @@ std::ostream& operator<<(std::ostream& os, const GainObject& gain);
 std::ostream& operator<<(std::ostream& os, const CostMatrix& cost_matrix);
 
 std::ostream& operator<<(std::ostream& os, const KLBipartResult& result);
+
+std::ostream& operator<<(std::ostream& os, const kl_sbg_partitioner_result& result);
 
 }; // namespace sbg_partitioner
