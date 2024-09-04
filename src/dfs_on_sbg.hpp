@@ -35,9 +35,11 @@ namespace sbg_partitioner {
 
 namespace search {
 
-void initialize_partitioning(WeightedSBGraph& graph, unsigned number_of_partitions, std::unique_ptr<PartitionStrategy> partition_strategy, bool pre_order);
+void initialize_partitioning(WeightedSBGraph& graph, unsigned number_of_partitions);
 
-std::map<unsigned, std::set<SBG::LIB::SetPiece>> partitionate();
+void add_strategy(std::unique_ptr<PartitionStrategy> strategy, bool pre_order);
+
+std::vector<std::map<unsigned, std::set<SBG::LIB::SetPiece>>> partitionate();
 
 class DFS {
 
@@ -46,7 +48,7 @@ public:
 
     /// pre_order: True means pre-order, False means post-order. In-order is not taken
     /// into account since the graph is not a binary tree.
-    DFS(WeightedSBGraph& graph, unsigned number_of_partitions, std::unique_ptr<PartitionStrategy> partition_strategy, bool pre_order);
+    DFS(WeightedSBGraph& graph, unsigned number_of_partitions);
 
     DFS& operator= (const DFS&) = delete;   //deleted copy-assignment operator
     DFS(DFS&&) = default;
@@ -58,12 +60,14 @@ public:
 
     void iterate();
 
-    std::map<unsigned, std::set<SBG::LIB::SetPiece>> partitions() const;
+    std::vector<std::map<unsigned, std::set<SBG::LIB::SetPiece>>> partitions() const;
+
+    void add_partition_strategy(std::unique_ptr<PartitionStrategy> strategy, bool pre_order);
+
 private:
     typedef size_t node_identifier;
 
     unsigned _number_of_partitions;
-    bool _pre_order;
 
     std::vector<node_identifier> _visited;
     std::vector<node_identifier> _partially_visited;
@@ -75,7 +79,8 @@ private:
 
     WeightedSBGraph _graph;
 
-    std::unique_ptr<PartitionStrategy> _partition_strategy;
+    std::vector<std::unique_ptr<PartitionStrategy>> _partition_strategy_pre_order;
+    std::vector<std::unique_ptr<PartitionStrategy>> _partition_strategy_post_order;
 
     void initialize_adjacents();
 
@@ -90,7 +95,7 @@ private:
     void add_it_partially(node_identifier id);
     void add_it_definitely(node_identifier id);
 
-    void add_it_to_a_partition(node_identifier id);
+    void add_it_to_a_partition(node_identifier id, bool pre_order);
 };
 
 }

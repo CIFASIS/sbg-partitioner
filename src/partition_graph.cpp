@@ -42,41 +42,45 @@ using namespace sbg_partitioner::search;
 namespace sbg_partitioner {
 
 
-PartitionMap make_initial_partition(WeightedSBGraph& graph, unsigned number_of_partitions, PartitionAlgorithm algorithm, bool pre_order)
+vector<PartitionMap> make_initial_partitions(WeightedSBGraph& graph, unsigned number_of_partitions)
 {
-    PartitionMap partitions_set;
-    switch (algorithm) {
-        case PartitionAlgorithm::DISTRIBUTED:
-            initialize_partitioning(graph, number_of_partitions, make_unique<PartitionStrategyDistributive>(number_of_partitions, graph), pre_order);
-            break;
-        case PartitionAlgorithm::GREEDY:
-        default:
-            initialize_partitioning(graph, number_of_partitions, make_unique<PartitionStrategyGreedy>(number_of_partitions, graph), pre_order);
-    }
+    vector<PartitionMap> partitions_sets;
+    initialize_partitioning(graph, number_of_partitions);
 
-    map<unsigned, set<SetPiece>> partitions = partitionate();
+    constexpr bool pre_order = true;
+    add_strategy(make_unique<PartitionStrategyDistributive>(number_of_partitions, graph), pre_order);
+    add_strategy(make_unique<PartitionStrategyDistributive>(number_of_partitions, graph), not pre_order);
+    add_strategy(make_unique<PartitionStrategyGreedy>(number_of_partitions, graph), pre_order);
+    add_strategy(make_unique<PartitionStrategyGreedy>(number_of_partitions, graph), not pre_order);
 
-    for (auto& [id, set] : partitions) {
-        SBG::LIB::UnordSet set_piece;
-        for (auto& s : set) {
-            SBG::LIB::SetPiece intervals;
-            if (not s.intervals().empty()) {
-                for (size_t i = 0; i < s.intervals().size(); i++) {
-                    Interval interv = s.intervals()[i];
-                    intervals.emplaceBack(interv);
+    vector<map<unsigned, set<SetPiece>>> partitions = partitionate();
+
+    for (const auto& partition : partitions) {
+        PartitionMap partition_set;
+        for (const auto& [id, set] : partition) {
+            SBG::LIB::UnordSet set_piece;
+            for (auto& s : set) {
+                SBG::LIB::SetPiece intervals;
+                if (not s.intervals().empty()) {
+                    for (size_t i = 0; i < s.intervals().size(); i++) {
+                        Interval interv = s.intervals()[i];
+                        intervals.emplaceBack(interv);
+                    }
                 }
+                set_piece.emplace(intervals);
             }
-            set_piece.emplace(intervals);
+            partition_set[id] = set_piece;
         }
-        partitions_set[id] = set_piece;
+
+        partitions_sets.push_back(move(partition_set));
     }
 
-    sanity_check(graph, partitions_set, number_of_partitions);
+    for_each(partitions_sets.begin(), partitions_sets.end(), [&graph, number_of_partitions] (PartitionMap& p) {
+        cout << p << endl;
+        sanity_check(graph, p, number_of_partitions);
+    });
 
-    SBG_LOG << partitions_set;
-    cout << partitions_set << endl;
-
-    return partitions_set;
+    return partitions_sets;
 }
 
 
@@ -95,42 +99,26 @@ static size_t get_partition_communication(WeightedSBGraph& graph, const Partitio
 }
 
 
-static void aux_function_best_initial_partition(
-    WeightedSBGraph& graph,
-    PartitionMap& best_initial_partitions,
-    size_t& best_communication_set_cardinality,
-    unsigned number_of_partitions,
-    PartitionAlgorithm partition_algorithm,
-    bool pre_order)
-{
-    PartitionMap temp_intial_partitions =  make_initial_partition(graph, number_of_partitions, partition_algorithm, pre_order);
-    size_t temp_partition_comm_size = get_partition_communication(graph, temp_intial_partitions);
-
-    cout  << "PartitionAlgorithm: " << partition_algorithm << ", pre order " << pre_order << " cardinality " << best_communication_set_cardinality << endl;
-
-    if (temp_partition_comm_size < best_communication_set_cardinality) {
-        best_initial_partitions = std::move(temp_intial_partitions);
-        best_communication_set_cardinality = temp_partition_comm_size;
-    }
-}
-
-
 PartitionMap
 best_initial_partition(
     WeightedSBGraph& graph,
     unsigned number_of_partitions)
 {
-    constexpr bool pre_order = true;
-    PartitionMap best_initial_partitions = make_initial_partition(graph, number_of_partitions, PartitionAlgorithm::GREEDY, pre_order);
+    std::vector<sbg_partitioner::PartitionMap> partition_maps = make_initial_partitions(graph, number_of_partitions);
+
+    auto& best_initial_partitions = partition_maps.front();
     size_t best_communication_set_cardinality = get_partition_communication(graph, best_initial_partitions);
 
-    cout << "PartitionAlgorithm: " << PartitionAlgorithm::DISTRIBUTED << ", pre order " << pre_order << " cardinality " << best_communication_set_cardinality << endl;
+    for (size_t i = 1; i < partition_maps.size(); i++) {
 
-    aux_function_best_initial_partition(graph, best_initial_partitions, best_communication_set_cardinality, number_of_partitions, PartitionAlgorithm::DISTRIBUTED, not pre_order);
+        auto temp_intial_partitions = partition_maps[i];
+        size_t temp_partition_comm_size = get_partition_communication(graph, temp_intial_partitions);
 
-    aux_function_best_initial_partition(graph, best_initial_partitions, best_communication_set_cardinality, number_of_partitions, PartitionAlgorithm::GREEDY, pre_order);
-
-    aux_function_best_initial_partition(graph, best_initial_partitions, best_communication_set_cardinality, number_of_partitions, PartitionAlgorithm::GREEDY, not pre_order);
+        if (temp_partition_comm_size < best_communication_set_cardinality) {
+            best_initial_partitions = std::move(temp_intial_partitions);
+            best_communication_set_cardinality = temp_partition_comm_size;
+        }
+    }
 
     cout << "Best is " << best_initial_partitions << " with communication " << best_communication_set_cardinality << endl;
 

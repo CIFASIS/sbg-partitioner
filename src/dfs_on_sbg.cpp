@@ -37,32 +37,34 @@ static DFS sort_object;
 
 void initialize_partitioning(
     WeightedSBGraph& graph,
-    unsigned number_of_partitions,
-    unique_ptr<PartitionStrategy> partition_strategy,
-    bool pre_order)
+    unsigned number_of_partitions)
 {
     initialized = true;
-    sort_object = DFS(graph, number_of_partitions, move(partition_strategy), pre_order);
-    sort_object.start();
+    sort_object = DFS(graph, number_of_partitions);
 }
 
 
-map<unsigned, set<SetPiece>> partitionate()
+void add_strategy(std::unique_ptr<PartitionStrategy> strategy, bool pre_order)
+{
+    sort_object.add_partition_strategy(move(strategy), pre_order);
+}
+
+
+vector<map<unsigned, set<SetPiece>>> partitionate()
 {
     assert(initialized and "Partioning was not inialized");
 
+    sort_object.start();
     sort_object.iterate();
-    map<unsigned, set<SetPiece>> partitions = sort_object.partitions();
+    vector<map<unsigned, set<SetPiece>>> partitions = sort_object.partitions();
 
     return partitions;
 }
 
 
-DFS::DFS(WeightedSBGraph & graph, unsigned number_of_partitions, std::unique_ptr<PartitionStrategy> partition_strategy, bool pre_order)
+DFS::DFS(WeightedSBGraph & graph, unsigned number_of_partitions)
     : _number_of_partitions(number_of_partitions),
-    _pre_order(pre_order),
-    _graph(graph),
-    _partition_strategy(move(partition_strategy))
+    _graph(graph)
 {
     initialize_adjacents();
 }
@@ -162,12 +164,17 @@ void DFS::iterate()
             }
         }
     }
-
-    std::cout << *_partition_strategy << std::endl;
 }
 
 
-std::map<unsigned, std::set<SBG::LIB::SetPiece>> DFS::partitions() const { return _partition_strategy->partitions(); }
+void DFS::add_partition_strategy(std::unique_ptr<PartitionStrategy> strategy, bool pre_order)
+{
+    if (pre_order) {
+        _partition_strategy_pre_order.push_back(move(strategy));
+    } else {
+        _partition_strategy_post_order.push_back(move(strategy));
+    }
+}
 
 
 void DFS::fill_current_node_stack()
@@ -179,6 +186,22 @@ void DFS::fill_current_node_stack()
             _stack.push_back(adj_node);
         }
     }
+}
+
+
+vector<map<unsigned, set<SetPiece>>> DFS::partitions() const
+{
+    vector<map<unsigned, set<SetPiece>>> partitions;
+
+    for (size_t i = 0; i < _partition_strategy_pre_order.size(); i++) {
+        partitions.push_back(_partition_strategy_pre_order[i]->partitions());
+    }
+
+    for (size_t i = 0; i < _partition_strategy_post_order.size(); i++) {
+        partitions.push_back(_partition_strategy_post_order[i]->partitions());
+    }
+
+    return partitions;
 }
 
 
@@ -199,9 +222,7 @@ bool DFS::already_added(node_identifier id)
 
 void DFS::add_it_partially(node_identifier id)
 {
-    if (_pre_order) {
-        add_it_to_a_partition(id);
-    }
+    add_it_to_a_partition(id, true);
 
     _partially_visited.push_back(id);
 }
@@ -209,18 +230,24 @@ void DFS::add_it_partially(node_identifier id)
 
 void DFS::add_it_definitely(node_identifier id)
 {
-    if (not _pre_order) {
-        add_it_to_a_partition(id);
-    }
+    add_it_to_a_partition(id, false);
 
     _partially_visited.pop_back();
     _visited.push_back(id);
 }
 
-void DFS::add_it_to_a_partition(node_identifier id)
+void DFS::add_it_to_a_partition(node_identifier id, bool pre_order)
 {
     auto v = _graph.V()[id];
-    (*_partition_strategy)(v);
+    if (pre_order) {
+        for (size_t i = 0; i < _partition_strategy_pre_order.size(); i++) {
+            (*_partition_strategy_pre_order[i])(v);
+        }
+    } else {
+        for (size_t i = 0; i < _partition_strategy_post_order.size(); i++) {
+            (*_partition_strategy_post_order[i])(v);
+        }
+    }
 }
 
 }
