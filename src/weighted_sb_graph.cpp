@@ -41,7 +41,6 @@ WeightedSBGraph addSEW(BasePWMap pw1, BasePWMap pw2, EdgeCost costs, WeightedSBG
 
 WeightedSBGraph addSVW(UnordSet nodes, NodeWeight weights, WeightedSBGraph g)
 {
-    for (const auto& [i, n] : weights) cout << i << ", " << n << endl;
     WeightedSBGraph graph = addSV(nodes, g);
     graph.set_node_weights(weights);
 

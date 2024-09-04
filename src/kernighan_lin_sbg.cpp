@@ -17,11 +17,13 @@
 
  ******************************************************************************/
 
+#include <future>
 #include <set>
 #include <sbg/sbg.hpp>
-#include <vector>
+#include <thread>
 #include <util/logger.hpp>
 #include <utility>
+#include <vector>
 
 #include <unistd.h>
 
@@ -445,37 +447,78 @@ KLBipartResult kl_sbg_bipart(const WeightedSBGraph& graph, SBG::LIB::UnordSet& p
 }
 
 
-struct kl_sbg_partitioner_result
+ostream& operator<<(ostream& os, const kl_sbg_partitioner_result& result)
 {
-    size_t i;
-    size_t j;
-    int gain;
-    UnordSet A;
-    UnordSet B;
-};
+    os << "i: " << result.i << ": " << result.A << ", j: " << result.j << ", " << result.B << ", gain: " << result.gain;
+
+    return os;
+}
+
+
+static kl_sbg_partitioner_result kl_sbg_partitioner_function(const WeightedSBGraph& graph, PartitionMap& partitions)
+{
+    kl_sbg_partitioner_result best_gain = kl_sbg_partitioner_result{ 0, 0, -1, UnordSet(), UnordSet()};
+    for (size_t i = 0; i < partitions.size(); i++) {
+        for (size_t j = i + 1; j < partitions.size(); j++) {
+            auto p_1_copy = partitions[i];
+            auto p_2_copy = partitions[j];
+            KLBipartResult current_gain = kl_sbg_bipart(graph, p_1_copy, p_2_copy);
+    #if KERNIGHAN_LIN_SBG_DEBUG
+            cout << "current_gain " << current_gain << endl;
+    #endif
+            if (current_gain.gain > best_gain.gain) {
+                best_gain.i = i;
+                best_gain.j = j;
+                best_gain.gain = current_gain.gain;
+                best_gain.A = current_gain.A;
+                best_gain.B = current_gain.B;
+            }
+        }
+    }
+
+    return best_gain;
+}
+
+
+static kl_sbg_partitioner_result kl_sbg_partitioner_multithreading(const WeightedSBGraph& graph, PartitionMap& partitions)
+{
+    kl_sbg_partitioner_result best_gain = kl_sbg_partitioner_result{ 0, 0, -1, UnordSet(), UnordSet()};
+    vector<future<kl_sbg_partitioner_result>> workers;
+    for (size_t i = 0; i < partitions.size(); i++) {
+        for (size_t j = i + 1; j < partitions.size(); j++) {
+            auto th = async([&graph, &partitions, i, j] () {
+                UnordSet p_1_copy = partitions[i];
+                UnordSet p_2_copy = partitions[j];
+                KLBipartResult results = kl_sbg_bipart(graph, p_1_copy, p_2_copy);
+                return kl_sbg_partitioner_result{i, j, results.gain, results.A, results.B};
+            });
+            workers.push_back(move(th));
+        }
+    }
+
+    for_each(workers.begin(), workers.end(), [&best_gain] (future<kl_sbg_partitioner_result>& th) {
+        // here we wait for each thread to finish and get its results
+        auto current_gain = th.get();
+        if (current_gain.gain > best_gain.gain) {
+            best_gain = move(current_gain);
+        }
+    });
+
+    return best_gain;
+}
+
 
 void kl_sbg_partitioner(const WeightedSBGraph& graph, PartitionMap& partitions)
 {
     bool change = true;
     while (change) {
         change = false;
-        kl_sbg_partitioner_result best_gain = kl_sbg_partitioner_result{ 0, 0, -1, UnordSet(), UnordSet()};
-        for (size_t i = 0; i < partitions.size(); i++) {
-            for (size_t j = i + 1; j < partitions.size(); j++) {
-                auto p_1_copy = partitions[i];
-                auto p_2_copy = partitions[j];
-                KLBipartResult current_gain = kl_sbg_bipart(graph, p_1_copy, p_2_copy);
-#if KERNIGHAN_LIN_SBG_DEBUG
-                cout << "current_gain " << current_gain << endl;
-#endif
-                if (current_gain.gain > best_gain.gain) {
-                    best_gain.i = i;
-                    best_gain.j = j;
-                    best_gain.gain = current_gain.gain;
-                    best_gain.A = current_gain.A;
-                    best_gain.B = current_gain.B;
-                }
-            }
+
+        kl_sbg_partitioner_result best_gain;
+        if (multithreading_enabled) {
+            best_gain = kl_sbg_partitioner_multithreading(graph, partitions);
+        } else {
+            best_gain = kl_sbg_partitioner_function(graph, partitions);
         }
 
         // now, apply changes
@@ -485,12 +528,15 @@ void kl_sbg_partitioner(const WeightedSBGraph& graph, PartitionMap& partitions)
             partitions[best_gain.j] = best_gain.B;
         }
 
-        flatten_set(partitions[best_gain.i], graph);
-        flatten_set(partitions[best_gain.j], graph);
+        if (graph.V()[0].intervals().size() == 1) {
+            flatten_set(partitions[best_gain.i], graph);
+            flatten_set(partitions[best_gain.j], graph);
+        }
     }
 
     for (size_t i = 0; i < partitions.size(); i++) {
         SBG_LOG << i << ": " << partitions[i] << endl;
     }
 }
+
 }

@@ -336,6 +336,9 @@ static BaseMap create_set_edge_map(const UnordSet& pre_image, const UnordSet& ed
   // And create the map
   map.set_exp(map_exps);
 
+  // useful for debugging
+  // cout << "edge_domain " << edge_domain << ": " << image(map) << endl;
+
   return map;
 }
 
@@ -731,8 +734,8 @@ void flatten_set(UnordSet &set, const BaseSBG& graph)
             if (not isEmpty(intersection(v, set_piece))) {
                 for (size_t i = 0; i < set_piece.intervals().size(); i++) {
                     set_piece_this_node_vector.push_back(set_piece.intervals()[i]);
-                }
             }
+        }
 
         }
 
@@ -751,6 +754,7 @@ void flatten_set(UnordSet &set, const BaseSBG& graph)
             for (size_t i = 1; i < set_piece_this_node_vector.size(); i++) {
                 if (change) {
                     new_set_piece_this_node.emplace_back(set_piece_this_node_vector[i]);
+                    continue;
                 }
 
                 auto prev_interval = set_piece_this_node_vector[i - 1];
