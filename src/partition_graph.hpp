@@ -38,12 +38,10 @@ enum PartitionAlgorithm
 
 // I wish this was a separate function, not part of PartitionGraph but there were a lot of
 // compile problems if partitions map object is created locally and UnordSet objects are added.
-PartitionMap
-make_initial_partition(
+std::vector<PartitionMap>
+make_initial_partitions(
     WeightedSBGraph& graph,
-    unsigned number_of_partitions,
-    PartitionAlgorithm algorithm,
-    bool pre_order);
+    unsigned number_of_partitions);
 
 
 PartitionMap
