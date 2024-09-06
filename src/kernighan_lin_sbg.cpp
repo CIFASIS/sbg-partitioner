@@ -528,7 +528,7 @@ void kl_sbg_partitioner(const WeightedSBGraph& graph, PartitionMap& partitions)
             partitions[best_gain.j] = best_gain.B;
         }
 
-        if (graph.V()[0].intervals().size() == 1) {
+        if (change and graph.V()[0].intervals().size() == 1) {
             flatten_set(partitions[best_gain.i], graph);
             flatten_set(partitions[best_gain.j], graph);
         }
