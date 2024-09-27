@@ -22,6 +22,9 @@
 #include "partition_imbalance.hpp"
 
 
+#define PARTITION_IMBALANCE_DEBUG 1
+
+
 using namespace std;
 
 using namespace SBG::LIB;
@@ -58,25 +61,16 @@ ostream& operator<<(ostream& os, const CostMatrixImbalance& cost_matrix)
 }
 
 
-std::pair<ImbalanceMap, ImbalanceMap>
-compute_lmin_lmax(const PartitionMap& partition_map, unsigned number_of_partitions, const WeightedSBGraph& graph, const float imbalance_epsilon)
+pair<unsigned, unsigned>
+compute_lmin_lmax(const WeightedSBGraph& graph, unsigned number_of_partitions, const float imbalance_epsilon)
 {
-    map<unsigned, int> LMin;
-    map<unsigned, int> LMax;
-    for (const auto& [i, p] : partition_map) {
+    unsigned w_v = get_node_size(graph.V(), graph.get_node_weights());
+    unsigned B = ceil(w_v / number_of_partitions);
+    int im = imbalance_epsilon * B;
+    unsigned LMin = B - im;
+    unsigned LMax = B + im;
 
-        unsigned weight = 0;
-        for (const auto& s : p.pieces()) {
-            weight += get_node_size(s, graph.get_node_weights());
-        }
-
-        int B = ceil(weight / number_of_partitions);
-        int im = imbalance_epsilon * B;
-        LMin[i] = weight - im;
-        LMax[i] = weight + im;
-    }
-
-    return {LMin, LMax};
+    return make_pair(LMin, LMax);
 }
 
 
@@ -124,7 +118,7 @@ static void partition_imbalance(
 
 void compute_partition_imbalance(unsigned i, unsigned j, UnordSet& partition_a,
     UnordSet& partition_b, const WeightedSBGraph& graph, const NodeWeight& node_weight,
-    int LMin_a, int LMin_b, int LMax_a, int LMax_b, CostMatrixImbalance& cost_matrix)
+    int LMin, int LMax, CostMatrixImbalance& cost_matrix)
 {
     vector<size_t> i_a;
     vector<size_t> i_b;
@@ -147,9 +141,9 @@ void compute_partition_imbalance(unsigned i, unsigned j, UnordSet& partition_a,
     i_a.push_back(nodes_bal_part_a);
     i_b.push_back(nodes_bal_part_b);
 
-    partition_imbalance(nodes_a, partition_a, partition_b, node_weight, i_a, i_b, LMin_a, LMax_b);
+    partition_imbalance(nodes_a, partition_a, partition_b, node_weight, i_a, i_b, LMin, LMax);
 
-    partition_imbalance(nodes_b, partition_b, partition_a, node_weight, i_b, i_a, LMin_b, LMax_a);
+    partition_imbalance(nodes_b, partition_b, partition_a, node_weight, i_b, i_a, LMin, LMax);
 
     assert(i_a.size() == i_b.size());
 
@@ -218,16 +212,14 @@ CostMatrixImbalance generate_gain_matrix(
     const NodeWeight& node_weight,
     UnordSet& partition_a,
     UnordSet& partition_b,
-    int LMin_a,
-    int LMin_b,
-    int LMax_a,
-    int LMax_b)
+    int LMin,
+    int LMax)
 {
     CostMatrixImbalance cost_matrix;
 
     for (size_t i = 0; i < partition_a.pieces().size(); i++) {
         for (size_t j = 0; j < partition_b.pieces().size(); j++) {
-            compute_partition_imbalance(i, j, partition_a, partition_b, graph, node_weight, LMin_a, LMin_b, LMax_a, LMax_b, cost_matrix);
+            compute_partition_imbalance(i, j, partition_a, partition_b, graph, node_weight, LMin, LMax, cost_matrix);
         }
     }
 
@@ -262,16 +254,6 @@ static pair<UnordSet, UnordSet> update_sets(
         cout << "cut_interval_by_dimension " << gain_object.size_j << ": " << node_b << rest_b << endl;
     }
 
-    // At least one of them should be fully used?
-#if KERNIGHAN_LIN_SBG_DEBUG
-    cout << boolalpha
-         << "node_a_is_fully_used: "
-         << node_a_is_fully_used
-         << ", node_b_is_fully_used "
-         << node_b_is_fully_used
-         << endl;
-#endif
-
     partition_a = difference(partition_a, node_a);
     partition_b = difference(partition_b, node_b);
 
@@ -295,15 +277,13 @@ static void update_diff(
     const WeightedSBGraph& graph,
     const NodeWeight& node_weight,
     const GainObjectImbalance& gain_object,
-    int LMin_a,
-    int LMin_b,
-    int LMax_a,
-    int LMax_b)
+    int LMin,
+    int LMax)
 {
     // this must be improved
     cost_matrix.clear();
-    cost_matrix = generate_gain_matrix(graph, node_weight, partition_a, partition_b, LMin_a, LMin_b, LMax_a, LMax_b);
-#if KERNIGHAN_LIN_SBG_DEBUG
+    cost_matrix = generate_gain_matrix(graph, node_weight, partition_a, partition_b, LMin, LMax);
+#if PARTITION_IMBALANCE_DEBUG
     cout << partition_a << ", " << partition_b << ", " << cost_matrix << endl;
 #endif
 }
@@ -313,12 +293,10 @@ int kl_sbg_imbalance(
     const WeightedSBGraph& graph,
     UnordSet& partition_a,
     UnordSet& partition_b,
-    int LMin_a,
-    int LMin_b,
-    int LMax_a,
-    int LMax_b)
+    int LMin,
+    int LMax)
 {
-#if KERNIGHAN_LIN_SBG_DEBUG
+#if PARTITION_IMBALANCE_DEBUG
     cout << "Algorithm starts with " << partition_a << ", " << partition_b << endl;
 #endif
     auto a_c = partition_a;
@@ -330,15 +308,13 @@ int kl_sbg_imbalance(
     UnordSet b_v = UnordSet();
     const auto node_weights = graph.get_node_weights();
 
-    CostMatrixImbalance gm = generate_gain_matrix(graph, node_weights, partition_a, partition_b, LMin_a, LMin_b, LMax_a, LMax_b);
+    CostMatrixImbalance gm = generate_gain_matrix(graph, node_weights, partition_a, partition_b, LMin, LMax);
 
-    // #if KERNIGHAN_LIN_SBG_DEBUG
-        cout << LMin_a << ", "
-             << LMin_b << ", "
-             << LMax_a << ", "
-             << LMax_b << ", "
+#if PARTITION_IMBALANCE_DEBUG
+        cout << LMin << ", "
+             << LMax
              << gm << endl;
-    // #endif
+#endif
 
     while ((not isEmpty(a_c)) and (not isEmpty(b_c))) {
         cout << "inside the while " << a_c << b_c << endl;
@@ -346,7 +322,7 @@ int kl_sbg_imbalance(
         cout << g << endl;
         UnordSet a_, b_;
         tie(a_, b_) = update_sets(a_c, b_c, a_v, b_v, g, graph);
-        update_diff(gm, a_c, b_c, graph, node_weights, g, LMin_a, LMin_b, LMax_a, LMax_b);
+        update_diff(gm, a_c, b_c, graph, node_weights, g, LMin, LMax);
         update_sum(par_sum, g.gain, max_par_sum, max_par_sum_set, a_v, b_v);
     }
 
@@ -358,7 +334,7 @@ int kl_sbg_imbalance(
         flatten_set(partition_b, graph);
     }
 
-#if 1
+#if PARTITION_IMBALANCE_DEBUG
     cout << "so it ends with " << max_par_sum << ", " << partition_a << ", " << partition_b << endl;
 #endif
     return 0;
@@ -366,22 +342,22 @@ int kl_sbg_imbalance(
 
 
 KLBipartResult kl_sbg_bipart_imbalance(const WeightedSBGraph& graph, UnordSet& partition_a,
-    UnordSet& partition_b, int LMin_a, int LMin_b, int LMax_a, int LMax_b)
+    UnordSet& partition_b, int LMin, int LMax)
 {
     auto partition_a_copy = partition_a;
     auto partition_b_copy = partition_b;
-    int gain = kl_sbg_imbalance(graph, partition_a_copy, partition_b_copy, LMin_a, LMin_b, LMax_a, LMax_b);
+    int gain = kl_sbg_imbalance(graph, partition_a_copy, partition_b_copy, LMin, LMax);
 
     while (not (partition_a_copy == partition_a) and not (partition_b_copy == partition_b)) {
         partition_a = partition_a_copy;
         partition_b = partition_b_copy;
-        gain = max(kl_sbg_imbalance(graph, partition_a_copy, partition_b_copy, LMin_a, LMin_b, LMax_a, LMax_b), gain);
-#if 1//KERNIGHAN_LIN_SBG_DEBUG
+        gain = max(kl_sbg_imbalance(graph, partition_a_copy, partition_b_copy, LMin, LMax), gain);
+#if PARTITION_IMBALANCE_DEBUG
         cout << "gain: " << gain << endl;
 #endif
     }
 
-#if 1//KERNIGHAN_LIN_SBG_DEBUG
+#if PARTITION_IMBALANCE_DEBUG
     cout << "Final: " << partition_a << ", " << partition_b << endl;
 #endif
     return KLBipartResult{partition_a, partition_b, gain};

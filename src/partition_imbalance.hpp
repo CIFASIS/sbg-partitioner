@@ -46,8 +46,8 @@ using CostMatrixImbalance = std::set<GainObjectImbalance, GainObjectImbalanceCom
 
 std::ostream& operator<<(std::ostream& os, const CostMatrixImbalance& cost_matrix);
 
-std::pair<ImbalanceMap, ImbalanceMap>
-compute_lmin_lmax(const PartitionMap& partition_map, unsigned number_of_partitions, const WeightedSBGraph& graph, const float imbalance_epsilon);
+std::pair<unsigned, unsigned>
+compute_lmin_lmax(const WeightedSBGraph& graph, unsigned number_of_partitions, const float imbalance_epsilon);
 
 
 void compute_partition_imbalance(
@@ -56,10 +56,8 @@ void compute_partition_imbalance(
     SBG::LIB::UnordSet& partition_b,
     const WeightedSBGraph& graph,
     const NodeWeight& node_weight,
-    int LMin_a,
-    int LMin_b,
-    int LMax_a,
-    int LMax_b,
+    int LMin,
+    int LMax,
     CostMatrixImbalance& cost_matrix
 );
 
@@ -69,29 +67,23 @@ CostMatrixImbalance generate_gain_matrix(
     const NodeWeight& node_weight,
     SBG::LIB::UnordSet& partition_a,
     SBG::LIB::UnordSet& partition_b,
-    int LMin_a,
-    int LMin_b,
-    int LMax_a,
-    int LMax_b);
+    int LMin,
+    int LMax);
 
 
 int kl_sbg_imbalance(
     const WeightedSBGraph& graph,
     SBG::LIB::UnordSet& partition_a,
     SBG::LIB::UnordSet& partition_b,
-    int LMin_a,
-    int LMin_b,
-    int LMax_a,
-    int LMax_b);
+    int LMin,
+    int LMax);
 
 
 KLBipartResult kl_sbg_bipart_imbalance(
     const WeightedSBGraph& graph,
     SBG::LIB::UnordSet& partition_a,
     SBG::LIB::UnordSet& partition_b,
-    int LMin_a,
-    int LMin_b,
-    int LMax_a,
-    int LMax_b);
+    int LMin,
+    int LMax);
 
 }
