@@ -33,6 +33,7 @@ SOURCES := build_sb_graph.cpp \
 		   kernighan_lin_sbg.cpp \
 		   main.cpp \
 		   partition_graph.cpp \
+		   partition_imbalance.cpp \
 		   partition_strategy.cpp \
 		   weighted_sb_graph.cpp
 

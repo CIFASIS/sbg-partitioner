@@ -21,6 +21,7 @@
 
 #include <set>
 
+#include "build_sb_graph.hpp"
 #include "partition_graph.hpp"
 
 namespace sbg_partitioner
@@ -44,12 +45,7 @@ struct KLBipartResult {
 
 using ec_ic = std::pair<SBG::LIB::UnordPWMDInter , SBG::LIB::UnordPWMDInter>;
 
-struct GainObjectComparator {
-    bool operator()(const GainObject& gain_1, const GainObject& gain_2) const
-    {
-        return gain_1.gain >= gain_2.gain;
-    }
-};
+using GainObjectComparator = GainObjectComparatorTemplate<GainObject>;
 
 using CostMatrix = std::set<GainObject, GainObjectComparator>;
 
@@ -76,6 +72,34 @@ ec_ic compute_EC_IC(
     const SBG::LIB::UnordSet& partition_2,
     const SBG::LIB::BasePWMap& departure_map,
     const SBG::LIB::BasePWMap& arrival_map);
+
+
+void update_sum(
+    int& par_sum,
+    int g,
+    int& max_par_sum,
+    std::pair<SBG::LIB::UnordSet, SBG::LIB::UnordSet>& max_par_sum_set,
+    SBG::LIB::UnordSet& a_v,
+    SBG::LIB::UnordSet& b_v);
+
+
+// auto return type we’ll let the compiler deduce what the return type should be from the return statement
+template<typename M>
+auto max_diff(M& cost_matrix, SBG::LIB::UnordSet& partition_a, SBG::LIB::UnordSet& partition_b, const WeightedSBGraph& graph)
+{
+    // cost_matrix is sort by gain, so the first is the maximum gain
+    auto g = cost_matrix.begin();
+
+    auto gain_object = *g;
+#if KERNIGHAN_LIN_SBG_DEBUG
+    cout << "The best is " << *g << endl;
+#endif
+
+    // remove it, we need to update those values that
+    cost_matrix.erase(g);
+
+    return gain_object;
+}
 
 
 std::ostream& operator<<(std::ostream& os, const GainObject& gain);
