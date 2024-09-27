@@ -25,6 +25,16 @@
 
 namespace sbg_partitioner {
 
+
+template<typename G>
+struct GainObjectComparatorTemplate {
+    bool operator()(const G& gain_1, const G& gain_2) const
+    {
+        return gain_1.gain >= gain_2.gain;
+    }
+};
+
+
 /// Takes a path to a json file, reads it and then builds a sb graph with
 /// a node for each access to a variable and an edge for each connection
 /// between variables.
@@ -55,8 +65,22 @@ SBG::LIB::OrdSet get_adjacents(const SBG::LIB::CanonSBG& graph, const SBG::LIB::
 unsigned get_node_size(const SBG::LIB::SetPiece& node, const NodeWeight& node_weight);
 
 
+size_t get_c_ab(
+    const SBG::LIB::UnordSet& a,
+    const SBG::LIB::UnordSet& b,
+    const SBG::LIB::BasePWMap& map_1,
+    const SBG::LIB::BasePWMap& map_2,
+    const EdgeCost& costs);
+
+
 /// Takes each set piece and calculates its size, then adds them
 unsigned get_node_size(const SBG::LIB::UnordSet& node, const NodeWeight& node_weight);
+
+
+unsigned get_edge_set_cost(const SBG::LIB::UnordSet& node, const EdgeCost& edge_cost);
+
+
+unsigned get_edge_set_cost(const SBG::LIB::SetPiece& node, const EdgeCost& edge_cost);
 
 
 void flatten_set(SBG::LIB::UnordSet &set, const SBG::LIB::BaseSBG& graph);

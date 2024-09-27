@@ -80,22 +80,7 @@ ostream& operator<<(ostream& os, const KLBipartResult& result)
 }
 
 
-/// This is an ad hoc function which gets the addition of the size of each interval
-static unsigned get_edge_set_size(UnordSet& final_edges, const EdgeCost& costs)
-{
-    unsigned acc = 0;
-    for (size_t i = 0; i < final_edges.size(); i++) {
-        unsigned weight = get_set_cost(final_edges[i], costs);
-        for (size_t j = 0; j < final_edges[i].size(); j++) {
-            acc += (final_edges[i][j].end() - final_edges[i][j].begin() + 1) * weight;
-        }
-    }
-
-    return acc;
-}
-
-
-static size_t get_c_ab(
+size_t get_c_ab(
     const UnordSet& a, const UnordSet& b,
     const BasePWMap& map_1,
     const BasePWMap& map_2,
@@ -121,7 +106,7 @@ static size_t get_c_ab(
 
     auto communication_edges = cup(intersection1, intersection2);
 
-    size_t comm_size = get_edge_set_size(communication_edges, costs);
+    size_t comm_size = get_edge_set_cost(communication_edges, costs);
 
     return comm_size;
 }
@@ -195,9 +180,8 @@ static GainObject compute_diff(
     ec_nodes_a = cup(ec_nodes_a_1, ec_nodes_a_2);
     ic_nodes_a = cup(ic_nodes_a_1, ic_nodes_a_2);
 
-    // Calculate the dimension of each node
-    size_t ec_a = get_edge_set_size(ec_nodes_a, graph.get_edge_costs());
-    size_t ic_a = get_edge_set_size(ic_nodes_a, graph.get_edge_costs());
+    size_t ec_a = get_edge_set_cost(ec_nodes_a, graph.get_edge_costs());
+    size_t ic_a = get_edge_set_cost(ic_nodes_a, graph.get_edge_costs());
     int d_a = ec_a - ic_a;
 
     // Same as before for partition b
@@ -211,8 +195,8 @@ static GainObject compute_diff(
     ec_nodes_b = cup(ec_nodes_b_1, ec_nodes_b_2);
     ic_nodes_b = cup(ic_nodes_b_1, ic_nodes_b_2);
 
-    size_t ec_b = get_edge_set_size(ec_nodes_b, graph.get_edge_costs());
-    size_t ic_b = get_edge_set_size(ic_nodes_b, graph.get_edge_costs());
+    size_t ec_b = get_edge_set_cost(ec_nodes_b, graph.get_edge_costs());
+    size_t ic_b = get_edge_set_cost(ic_nodes_b, graph.get_edge_costs());
     int d_b = ec_b - ic_b;
 
     // Get communication between a and b
@@ -225,7 +209,6 @@ static GainObject compute_diff(
     const auto gain_obj = GainObject{i, j, gain, min_size};
     return gain_obj;
 }
-
 
 
 static CostMatrix generate_gain_matrix(
@@ -329,23 +312,6 @@ static pair<UnordSet, UnordSet> update_sets(
 }
 
 
-static GainObject max_diff(CostMatrix& cost_matrix, UnordSet& partition_a, UnordSet& partition_b, const WeightedSBGraph& graph)
-{
-    // cost_matrix is sort by gain, so the first is the maximum gain
-    auto g = cost_matrix.begin();
-
-    auto gain_object = *g;
-#if KERNIGHAN_LIN_SBG_DEBUG
-    cout << "The best is " << *g << endl;
-#endif
-
-    // remove it, we need to update those values that
-    cost_matrix.erase(g);
-
-    return gain_object;
-}
-
-
 static void update_diff(
     CostMatrix& cost_matrix,
     UnordSet& partition_a,
@@ -369,7 +335,7 @@ static void update_diff(
 }
 
 
-static void update_sum(
+void update_sum(
     int& par_sum,
     int g,
     int& max_par_sum,
@@ -405,7 +371,7 @@ int kl_sbg(const WeightedSBGraph& graph, UnordSet& partition_a, UnordSet& partit
 #endif
 
     while ((not isEmpty(a_c)) and (not isEmpty(b_c))) {
-        auto g = max_diff(gm, a_c, b_c, graph);
+        GainObject g = max_diff(gm, a_c, b_c, graph);
         UnordSet a_, b_;
         tie(a_, b_) = update_sets(a_c, b_c, a_v, b_v, g, graph.get_node_weights());
         update_diff(gm, a_c, b_c, graph, g);

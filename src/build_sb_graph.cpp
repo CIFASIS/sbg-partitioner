@@ -654,6 +654,10 @@ pair<UnordSet, UnordSet> cut_interval_by_dimension(UnordSet& set_piece, const No
         return make_pair(UnordSet(), UnordSet());
     }
 
+    if (size == 0) {
+        return make_pair(UnordSet(), set_piece);
+    }
+
     size_t actual_size = size / unsigned(get_set_cost(*set_piece.pieces().begin(), node_weight));
 
     if (set_piece.pieces().begin()->intervals().size() == 1) {
@@ -711,8 +715,8 @@ unsigned get_node_size(const SetPiece& node, const NodeWeight& node_weight)
 unsigned get_node_size(const UnordSet& node, const NodeWeight& node_weight)
 {
     if (node.pieces().empty()) {
-        return 0;
-    }
+      return 0;
+  }
 
   unsigned size = 0;
   for (const auto& set_piece : node.pieces()) {
@@ -720,6 +724,42 @@ unsigned get_node_size(const UnordSet& node, const NodeWeight& node_weight)
   }
 
   return size;
+}
+
+
+unsigned get_edge_set_cost(const SBG::LIB::SetPiece& node, const EdgeCost& edge_cost)
+{
+    if (node.size() == 0) {
+        return 0;
+    }
+
+    int weight = get_set_cost(node, edge_cost);
+
+    unsigned acc = node.intervals().front().end() - node.intervals().front().begin() + 1;
+
+    for (size_t i = 1; i < node.intervals().size(); i++) {
+        auto interval = node.intervals()[i];
+        acc = acc * (interval.end() - interval.begin() + 1);
+    }
+
+    acc *= weight;
+
+    return acc;
+}
+
+
+unsigned get_edge_set_cost(const SBG::LIB::UnordSet& node, const EdgeCost& edge_cost)
+{
+    if (node.pieces().empty()) {
+        return 0;
+    }
+
+    unsigned size = 0;
+    for (const auto& set_piece : node.pieces()) {
+      size += get_edge_set_cost(set_piece,edge_cost);
+    }
+
+    return size;
 }
 
 
