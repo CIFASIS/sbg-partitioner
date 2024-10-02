@@ -48,10 +48,14 @@ vector<PartitionMap> make_initial_partitions(WeightedSBGraph& graph, unsigned nu
     initialize_partitioning(graph, number_of_partitions);
 
     constexpr bool pre_order = true;
-    add_strategy(make_unique<PartitionStrategyDistributive>(number_of_partitions, graph), pre_order);
-    add_strategy(make_unique<PartitionStrategyDistributive>(number_of_partitions, graph), not pre_order);
-    add_strategy(make_unique<PartitionStrategyGreedy>(number_of_partitions, graph), pre_order);
-    add_strategy(make_unique<PartitionStrategyGreedy>(number_of_partitions, graph), not pre_order);
+    auto s1 = PartitionStrategyDistributive(number_of_partitions, graph);
+    add_strategy(s1, pre_order);
+    auto s2 = PartitionStrategyDistributive(number_of_partitions, graph);
+    add_strategy(s2, not pre_order);
+    auto s3 = PartitionStrategyGreedy(number_of_partitions, graph);
+    add_strategy(s3, pre_order);
+    auto s4 = PartitionStrategyGreedy(number_of_partitions, graph);
+    add_strategy(s4, not pre_order);
 
     vector<map<unsigned, set<SetPiece>>> partitions = partitionate();
 
