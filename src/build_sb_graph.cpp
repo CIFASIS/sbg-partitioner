@@ -765,6 +765,14 @@ unsigned get_edge_set_cost(const SBG::LIB::UnordSet& node, const EdgeCost& edge_
 
 void flatten_set(UnordSet &set, const BaseSBG& graph)
 {
+    if (set.pieces().size() > 0 and set.pieces().begin()->intervals().size() > 1) {
+        cout << "flatten_set for sets with "
+             << set.pieces().size()
+             << " is not implemented"
+             << endl;
+        return;
+    }
+
     cout << set << endl;
     UnordSet new_partition;
     for (const auto& v : graph.V()) {
