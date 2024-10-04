@@ -21,70 +21,9 @@
 #include <set>
 
 
-#include "partition_graph.hpp"
-#include "weighted_sb_graph.hpp"
-
-
 namespace sbg_partitioner {
 
-typedef std::map<unsigned, int> ImbalanceMap;
-
-
-struct GainObjectImbalance {
-    size_t i;
-    size_t j;
-    int gain;
-    size_t size_i;
-    size_t size_j;
-};
-
-std::ostream& operator<<(std::ostream& os, const GainObjectImbalance& gain);
-
-using GainObjectImbalanceComparator = GainObjectComparatorTemplate<GainObjectImbalance>;
-
-using CostMatrixImbalance = std::set<GainObjectImbalance, GainObjectImbalanceComparator>;
-
-std::ostream& operator<<(std::ostream& os, const CostMatrixImbalance& cost_matrix);
-
-std::pair<unsigned, unsigned>
-compute_lmin_lmax(const WeightedSBGraph& graph, unsigned number_of_partitions, const float imbalance_epsilon);
-
-
-void compute_partition_imbalance(
-    unsigned i, unsigned j,
-    SBG::LIB::UnordSet& partition_a,
-    SBG::LIB::UnordSet& partition_b,
-    const WeightedSBGraph& graph,
-    const NodeWeight& node_weight,
-    unsigned LMin,
-    unsigned LMax,
-    CostMatrixImbalance& cost_matrix
-);
-
-
-CostMatrixImbalance generate_gain_matrix(
-    const WeightedSBGraph& graph,
-    const NodeWeight& node_weight,
-    SBG::LIB::UnordSet& partition_a,
-    SBG::LIB::UnordSet& partition_b,
-    unsigned LMin,
-    unsigned LMax);
-
-
-int kl_sbg_imbalance(
-    const WeightedSBGraph& graph,
-    SBG::LIB::UnordSet& partition_a,
-    SBG::LIB::UnordSet& partition_b,
-    unsigned LMin,
-    unsigned LMax);
-
-
-KLBipartResult kl_sbg_bipart_imbalance(
-    const WeightedSBGraph& graph,
-    SBG::LIB::UnordSet& partition_a,
-    SBG::LIB::UnordSet& partition_b,
-    unsigned LMin,
-    unsigned LMax);
+constexpr bool multithreading_enabled = false;
 
 
 void kl_sbg_imbalance_partitioner(const WeightedSBGraph& graph, PartitionMap& partitions, const float imbalance_epsilon);
