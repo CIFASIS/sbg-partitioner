@@ -145,7 +145,10 @@ PartitionStrategyDistributive::PartitionStrategyDistributive(unsigned number_of_
 }
 
 
-static void add_surplus_sorting_by_value(const map<unsigned, unsigned>& current_size_by_partition, map<unsigned, unsigned>& size_by_partition, unsigned surplus)
+// Using an unnamed manespace to define functions with internal linkage
+namespace {
+
+void add_surplus_sorting_by_value(const map<unsigned, unsigned>& current_size_by_partition, map<unsigned, unsigned>& size_by_partition, unsigned surplus)
 {
     // Declare vector of pairs
     vector<pair<unsigned, unsigned> > current_size_by_partition_vector;
@@ -168,6 +171,8 @@ static void add_surplus_sorting_by_value(const map<unsigned, unsigned>& current_
             break;
         }
     }
+}
+
 }
 
 

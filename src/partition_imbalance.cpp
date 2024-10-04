@@ -39,13 +39,8 @@ using namespace SBG::Util;
 
 namespace sbg_partitioner {
 
-
-using ec_ic = std::pair<SBG::LIB::UnordPWMDInter , SBG::LIB::UnordPWMDInter>;
-
-using CostMatrixImbalance = std::set<GainObjectImbalance, GainObjectImbalanceComparator>;
-
-using GainObjectImbalanceComparator = GainObjectComparatorTemplate<GainObjectImbalance>;
-
+// Using unnamed namespace to define functions with internal linkage
+namespace {
 
 struct GainObjectImbalance {
     size_t i;
@@ -73,7 +68,23 @@ struct kl_sbg_partitioner_result
 };
 
 
-static ostream& operator<<(ostream& os, const KLBipartResult& result)
+template<typename G>
+struct GainObjectComparatorTemplate {
+    bool operator()(const G& gain_1, const G& gain_2) const
+    {
+        return gain_1.gain >= gain_2.gain;
+    }
+};
+
+
+using ec_ic = std::pair<SBG::LIB::UnordPWMDInter , SBG::LIB::UnordPWMDInter>;
+
+using GainObjectImbalanceComparator = GainObjectComparatorTemplate<GainObjectImbalance>;
+
+using CostMatrixImbalance = std::set<GainObjectImbalance, GainObjectImbalanceComparator>;
+
+
+ostream& operator<<(ostream& os, const KLBipartResult& result)
 {
     os << "{ gain: " << result.gain << ", A: " << result.A << ", B: " << result.B << "}";
 
@@ -81,7 +92,7 @@ static ostream& operator<<(ostream& os, const KLBipartResult& result)
 }
 
 
-static ostream& operator<<(ostream& os, const GainObjectImbalance& gain)
+ostream& operator<<(ostream& os, const GainObjectImbalance& gain)
 {
     os << "< Node: ("
        << gain.i
@@ -99,7 +110,7 @@ static ostream& operator<<(ostream& os, const GainObjectImbalance& gain)
 }
 
 
-static ostream& operator<<(ostream& os, const CostMatrixImbalance& cost_matrix)
+ostream& operator<<(ostream& os, const CostMatrixImbalance& cost_matrix)
 {
     os << "{ ";
     for (const auto& o : cost_matrix) {
@@ -111,7 +122,7 @@ static ostream& operator<<(ostream& os, const CostMatrixImbalance& cost_matrix)
 }
 
 
-static pair<unsigned, unsigned>
+pair<unsigned, unsigned>
 compute_lmin_lmax(const WeightedSBGraph& graph, unsigned number_of_partitions, const float imbalance_epsilon)
 {
     unsigned w_v = get_node_size(graph.V(), graph.get_node_weights());
@@ -124,7 +135,7 @@ compute_lmin_lmax(const WeightedSBGraph& graph, unsigned number_of_partitions, c
 }
 
 
-static size_t get_c_ab(
+size_t get_c_ab(
     const UnordSet& a, const UnordSet& b,
     const BasePWMap& map_1,
     const BasePWMap& map_2,
@@ -156,7 +167,7 @@ static size_t get_c_ab(
 }
 
 
-static ec_ic compute_EC_IC(
+ec_ic compute_EC_IC(
     const UnordSet& partition,
     const UnordSet& nodes,
     const UnordSet& partition_2,
@@ -183,7 +194,7 @@ static ec_ic compute_EC_IC(
 }
 
 
-static void partition_imbalance(
+void partition_imbalance(
     UnordSet& nodes,
     UnordSet& partition,
     UnordSet& partition_2,
@@ -225,7 +236,7 @@ static void partition_imbalance(
 }
 
 
-static void compute_partition_imbalance(unsigned i, unsigned j, UnordSet& partition_a,
+void compute_partition_imbalance(unsigned i, unsigned j, UnordSet& partition_a,
     UnordSet& partition_b, const WeightedSBGraph& graph, const NodeWeight& node_weight,
     unsigned LMin, unsigned LMax, CostMatrixImbalance& cost_matrix)
 {
@@ -316,7 +327,7 @@ static void compute_partition_imbalance(unsigned i, unsigned j, UnordSet& partit
 }
 
 
-static CostMatrixImbalance generate_gain_matrix(
+CostMatrixImbalance generate_gain_matrix(
     const WeightedSBGraph& graph,
     const NodeWeight& node_weight,
     UnordSet& partition_a,
@@ -337,7 +348,7 @@ static CostMatrixImbalance generate_gain_matrix(
 
 
 // Partition a and b (A_c and B_c in the definition) are the remining nodes to be visited, not the actual partitions
-static pair<UnordSet, UnordSet> update_sets(
+pair<UnordSet, UnordSet> update_sets(
     UnordSet& partition_a,
     UnordSet& partition_b,
     UnordSet& current_moved_partition_a,
@@ -379,7 +390,7 @@ static pair<UnordSet, UnordSet> update_sets(
 }
 
 
-static void update_diff(
+void update_diff(
     CostMatrixImbalance& cost_matrix,
     UnordSet& partition_a,
     UnordSet& partition_b,
@@ -400,7 +411,7 @@ static void update_diff(
 
 // auto return type we’ll let the compiler deduce what the return type should be from the return statement
 template<typename M>
-static auto max_diff(M& cost_matrix, SBG::LIB::UnordSet& partition_a, SBG::LIB::UnordSet& partition_b, const WeightedSBGraph& graph)
+auto max_diff(M& cost_matrix, SBG::LIB::UnordSet& partition_a, SBG::LIB::UnordSet& partition_b, const WeightedSBGraph& graph)
 {
     // cost_matrix is sort by gain, so the first is the maximum gain
     auto g = cost_matrix.begin();
@@ -417,7 +428,7 @@ static auto max_diff(M& cost_matrix, SBG::LIB::UnordSet& partition_a, SBG::LIB::
 }
 
 
-static void update_sum(
+void update_sum(
     int& par_sum,
     int g,
     int& max_par_sum,
@@ -433,7 +444,7 @@ static void update_sum(
 }
 
 
-static int kl_sbg_imbalance(
+int kl_sbg_imbalance(
     const WeightedSBGraph& graph,
     UnordSet& partition_a,
     UnordSet& partition_b,
@@ -485,7 +496,7 @@ static int kl_sbg_imbalance(
 }
 
 
-static KLBipartResult kl_sbg_bipart_imbalance(const WeightedSBGraph& graph, UnordSet& partition_a,
+KLBipartResult kl_sbg_bipart_imbalance(const WeightedSBGraph& graph, UnordSet& partition_a,
     UnordSet& partition_b, unsigned LMin, unsigned LMax)
 {
     auto partition_a_copy = partition_a;
@@ -508,7 +519,7 @@ static KLBipartResult kl_sbg_bipart_imbalance(const WeightedSBGraph& graph, Unor
 }
 
 
-static kl_sbg_partitioner_result kl_sbg_partitioner_function(
+kl_sbg_partitioner_result kl_sbg_partitioner_function(
     const WeightedSBGraph& graph, PartitionMap& partitions, unsigned LMin, unsigned LMax)
 {
     kl_sbg_partitioner_result best_gain = kl_sbg_partitioner_result{ 0, 0, -1, UnordSet(), UnordSet()};
@@ -534,7 +545,7 @@ static kl_sbg_partitioner_result kl_sbg_partitioner_function(
 }
 
 
-static kl_sbg_partitioner_result kl_sbg_partitioner_multithreading(
+kl_sbg_partitioner_result kl_sbg_partitioner_multithreading(
     const WeightedSBGraph& graph, PartitionMap& partitions, unsigned LMin, unsigned LMax)
 {
     kl_sbg_partitioner_result best_gain = kl_sbg_partitioner_result{ 0, 0, -1, UnordSet(), UnordSet()};
@@ -560,6 +571,8 @@ static kl_sbg_partitioner_result kl_sbg_partitioner_multithreading(
     });
 
     return best_gain;
+}
+
 }
 
 

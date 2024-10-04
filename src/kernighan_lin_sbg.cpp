@@ -72,72 +72,13 @@ std::ostream& operator<<(std::ostream& os, const CostMatrix& cost_matrix)
 }
 
 
-ostream& operator<<(ostream& os, const KLBipartResult& result)
-{
-    os << "{ gain: " << result.gain << ", A: " << result.A << ", B: " << result.B << "}";
-
-    return os;
-}
 
 
-size_t get_c_ab(
-    const UnordSet& a, const UnordSet& b,
-    const BasePWMap& map_1,
-    const BasePWMap& map_2,
-    const EdgeCost& costs)
-{
-    auto f = [](auto& a, auto& b, const BasePWMap& departure_map, const BasePWMap& arrival_map) {
-        UnordSet comm_edges;
-        for (size_t i = 0; i < departure_map.maps().size(); i++) {
-            auto map_1 = *(departure_map.maps().begin() + i);
-            auto map_2 = *(arrival_map.maps().begin() + i);
-            auto d = preImage(a, map_1);
-            auto im = image(d, map_2);
-            auto inters = intersection(b, im);
-            auto edges = preImage(inters, map_2);
-            comm_edges = cup(edges, comm_edges);
-        }
 
-        return comm_edges;
-    };
-
-    auto intersection1 = f(a, b, map_1, map_2);
-    auto intersection2 = f(a, b, map_2, map_1);
-
-    auto communication_edges = cup(intersection1, intersection2);
-
-    size_t comm_size = get_edge_set_cost(communication_edges, costs);
-
-    return comm_size;
-}
 
 
 // Consider exposing these functions to facilitate being reused
-ec_ic compute_EC_IC(
-    const UnordSet& partition,
-    const UnordSet& nodes,
-    const UnordSet& partition_2,
-    const BasePWMap& departure_map,
-    const BasePWMap& arrival_map)
-{
-    UnordSet ec, ic;
-    for (size_t i = 0; i < departure_map.maps().size(); i++) {
-        auto map_1 = *(departure_map.maps().begin() + i);
-        auto map_2 = *(arrival_map.maps().begin() + i);
-        auto d = preImage(nodes, map_1);
-        auto im = image(d, map_2);
-        auto ic_nodes = intersection(partition, im);
-        ic_nodes = difference(ic_nodes, nodes);
-        auto ec_nodes = difference(im, ic_nodes);
-        ec_nodes = intersection(ec_nodes, partition_2);
-        auto ic_ = preImage(ic_nodes, map_2);
-        auto ec_ = preImage(ec_nodes, map_2);
-        ec = cup(ec_, ec);
-        ic = cup(ic_, ic);
-    }
 
-    return make_pair(ec, ic);
-}
 
 
 static GainObject compute_diff(
@@ -335,20 +276,7 @@ static void update_diff(
 }
 
 
-void update_sum(
-    int& par_sum,
-    int g,
-    int& max_par_sum,
-    pair<UnordSet, UnordSet>& max_par_sum_set,
-    UnordSet& a_v,
-    UnordSet& b_v)
-{
-    par_sum += g;
-    if (par_sum > max_par_sum) {
-        max_par_sum = par_sum;
-        max_par_sum_set = make_pair(a_v, b_v);
-    }
-}
+
 
 
 int kl_sbg(const WeightedSBGraph& graph, UnordSet& partition_a, UnordSet& partition_b)

@@ -43,6 +43,9 @@ using namespace SBG::Util;
 
 namespace sbg_partitioner {
 
+// Using an unnamed namespace to define functions with internal linkage
+namespace {
+
 struct Var {
     string id;
     vector<pair<INT, INT>> exps;
@@ -51,7 +54,7 @@ struct Var {
 };
 
 
-static std::ostream& operator<<(std::ostream& os, const Var& var)
+std::ostream& operator<<(std::ostream& os, const Var& var)
 {
   os << "id: \"" << var.id << "\"";
 
@@ -88,7 +91,7 @@ struct Node {
 };
 
 
-static std::ostream& operator<<(std::ostream& os, const Node& node)
+std::ostream& operator<<(std::ostream& os, const Node& node)
 {
   os << "id: \"" << node.id << "\" " << endl;
 
@@ -115,7 +118,7 @@ static std::ostream& operator<<(std::ostream& os, const Node& node)
 
 
 /// This funcion takes a json array and returns a list of parsed variable objects (Var)
-static vector<Var> read_var_object(const rapidjson::Value& var_array)
+vector<Var> read_var_object(const rapidjson::Value& var_array)
 {
     vector<Var> vars;
     // vars.reserve(var_array.GetArray().Size());
@@ -163,7 +166,7 @@ static vector<Var> read_var_object(const rapidjson::Value& var_array)
 
 /// This funcion takes a json object and returns a list of parsed node objects (Node)
 /// and its id as key/value.
-static map<int, Node> create_node_objects_from_json(const Document& document)
+map<int, Node> create_node_objects_from_json(const Document& document)
 {
   auto nodes_array = document["nodes"].GetArray();
   map<int, Node> nodes;
@@ -212,7 +215,7 @@ static map<int, Node> create_node_objects_from_json(const Document& document)
 
 
 /// Creates a set of nodes, taking into accout the offset of each one to avoid collisions.
-static tuple<UnordSet, NodeWeight> create_set_of_nodes(const map<int, Node>& nodes, map<int, int>& node_offsets, int& max_value)
+tuple<UnordSet, NodeWeight> create_set_of_nodes(const map<int, Node>& nodes, map<int, int>& node_offsets, int& max_value)
 {
   // We start to build out set of intervals from 0
   int current_max = 0;
@@ -262,7 +265,7 @@ static tuple<UnordSet, NodeWeight> create_set_of_nodes(const map<int, Node>& nod
 }
 
 
-static vector<pair<Var, Exp>> read_left_vars(const Node& node)
+vector<pair<Var, Exp>> read_left_vars(const Node& node)
 {
   const auto& l_nodes = node.lhs;
 
@@ -288,7 +291,7 @@ static vector<pair<Var, Exp>> read_left_vars(const Node& node)
 /// @param pre_image  Subset of the domain of the expression we want to connect
 /// @param edge_domain  Domain of the map
 /// @param var_exp  Original expression of the variable
-static BaseMap create_set_edge_map(const UnordSet& pre_image, const UnordSet& edge_domain, const Exp& var_exps, int set_offset)
+BaseMap create_set_edge_map(const UnordSet& pre_image, const UnordSet& edge_domain, const Exp& var_exps, int set_offset)
 {
   BaseMap map;
 
@@ -343,20 +346,8 @@ static BaseMap create_set_edge_map(const UnordSet& pre_image, const UnordSet& ed
 }
 
 
-/// Ad hoc function to get pre image of an expression from its image.
-/// @param image_interval  Image we want to get the pre image from
-/// @param expression  Expression to get the pre image
-/// @return pre image as an interval
-Interval get_pre_image(const Interval& image_interval, const LExp& expression)
-{
-  LExp inv_exp = inverse(expression);
-  Interval pre_image = image(image_interval, inv_exp);
-  return pre_image;
-}
-
-
 template<typename Set>
-static Set get_node_domain(Node node)
+Set get_node_domain(Node node)
 {
   // Domain of the node candidate
   Set node_intervals;
@@ -372,7 +363,7 @@ static Set get_node_domain(Node node)
 
 
 template<typename S, typename T>
-static S get_edge_domain(SetPiece image_intersection_set, T& edge_set, int& max_value)
+S get_edge_domain(SetPiece image_intersection_set, T& edge_set, int& max_value)
 {
   cout << "get_edge_domain " << image_intersection_set << ", " << edge_set << endl;
   SetPiece edge_domain_set;
@@ -401,7 +392,7 @@ static S get_edge_domain(SetPiece image_intersection_set, T& edge_set, int& max_
 }
 
 
-static tuple<UnordSet, BasePWMap, BasePWMap, EdgeCost> create_graph_edges(
+tuple<UnordSet, BasePWMap, BasePWMap, EdgeCost> create_graph_edges(
         const std::map<int, Node>& nodes,
         const map<int, int>& node_offsets,
         int& max_value)
@@ -497,7 +488,7 @@ static tuple<UnordSet, BasePWMap, BasePWMap, EdgeCost> create_graph_edges(
 /// @brief  Add documentation
 /// @param nodes 
 /// @return 
-static WeightedSBGraph create_sb_graph(const std::map<int, Node>& nodes)
+WeightedSBGraph create_sb_graph(const std::map<int, Node>& nodes)
 {
   int max_value = 0;  // We track the max value, so we avoid domain collision between edges and nodes
   map<int, int> node_offsets;
@@ -519,6 +510,55 @@ static WeightedSBGraph create_sb_graph(const std::map<int, Node>& nodes)
   graph = addSEW(left_maps, right_maps, costs, graph);
 
   return graph;
+}
+
+
+unsigned add_adjacent_nodes(const CanonMap& incoming_map, const CanonMap& arrival_map, const SetPiece& node, OrdSet& adjacents)
+{
+  auto map_image = image(incoming_map.dom()[0], incoming_map.exp());
+  auto node_map_intersection = intersection(map_image.intervals()[0], node);
+
+  unsigned qty = 0;
+  if (not isEmpty(node_map_intersection)) {
+
+    auto pre_image = preImage(OrdSet(node_map_intersection), incoming_map);
+    auto adjs = image(pre_image[0], arrival_map.exp());
+    qty += adjs[0].end() - adjs[0].begin() + 1;
+    adjacents.emplaceBack(adjs[0]);
+  }
+
+  return qty;
+}
+
+
+pair<SetPiece, SetPiece> cut_interval(const SetPiece &interval, int cut_value)
+{
+    int interval_begin = interval.intervals().front().begin();
+    int interval_end = interval.intervals().front().end();
+    Interval interval_1(interval_begin, 1, cut_value);
+    Interval interval_2(cut_value + 1, 1, interval_end);
+
+    SetPiece set_1;
+    set_1.emplaceBack(interval_1);
+
+    SetPiece set_2;
+    set_2.emplaceBack(interval_2);
+
+    return make_pair(set_1, set_2);
+}
+
+}
+
+
+/// Ad hoc function to get pre image of an expression from its image.
+/// @param image_interval  Image we want to get the pre image from
+/// @param expression  Expression to get the pre image
+/// @return pre image as an interval
+Interval get_pre_image(const Interval& image_interval, const LExp& expression)
+{
+  LExp inv_exp = inverse(expression);
+  Interval pre_image = image(image_interval, inv_exp);
+  return pre_image;
 }
 
 
@@ -544,23 +584,6 @@ WeightedSBGraph build_sb_graph(const string& filename)
 }
 
 
-static unsigned add_adjacent_nodes(const CanonMap& incoming_map, const CanonMap& arrival_map, const SetPiece& node, OrdSet& adjacents)
-{
-  auto map_image = image(incoming_map.dom()[0], incoming_map.exp());
-  auto node_map_intersection = intersection(map_image.intervals()[0], node);
-
-  unsigned qty = 0;
-  if (not isEmpty(node_map_intersection)) {
-
-    auto pre_image = preImage(OrdSet(node_map_intersection), incoming_map);
-    auto adjs = image(pre_image[0], arrival_map.exp());
-    qty += adjs[0].end() - adjs[0].begin() + 1;
-    adjacents.emplaceBack(adjs[0]);
-  }
-
-  return qty;
-}
-
 OrdSet get_adjacents(const CanonSBG& graph, const SetPiece& node)
 {
   OrdSet adjacents = {};
@@ -584,23 +607,6 @@ OrdSet get_adjacents(const CanonSBG& graph, const SetPiece& node)
 
   cout << "Comunication is " << acc <<endl;
   return adjacents;
-}
-
-
-static pair<SetPiece, SetPiece> cut_interval(const SetPiece &interval, int cut_value)
-{
-    int interval_begin = interval.intervals().front().begin();
-    int interval_end = interval.intervals().front().end();
-    Interval interval_1(interval_begin, 1, cut_value);
-    Interval interval_2(cut_value + 1, 1, interval_end);
-
-    SetPiece set_1;
-    set_1.emplaceBack(interval_1);
-
-    SetPiece set_2;
-    set_2.emplaceBack(interval_2);
-
-    return make_pair(set_1, set_2);
 }
 
 
@@ -830,6 +836,5 @@ void flatten_set(UnordSet &set, const BaseSBG& graph)
 
     set = new_partition;
 }
-
 
 }
