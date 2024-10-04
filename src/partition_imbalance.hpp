@@ -56,8 +56,8 @@ void compute_partition_imbalance(
     SBG::LIB::UnordSet& partition_b,
     const WeightedSBGraph& graph,
     const NodeWeight& node_weight,
-    int LMin,
-    int LMax,
+    unsigned LMin,
+    unsigned LMax,
     CostMatrixImbalance& cost_matrix
 );
 
@@ -67,23 +67,26 @@ CostMatrixImbalance generate_gain_matrix(
     const NodeWeight& node_weight,
     SBG::LIB::UnordSet& partition_a,
     SBG::LIB::UnordSet& partition_b,
-    int LMin,
-    int LMax);
+    unsigned LMin,
+    unsigned LMax);
 
 
 int kl_sbg_imbalance(
     const WeightedSBGraph& graph,
     SBG::LIB::UnordSet& partition_a,
     SBG::LIB::UnordSet& partition_b,
-    int LMin,
-    int LMax);
+    unsigned LMin,
+    unsigned LMax);
 
 
 KLBipartResult kl_sbg_bipart_imbalance(
     const WeightedSBGraph& graph,
     SBG::LIB::UnordSet& partition_a,
     SBG::LIB::UnordSet& partition_b,
-    int LMin,
-    int LMax);
+    unsigned LMin,
+    unsigned LMax);
+
+
+void kl_sbg_imbalance_partitioner(const WeightedSBGraph& graph, PartitionMap& partitions, const float imbalance_epsilon);
 
 }

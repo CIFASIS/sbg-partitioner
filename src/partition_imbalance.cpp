@@ -16,6 +16,8 @@
 
  ******************************************************************************/
 
+#include <future>
+#include <util/logger.hpp>
 
 #include "build_sb_graph.hpp"
 #include "kernighan_lin_sbg.hpp"
@@ -28,6 +30,7 @@
 using namespace std;
 
 using namespace SBG::LIB;
+using namespace SBG::Util;
 
 namespace sbg_partitioner {
 
@@ -118,7 +121,7 @@ static void partition_imbalance(
 
 void compute_partition_imbalance(unsigned i, unsigned j, UnordSet& partition_a,
     UnordSet& partition_b, const WeightedSBGraph& graph, const NodeWeight& node_weight,
-    int LMin, int LMax, CostMatrixImbalance& cost_matrix)
+    unsigned LMin, unsigned LMax, CostMatrixImbalance& cost_matrix)
 {
     vector<size_t> i_a;
     vector<size_t> i_b;
@@ -212,8 +215,8 @@ CostMatrixImbalance generate_gain_matrix(
     const NodeWeight& node_weight,
     UnordSet& partition_a,
     UnordSet& partition_b,
-    int LMin,
-    int LMax)
+    unsigned LMin,
+    unsigned LMax)
 {
     CostMatrixImbalance cost_matrix;
 
@@ -277,8 +280,8 @@ static void update_diff(
     const WeightedSBGraph& graph,
     const NodeWeight& node_weight,
     const GainObjectImbalance& gain_object,
-    int LMin,
-    int LMax)
+    unsigned LMin,
+    unsigned LMax)
 {
     // this must be improved
     cost_matrix.clear();
@@ -293,8 +296,8 @@ int kl_sbg_imbalance(
     const WeightedSBGraph& graph,
     UnordSet& partition_a,
     UnordSet& partition_b,
-    int LMin,
-    int LMax)
+    unsigned LMin,
+    unsigned LMax)
 {
 #if PARTITION_IMBALANCE_DEBUG
     cout << "Algorithm starts with " << partition_a << ", " << partition_b << endl;
@@ -337,12 +340,12 @@ int kl_sbg_imbalance(
 #if PARTITION_IMBALANCE_DEBUG
     cout << "so it ends with " << max_par_sum << ", " << partition_a << ", " << partition_b << endl;
 #endif
-    return 0;
+    return max_par_sum;
 }
 
 
 KLBipartResult kl_sbg_bipart_imbalance(const WeightedSBGraph& graph, UnordSet& partition_a,
-    UnordSet& partition_b, int LMin, int LMax)
+    UnordSet& partition_b, unsigned LMin, unsigned LMax)
 {
     auto partition_a_copy = partition_a;
     auto partition_b_copy = partition_b;
@@ -363,5 +366,93 @@ KLBipartResult kl_sbg_bipart_imbalance(const WeightedSBGraph& graph, UnordSet& p
     return KLBipartResult{partition_a, partition_b, gain};
 }
 
+
+static kl_sbg_partitioner_result kl_sbg_partitioner_function(
+    const WeightedSBGraph& graph, PartitionMap& partitions, unsigned LMin, unsigned LMax)
+{
+    kl_sbg_partitioner_result best_gain = kl_sbg_partitioner_result{ 0, 0, -1, UnordSet(), UnordSet()};
+    for (size_t i = 0; i < partitions.size(); i++) {
+        for (size_t j = i + 1; j < partitions.size(); j++) {
+            auto p_1_copy = partitions[i];
+            auto p_2_copy = partitions[j];
+            KLBipartResult current_gain = kl_sbg_bipart_imbalance(graph, p_1_copy, p_2_copy, LMin, LMax);
+    #if KERNIGHAN_LIN_SBG_DEBUG
+            cout << "current_gain " << current_gain << endl;
+    #endif
+            if (current_gain.gain > best_gain.gain) {
+                best_gain.i = i;
+                best_gain.j = j;
+                best_gain.gain = current_gain.gain;
+                best_gain.A = current_gain.A;
+                best_gain.B = current_gain.B;
+            }
+        }
+    }
+
+    return best_gain;
+}
+
+
+static kl_sbg_partitioner_result kl_sbg_partitioner_multithreading(
+    const WeightedSBGraph& graph, PartitionMap& partitions, unsigned LMin, unsigned LMax)
+{
+    kl_sbg_partitioner_result best_gain = kl_sbg_partitioner_result{ 0, 0, -1, UnordSet(), UnordSet()};
+    vector<future<kl_sbg_partitioner_result>> workers;
+    for (size_t i = 0; i < partitions.size(); i++) {
+        for (size_t j = i + 1; j < partitions.size(); j++) {
+            auto th = async([&graph, &partitions, i, j, LMin, LMax] () {
+                UnordSet p_1_copy = partitions[i];
+                UnordSet p_2_copy = partitions[j];
+                KLBipartResult results = kl_sbg_bipart_imbalance(graph, p_1_copy, p_2_copy, LMin, LMax);
+                return kl_sbg_partitioner_result{i, j, results.gain, results.A, results.B};
+            });
+            workers.push_back(move(th));
+        }
+    }
+
+    for_each(workers.begin(), workers.end(), [&best_gain] (future<kl_sbg_partitioner_result>& th) {
+        // here we wait for each thread to finish and get its results
+        auto current_gain = th.get();
+        if (current_gain.gain > best_gain.gain) {
+            best_gain = move(current_gain);
+        }
+    });
+
+    return best_gain;
+}
+
+
+void kl_sbg_imbalance_partitioner(
+    const WeightedSBGraph& graph, PartitionMap& partitions, const float imbalance_epsilon)
+{
+    auto [LMin, LMax] = compute_lmin_lmax(graph, partitions.size(), imbalance_epsilon);
+    bool change = true;
+    while (change) {
+        change = false;
+
+        kl_sbg_partitioner_result best_gain;
+        if (multithreading_enabled) {
+            best_gain = kl_sbg_partitioner_multithreading(graph, partitions, LMin, LMax);
+        } else {
+            best_gain = kl_sbg_partitioner_function(graph, partitions, LMin, LMax);
+        }
+
+        // now, apply changes
+        if (best_gain.gain > 0) {
+            // change = true;
+            partitions[best_gain.i] = best_gain.A;
+            partitions[best_gain.j] = best_gain.B;
+        }
+
+        if (change and graph.V()[0].intervals().size() == 1) {
+            flatten_set(partitions[best_gain.i], graph);
+            flatten_set(partitions[best_gain.j], graph);
+        }
+    }
+
+    for (size_t i = 0; i < partitions.size(); i++) {
+        SBG_LOG << i << ": " << partitions[i] << endl;
+    }
+}
 
 }
