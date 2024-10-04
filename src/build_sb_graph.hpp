@@ -26,15 +26,6 @@
 namespace sbg_partitioner {
 
 
-template<typename G>
-struct GainObjectComparatorTemplate {
-    bool operator()(const G& gain_1, const G& gain_2) const
-    {
-        return gain_1.gain >= gain_2.gain;
-    }
-};
-
-
 /// Takes a path to a json file, reads it and then builds a sb graph with
 /// a node for each access to a variable and an edge for each connection
 /// between variables.

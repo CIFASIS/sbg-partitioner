@@ -42,6 +42,36 @@ using namespace sbg_partitioner::search;
 namespace sbg_partitioner {
 
 
+// Using an unnamed manespace to define functions with internal linkage
+namespace {
+
+UnordSet get_communication_edges(UnordSet partition, const BasePWMap& map_1, const BasePWMap& map_2)
+{
+    auto pre_image = preImage(partition, map_1);
+    auto image_map_2 = image(pre_image, map_2);
+    auto outside_partition = difference(image_map_2, partition);
+    auto comm_edges = preImage(outside_partition, map_2);
+
+    return comm_edges;
+}
+
+
+size_t get_partition_communication(WeightedSBGraph& graph, const PartitionMap& partitions)
+{
+    SBG::LIB::UnordSet s;
+    for (auto& [i, _] : partitions) {
+        auto ss = get_connectivity_set(graph, partitions, i);
+        s = SBG::LIB::cup(ss, s);
+        cout << "current connectivity set " << s << ", cardinality " << get_unordset_size(s) << endl;
+    }
+
+    size_t size = get_unordset_size(s);
+
+    return size;
+}
+
+}
+
 vector<PartitionMap> make_initial_partitions(WeightedSBGraph& graph, unsigned number_of_partitions)
 {
     vector<PartitionMap> partitions_sets;
@@ -88,21 +118,6 @@ vector<PartitionMap> make_initial_partitions(WeightedSBGraph& graph, unsigned nu
 }
 
 
-static size_t get_partition_communication(WeightedSBGraph& graph, const PartitionMap& partitions)
-{
-    SBG::LIB::UnordSet s;
-    for (auto& [i, _] : partitions) {
-        auto ss = get_connectivity_set(graph, partitions, i);
-        s = SBG::LIB::cup(ss, s);
-        cout << "current connectivity set " << s << ", cardinality " << get_unordset_size(s) << endl;
-    }
-
-    size_t size = get_unordset_size(s);
-
-    return size;
-}
-
-
 PartitionMap
 best_initial_partition(
     WeightedSBGraph& graph,
@@ -127,17 +142,6 @@ best_initial_partition(
     cout << "Best is " << best_initial_partitions << " with communication " << best_communication_set_cardinality << endl;
 
     return best_initial_partitions;
-}
-
-
-static UnordSet get_communication_edges(UnordSet partition, const BasePWMap& map_1, const BasePWMap& map_2)
-{
-    auto pre_image = preImage(partition, map_1);
-    auto image_map_2 = image(pre_image, map_2);
-    auto outside_partition = difference(image_map_2, partition);
-    auto comm_edges = preImage(outside_partition, map_2);
-
-    return comm_edges;
 }
 
 
