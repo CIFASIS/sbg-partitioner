@@ -18,20 +18,12 @@
  ******************************************************************************/
 
 #include <getopt.h>
-#include <cstdio>
-#include <cstdlib>
 #include <iostream>
-#include <list>
 #include <optional>
 #include <string>
-#include <vector>
 
-#include "build_sb_graph.hpp"
-#include "kernighan_lin_sbg.hpp"
-#include "partition_graph.hpp"
+#include "kernighan_lin_partitioner.hpp"
 
-
-#include "partition_strategy.hpp"
 
 using namespace std;
 
@@ -62,6 +54,7 @@ int main(int argc, char** argv)
   optional<string> filename = nullopt;
   optional<unsigned> number_of_partitions = nullopt;
   optional<string> output_file = nullopt;
+  optional<float> epsilon = nullopt;
 
   while (true) {
 
@@ -74,7 +67,7 @@ int main(int argc, char** argv)
     };
 
     int option_index = 0;
-    opt = getopt_long(argc, argv, "f:p:o:vh:", long_options, &option_index);
+    opt = getopt_long(argc, argv, "f:p:o:e:vh:", long_options, &option_index);
     if (opt == EOF) break;
 
     switch (opt) {
@@ -95,6 +88,12 @@ int main(int argc, char** argv)
         output_file = string(optarg);
       }
       break;
+
+    case 'e':
+    if (optarg) {
+      epsilon = atof(optarg);
+    }
+    break;
 
     case 'v':
       version();
@@ -119,30 +118,19 @@ int main(int argc, char** argv)
     exit(1);
   }
 
+  if (not epsilon) {
+    epsilon = 0.0;
+  }
+
+  if (*epsilon < 0 or *epsilon > 1) {
+    usage();
+    exit(1);
+  }
+
   cout << "filename is " << *filename << endl;
   cout << "number of partitions is " << *number_of_partitions << endl;
 
-  auto sb_graph = build_sb_graph(filename->c_str());
-
-  cout << sb_graph << endl;
-  cout << "sb graph created!" << endl;
-
-  auto partitions = best_initial_partition(sb_graph, *number_of_partitions);
-
-  cout << partitions << endl;
-
-  kl_sbg_partitioner(sb_graph, partitions);
-
-  // just for debugging
-  cout << endl;
-  for (unsigned i = 0; i < partitions.size(); i++) {
-    cout << i << " " << partitions[i] << endl;
-  }
-  cout << endl;
-
-  sanity_check(sb_graph, partitions, *number_of_partitions);
-
-  write_output(*output_file, partitions);
+  partitionate_nodes(*filename, *number_of_partitions, *epsilon, *output_file);
 
   return 0;
 }

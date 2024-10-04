@@ -26,6 +26,11 @@ sbg-partitioner:
 	@cd src && $(MAKE) MODE=$(MODE) build_sbg=$(build_sbg)
 	@echo Done
 
+sbg-partitioner-lib:
+	@echo BUILDING SBG PARTITIONER LIBRARY
+	@cd src && $(MAKE) sbg-partitioner-lib MODE=$(MODE) build_sbg=$(build_sbg)
+	@echo Done
+
 test:
 	@echo COMPILE AND RUN TESTS
 	@cd src && $(MAKE) test

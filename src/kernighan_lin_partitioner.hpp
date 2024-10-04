@@ -18,14 +18,14 @@
 
 #pragma once
 
-#include <set>
-
+#include <string>
 
 namespace sbg_partitioner {
 
-constexpr bool multithreading_enabled = false;
-
-
-void kl_sbg_imbalance_partitioner(const WeightedSBGraph& graph, PartitionMap& partitions, const float imbalance_epsilon);
+void partitionate_nodes(
+    const std::string& filename,
+    const unsigned number_of_partitions,
+    const float epsilon,
+    const std::string& output_filename);
 
 }
