@@ -65,14 +65,6 @@ SBG::LIB::OrdSet get_adjacents(const SBG::LIB::CanonSBG& graph, const SBG::LIB::
 unsigned get_node_size(const SBG::LIB::SetPiece& node, const NodeWeight& node_weight);
 
 
-size_t get_c_ab(
-    const SBG::LIB::UnordSet& a,
-    const SBG::LIB::UnordSet& b,
-    const SBG::LIB::BasePWMap& map_1,
-    const SBG::LIB::BasePWMap& map_2,
-    const EdgeCost& costs);
-
-
 /// Takes each set piece and calculates its size, then adds them
 unsigned get_node_size(const SBG::LIB::UnordSet& node, const NodeWeight& node_weight);
 
