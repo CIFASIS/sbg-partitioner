@@ -12,6 +12,7 @@ CXX     := g++
 ROOT   	        := ..
 SCR_DIR         := .
 BIN_DIR         := $(ROOT)/bin
+LIB_DIR         := $(ROOT)/lib
 3RD_PARTY_DIR   := $(SCR_DIR)/3rd-party
 BUILD_DIR    	:= $(SCR_DIR)/obj/release
 ifeq ($(MODE),Debug)
@@ -30,11 +31,13 @@ TARGET      := $(BIN_DIR)/sbg-partitioner
 # Source files
 SOURCES := build_sb_graph.cpp \
 		   dfs_on_sbg.cpp \
-		   main.cpp \
 		   partition_graph.cpp \
-		   partition_imbalance.cpp \
+		   kernighan_lin_partitioner.cpp \
 		   partition_strategy.cpp \
 		   weighted_sb_graph.cpp
+OSOURCES := $(SOURCES:.cpp=.o)
+MAIN_SRC := main.cpp
+MAIN_OBJ := $(MAIN_SRC:.cpp=.o)
 
 # Flags, Libraries and Includes
 INCLUDES := -I. -I$(SBG_LIB_PATH)/$(SBG_DEV)/usr/include -I$(BOOST_LIB_PATH)/include -I$(3RD_PARTY_DIR)/rapidjson/include
@@ -42,15 +45,15 @@ CXXFLAGS := -std=c++17 -Wall -Werror -Wno-reorder -O3 -pthread
 ifeq ($(MODE),Debug)
 CXXFLAGS 	+= -ggdb  
 endif
-LIB_SBG_PARTITIONER = lib/libsbg-partitioner.a
+LIB_SBG_PARTITIONER = $(LIB_DIR)/libsbg-partitioner.a
 LIBS     := -L./lib -L$(SBG_LIB_PATH)/$(SBG_DEV)/usr/lib -lsbgraph
 
 default: sbg-partitioner
 
 # Sources
 
-$(BUILD_DIR)/%.o : %.cpp
-	$(CXX) $(INCLUDES) $(CXXFLAGS) -MM -MT $@ -MF $(patsubst %.o,%.d,$@) $<
+$(SCR_DIR)/%.o : %.cpp
+	# $(CXX) $(INCLUDES) $(CXXFLAGS) -MM -MT $@ -MF $(patsubst %.o,%.d,$@) $<
 	$(CXX) $(INCLUDES) -c $< -o $@ $(CXXFLAGS)
 
 lib-gtest: | create-folders 
@@ -80,18 +83,31 @@ ifeq ($(build_sbg), True)
 	cd $(SBG_LIB_PATH)/$(SBG_DEV); make install prefix=./usr
 endif
 
-sbg-partitioner: lib-boost lib-sbg | create-folders
-	$(CXX) $(INCLUDES) $(CXXFLAGS) $(SOURCES) -o $(TARGET) $(LIBS)
+sbg-partitioner-lib: build-sbg-partitioner-lib lib-boost lib-sbg | create-folders
+
+
+build-sbg-partitioner-lib: $(LIB_SBG_PARTITIONER)
+
+$(LIB_SBG_PARTITIONER): $(OSOURCES)
+	ar rcs $(LIB_SBG_PARTITIONER) $(SCR_DIR)/*.o
+
+sbg-partitioner-main: $(MAIN_OBJ)
+	$(CXX) $(INCLUDES) -c $(MAIN_SRC) -o $(MAIN_OBJ) $(CXXFLAGS)
+
+sbg-partitioner: sbg-partitioner-main sbg-partitioner-lib lib-boost lib-sbg | create-folders
+	$(CXX) $(MAIN_OBJ) -L$(LIB_DIR) -lsbg-partitioner -o $(TARGET) $(CXXFLAGS) $(LIBS)
 
 create-folders::
 	@mkdir -p $(BIN_DIR)
 	@mkdir -p $(BUILD_DIR)
+	@mkdir -p $(LIB_DIR)
 
 test: lib-gtest
 	@cd test && $(MAKE)
 
 clean:
 	$(RM) $(BUILD_DIR)
+	$(RM) $(OSOURCES)
 	@cd test && $(MAKE) clean
 
 help:

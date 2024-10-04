@@ -17,6 +17,7 @@
  ******************************************************************************/
 
 #include <future>
+#include <set>
 #include <util/logger.hpp>
 
 #include "build_sb_graph.hpp"
@@ -41,6 +42,8 @@ namespace sbg_partitioner {
 
 // Using unnamed namespace to define functions with internal linkage
 namespace {
+
+constexpr bool multithreading_enabled = false;
 
 struct GainObjectImbalance {
     size_t i;
@@ -573,8 +576,6 @@ kl_sbg_partitioner_result kl_sbg_partitioner_multithreading(
     return best_gain;
 }
 
-}
-
 
 void kl_sbg_imbalance_partitioner(
     const WeightedSBGraph& graph, PartitionMap& partitions, const float imbalance_epsilon)
@@ -607,6 +608,36 @@ void kl_sbg_imbalance_partitioner(
     for (size_t i = 0; i < partitions.size(); i++) {
         SBG_LOG << i << ": " << partitions[i] << endl;
     }
+}
+
+}
+
+
+void partitionate_nodes(
+    const std::string& filename,
+    const unsigned number_of_partitions,
+    const float epsilon,
+    const std::string& output_filename)
+{
+    auto sb_graph = build_sb_graph(filename.c_str());
+
+    cout << sb_graph << endl;
+    cout << "sb graph created!" << endl;
+
+    auto partitions = best_initial_partition(sb_graph, number_of_partitions);
+
+    kl_sbg_imbalance_partitioner(sb_graph, partitions, epsilon);
+
+    // // just for debugging
+    cout << endl;
+    for (unsigned i = 0; i < partitions.size(); i++) {
+        cout << i << " " << partitions[i] << endl;
+    }
+    cout << endl;
+
+    sanity_check(sb_graph, partitions, number_of_partitions);
+
+    write_output(output_filename, partitions);
 }
 
 }
