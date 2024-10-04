@@ -21,7 +21,7 @@
 
 #include "build_sb_graph.hpp"
 #include "partition_graph.hpp"
-#include "partition_imbalance.hpp"
+#include "kernighan_lin_partitioner.hpp"
 #include "weighted_sb_graph.hpp"
 
 
