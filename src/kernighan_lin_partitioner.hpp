@@ -22,10 +22,10 @@
 
 namespace sbg_partitioner {
 
-void partitionate_nodes(
+std::string partitionate_nodes(
     const std::string& filename,
     const unsigned number_of_partitions,
     const float epsilon,
-    const std::string& output_filename);
+    std::optional<std::string>& graph_str);
 
 }

@@ -17,6 +17,10 @@
  ******************************************************************************/
 
 #include <future>
+#include <rapidjson/document.h>
+#include <rapidjson/filewritestream.h>
+#include <rapidjson/prettywriter.h>
+#include <rapidjson/writer.h>
 #include <set>
 #include <util/logger.hpp>
 
@@ -610,14 +614,106 @@ void kl_sbg_imbalance_partitioner(
     }
 }
 
+
+string get_pretty_sb_graph(const SBG::LIB::BaseSBG& g)
+{
+    rapidjson::Document json_doc;
+    rapidjson::Document::AllocatorType& allocator = json_doc.GetAllocator();
+    json_doc.SetObject();
+
+    rapidjson::Value obj_nodes(rapidjson::kArrayType);
+    for (size_t i = 0; i < g.V().size(); i++) {
+        const SetPiece& set_piece = g.V()[i];
+        rapidjson::Value obj_set_piece_array(rapidjson::kArrayType);
+        for (const Interval& interval : set_piece.intervals()) {
+            rapidjson::Value obj_interval_array(rapidjson::kArrayType);
+
+            rapidjson::Value begin(rapidjson::kNumberType);
+            begin.SetUint(interval.begin());
+            obj_interval_array.PushBack(begin, allocator);
+
+            rapidjson::Value end(rapidjson::kNumberType);
+            end.SetUint(interval.end());
+            obj_interval_array.PushBack(end, allocator);
+
+            obj_set_piece_array.PushBack(obj_interval_array, allocator);
+        }
+
+        obj_nodes.PushBack(obj_set_piece_array, allocator);
+    }
+
+    json_doc.AddMember("nodes", obj_nodes, allocator);
+
+    auto map_parser = [&json_doc, &allocator] (const auto& maps, const char* key) {
+        rapidjson::Value obj_maps(rapidjson::kArrayType);
+        for (const auto& map1 : maps) {
+            rapidjson::Value map_1_obj(rapidjson::kObjectType);
+
+            const auto& domain = map1.dom()[0];
+            rapidjson::Value domain_obj(rapidjson::kArrayType);
+            for (const auto& interval : domain.intervals()) {
+                rapidjson::Value obj_interval_array(rapidjson::kArrayType);
+
+                rapidjson::Value begin(rapidjson::kNumberType);
+                begin.SetUint(interval.begin());
+                obj_interval_array.PushBack(begin, allocator);
+
+                rapidjson::Value end(rapidjson::kNumberType);
+                end.SetUint(interval.end());
+                obj_interval_array.PushBack(end, allocator);
+
+                domain_obj.PushBack(obj_interval_array, allocator);
+            }
+            map_1_obj.AddMember("domain", domain_obj, allocator);
+
+            rapidjson::Value exp_obj(rapidjson::kArrayType);
+            for (const auto& exp : map1.exp()) {
+                rapidjson::Value obj_exp_array(rapidjson::kArrayType);
+
+                rapidjson::Value slope(rapidjson::kNumberType);
+                float _slope = exp.slope().numerator();
+                slope.SetFloat(_slope);
+                obj_exp_array.PushBack(slope, allocator);
+
+                rapidjson::Value offset(rapidjson::kNumberType);
+                float _offset = exp.offset().numerator();
+                slope.SetFloat(_offset);
+                obj_exp_array.PushBack(offset, allocator);
+
+                exp_obj.PushBack(obj_exp_array, allocator);
+            }
+            map_1_obj.AddMember("exp", exp_obj, allocator);
+
+            obj_maps.PushBack(map_1_obj, allocator);
+        }
+
+        rapidjson::Value key_value(key, allocator);
+
+        json_doc.AddMember(key_value, obj_maps, allocator);
+    };
+
+    map_parser(g.map1().maps(), "map1");
+    map_parser(g.map2().maps(), "map2");
+
+    // Write the JSON data to the file
+    rapidjson::StringBuffer s;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(s);
+    json_doc.Accept(writer);
+
+    string json_data = string(s.GetString());
+
+    return json_data;
 }
 
 
-void partitionate_nodes(
+}
+
+
+string partitionate_nodes(
     const std::string& filename,
     const unsigned number_of_partitions,
     const float epsilon,
-    const std::string& output_filename)
+    optional<string>& graph_str)
 {
     auto sb_graph = build_sb_graph(filename.c_str());
 
@@ -637,7 +733,13 @@ void partitionate_nodes(
 
     sanity_check(sb_graph, partitions, number_of_partitions);
 
-    write_output(output_filename, partitions);
+    if (graph_str){
+        graph_str = get_pretty_sb_graph(sb_graph);
+    }
+
+    string output = get_output(partitions);
+
+    return output;
 }
 
 }
