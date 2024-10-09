@@ -211,7 +211,7 @@ void sanity_check(const WeightedSBGraph &graph, PartitionMap& partitions_set, un
 }
 
 
-void write_output(const string filename, const PartitionMap& partition_map)
+string get_output(const PartitionMap& partition_map)
 {
     rapidjson::Document json_doc;
     rapidjson::Document::AllocatorType& allocator = json_doc.GetAllocator();
@@ -251,10 +251,9 @@ void write_output(const string filename, const PartitionMap& partition_map)
     rapidjson::StringBuffer s;
     rapidjson::Writer<rapidjson::StringBuffer> writer(s);
     json_doc.Accept(writer);
-    std::cout << s.GetString() << std::endl;
+    string json_data = string(s.GetString());
 
-    std::ofstream of (filename);
-    of << s.GetString();
+    return json_data;
 }
 
 

@@ -53,7 +53,7 @@ int main(int argc, char** argv)
   int opt;
   optional<string> filename = nullopt;
   optional<unsigned> number_of_partitions = nullopt;
-  optional<string> output_file = nullopt;
+  optional<string> output_sb_graph = nullopt;
   optional<float> epsilon = nullopt;
 
   while (true) {
@@ -67,7 +67,7 @@ int main(int argc, char** argv)
     };
 
     int option_index = 0;
-    opt = getopt_long(argc, argv, "f:p:o:e:vh:", long_options, &option_index);
+    opt = getopt_long(argc, argv, "f:p:e:gvh:", long_options, &option_index);
     if (opt == EOF) break;
 
     switch (opt) {
@@ -83,10 +83,8 @@ int main(int argc, char** argv)
       }
       break;
 
-    case 'o':
-      if (optarg) {
-        output_file = string(optarg);
-      }
+    case 'g':
+      output_sb_graph = "";
       break;
 
     case 'e':
@@ -113,7 +111,7 @@ int main(int argc, char** argv)
     }
   }
 
-  if (not filename or not number_of_partitions or not output_file) {
+  if (not filename or not number_of_partitions) {
     usage();
     exit(1);
   }
@@ -130,7 +128,13 @@ int main(int argc, char** argv)
   cout << "filename is " << *filename << endl;
   cout << "number of partitions is " << *number_of_partitions << endl;
 
-  partitionate_nodes(*filename, *number_of_partitions, *epsilon, *output_file);
+  auto partition_str = partitionate_nodes(*filename, *number_of_partitions, *epsilon, output_sb_graph);
+
+  cout << "final results " << partition_str << endl;
+
+  if (output_sb_graph) {
+    cout << "output_sb_graph " << *output_sb_graph << endl;
+  }
 
   return 0;
 }
