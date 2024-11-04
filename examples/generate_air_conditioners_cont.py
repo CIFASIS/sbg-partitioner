@@ -1,18 +1,16 @@
 import argparse
 import json
 
-def generate_section_controller_records(sections, airs_per_section):
+def generate_section_controller_records(sections, airs_per_section, enumerate_sections):
     records = []
     # Generate list for partial total node definition
-    enumerate_sections = [4] + [10 + i for i in range(1, sections)]
-        
     for section_nbr in range(sections):
         record = {
-            "id": 10 + section_nbr,
-            "interval": [[1, airs_per_section]],
+            "id": int(10 + section_nbr),
+            "interval": [[1, int(airs_per_section)]],
             "lhs": [
                 {
-                    "id": "ev_" + str(7 + section_nbr),
+                    "id": "ev_" + str(7 + int(section_nbr)),
                     "exp": [[1, 0]],
                     "defs": []
                 },
@@ -23,7 +21,7 @@ def generate_section_controller_records(sections, airs_per_section):
                 },
                 {
                     "id": "partTotal",
-                    "exp": [[0, section_nbr]],
+                    "exp": [[0, int(section_nbr)]],
                     "defs": []
                 }
             ],
@@ -45,14 +43,14 @@ def generate_section_controller_records(sections, airs_per_section):
                 },
                 {
                     "id": "partTotal",
-                    "exp": [[0, section_nbr]],
-                    "defs": [enumerate_sections]
+                    "exp": [[0, int(section_nbr)]],
+                    "defs": enumerate_sections
                 }
             ]
         }
         records.append(record)
     
-    return json.dumps(records, indent=4)
+    return json.dumps(records)
 
 def generate_json(sections, size):
     """
@@ -66,6 +64,7 @@ def generate_json(sections, size):
     str: A JSON-formatted string for air conditioners with controller Modelica model used as SBG Partitioner input.
     """
     airs_per_section = size/sections
+    enumerate_sections = [int(4)] + [int(10 + i) for i in range(sections)]
     data = {
         "nodes": [
             {
@@ -170,7 +169,7 @@ def generate_json(sections, size):
                     {
                         "id": "partTotal",
                         "exp": [[1, 0]],
-                        "defs": [4, 9]
+                        "defs": enumerate_sections
                     }
                 ]
             },
@@ -341,10 +340,10 @@ def generate_json(sections, size):
     }
 
     # Concatenate section controller records
-    section_records = json.loads(generate_section_controller_records(sections, airs_per_section))
+    section_records = json.loads(generate_section_controller_records(sections, airs_per_section, enumerate_sections))
     data["nodes"].extend(section_records)
 
-    return json.dumps(data, indent=4)
+    return json.dumps(data)
 
 def main():
     parser = argparse.ArgumentParser(description='Generate SBG JSON input from air conditioners with controller Modelica model.')
