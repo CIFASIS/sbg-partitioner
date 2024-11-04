@@ -8,6 +8,9 @@ src/3rd-party/boost/lib/
 # Test files
 src/test/usr/
 
+# Object files
+/src/*.o
+
 # Local Folders
 lib/
 bin/

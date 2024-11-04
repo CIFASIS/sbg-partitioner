@@ -513,18 +513,18 @@ WeightedSBGraph create_sb_graph(const std::map<int, Node>& nodes)
 }
 
 
-unsigned add_adjacent_nodes(const CanonMap& incoming_map, const CanonMap& arrival_map, const SetPiece& node, OrdSet& adjacents)
+unsigned add_adjacent_nodes(const BaseMap& incoming_map, const BaseMap& arrival_map, const SetPiece& node, UnordSet& adjacents)
 {
-  auto map_image = image(incoming_map.dom()[0], incoming_map.exp());
-  auto node_map_intersection = intersection(map_image.intervals()[0], node);
+  auto map_image = image(incoming_map.dom(), incoming_map);
+  auto node_map_intersection = intersection(map_image, node);
 
   unsigned qty = 0;
   if (not isEmpty(node_map_intersection)) {
 
-    auto pre_image = preImage(OrdSet(node_map_intersection), incoming_map);
-    auto adjs = image(pre_image[0], arrival_map.exp());
-    qty += adjs[0].end() - adjs[0].begin() + 1;
-    adjacents.emplaceBack(adjs[0]);
+    auto pre_image = preImage(UnordSet(node_map_intersection), incoming_map);
+    auto adjs = image(pre_image, arrival_map);
+    qty += get_node_size(adjs, NodeWeight());
+    for_each(adjs.begin(), adjs.end(), [&adjacents](auto& b) { adjacents.emplace(b); });
   }
 
   return qty;
@@ -584,9 +584,9 @@ WeightedSBGraph build_sb_graph(const string& filename)
 }
 
 
-OrdSet get_adjacents(const CanonSBG& graph, const SetPiece& node)
+UnordSet get_adjacents(const BaseSBG& graph, const SetPiece& node)
 {
-  OrdSet adjacents = {};
+  UnordSet adjacents = {};
 
   // Fill adjacents
   unsigned acc = 0;
@@ -597,15 +597,13 @@ OrdSet get_adjacents(const CanonSBG& graph, const SetPiece& node)
       acc += add_adjacent_nodes(map1, map2, node, adjacents);
 
       auto map2_minus_map1_dom = difference(map2.dom(), map1.dom());
-      cout << map2.dom() << ", " << map1.dom() << map2_minus_map1_dom << endl;
       if (not isEmpty(map2_minus_map1_dom)){
-        CanonMap map2_ = CanonMap(map2_minus_map1_dom, map2.exp());
+        BaseMap map2_ = BaseMap(map2_minus_map1_dom, map2.exp());
 
         acc += add_adjacent_nodes(map2_, map1, node, adjacents);
       }
   }
 
-  cout << "Comunication is " << acc <<endl;
   return adjacents;
 }
 

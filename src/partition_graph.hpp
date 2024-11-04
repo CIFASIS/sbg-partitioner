@@ -25,6 +25,8 @@
 #include <sbg/interval.hpp>
 #include <sbg/sbg.hpp>
 
+#include "weighted_sb_graph.hpp"
+
 
 namespace sbg_partitioner {
 

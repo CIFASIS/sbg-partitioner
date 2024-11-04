@@ -27,17 +27,21 @@ RM = rm -rf
 
 # The Target Binary Program
 TARGET      := $(BIN_DIR)/sbg-partitioner
+TARGET_METRICS      := $(BIN_DIR)/sbg-partitioner-metrics
 
 # Source files
 SOURCES := build_sb_graph.cpp \
 		   dfs_on_sbg.cpp \
 		   partition_graph.cpp \
 		   kernighan_lin_partitioner.cpp \
+		   partition_metrics_api.cpp \
 		   partition_strategy.cpp \
 		   weighted_sb_graph.cpp
 OSOURCES := $(SOURCES:.cpp=.o)
 MAIN_SRC := main.cpp
 MAIN_OBJ := $(MAIN_SRC:.cpp=.o)
+METRICS_SRC := partition_metrics.cpp
+METRICS_OBJ := $(METRICS_SRC:.cpp=.o)
 
 # Flags, Libraries and Includes
 INCLUDES := -I. -I$(SBG_LIB_PATH)/$(SBG_DEV)/usr/include -I$(BOOST_LIB_PATH)/include -I$(3RD_PARTY_DIR)/rapidjson/include
@@ -94,8 +98,16 @@ $(LIB_SBG_PARTITIONER): $(OSOURCES)
 sbg-partitioner-main: $(MAIN_OBJ)
 	$(CXX) $(INCLUDES) -c $(MAIN_SRC) -o $(MAIN_OBJ) $(CXXFLAGS)
 
+
 sbg-partitioner: sbg-partitioner-main sbg-partitioner-lib lib-boost lib-sbg | create-folders
 	$(CXX) $(MAIN_OBJ) -L$(LIB_DIR) -lsbg-partitioner -o $(TARGET) $(CXXFLAGS) $(LIBS)
+
+sbg-partitioner-metrics-main: $(METRICS_OBJ)
+	$(CXX) $(INCLUDES) -c $(METRICS_SRC) -o $(METRICS_OBJ) $(CXXFLAGS)
+
+sbg-partitioner-metrics: sbg-partitioner-metrics-main sbg-partitioner-lib lib-boost lib-sbg | create-folders
+	$(CXX) $(METRICS_OBJ) -L$(LIB_DIR) -lsbg-partitioner -o $(TARGET_METRICS) $(CXXFLAGS) $(LIBS)
+
 
 create-folders::
 	@mkdir -p $(BIN_DIR)

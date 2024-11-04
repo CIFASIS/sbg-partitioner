@@ -18,22 +18,17 @@
 
 #pragma once
 
-#include <string>
-
 #include "partition_graph.hpp"
 
 namespace sbg_partitioner {
 
-std::string partitionate_nodes(
-    const std::string& filename,
-    const unsigned number_of_partitions,
-    const float epsilon,
-    std::optional<std::string>& graph_str);
+namespace metrics {
 
+int edge_cut(const PartitionMap& partitions, const WeightedSBGraph& sb_graph);
 
-std::pair<WeightedSBGraph, PartitionMap> partitionate_nodes_for_metrics(
-    const std::string& filename,
-    const unsigned number_of_partitions,
-    const float epsilon);
+std::pair<int, int> communication_volume(const PartitionMap& partitions, const WeightedSBGraph& sb_graph);
+
+float maximum_imbalance(const PartitionMap& partitions, const WeightedSBGraph& sb_graph);
+}
 
 }

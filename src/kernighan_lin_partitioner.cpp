@@ -25,10 +25,7 @@
 #include <util/logger.hpp>
 
 #include "build_sb_graph.hpp"
-#include "partition_graph.hpp"
 #include "kernighan_lin_partitioner.hpp"
-#include "weighted_sb_graph.hpp"
-
 
 
 #define PARTITION_IMBALANCE_DEBUG 1
@@ -47,7 +44,7 @@ namespace sbg_partitioner {
 // Using unnamed namespace to define functions with internal linkage
 namespace {
 
-constexpr bool multithreading_enabled = false;
+constexpr bool multithreading_enabled = true;
 
 struct GainObjectImbalance {
     size_t i;
@@ -740,6 +737,24 @@ string partitionate_nodes(
     string output = get_output(partitions);
 
     return output;
+}
+
+
+pair<WeightedSBGraph, PartitionMap> partitionate_nodes_for_metrics(
+    const string& filename,
+    const unsigned number_of_partitions,
+    const float epsilon)
+{
+    auto sb_graph = build_sb_graph(filename.c_str());
+
+    cout << sb_graph << endl;
+    cout << "sb graph created!" << endl;
+
+    auto partitions = best_initial_partition(sb_graph, number_of_partitions);
+
+    kl_sbg_imbalance_partitioner(sb_graph, partitions, epsilon);
+
+    return {sb_graph, partitions};
 }
 
 }
