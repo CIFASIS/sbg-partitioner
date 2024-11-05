@@ -50,17 +50,17 @@ using CostMatrix = std::set<GainObject, GainObjectComparator>;
 
 void kl_sbg_partitioner(const WeightedSBGraph& graph, PartitionMap& partitions);
 
-KLBipartResult kl_sbg_bipart(const WeightedSBGraph& graph, SBG::LIB::UnordSet& partition_a, SBG::LIB::UnordSet& partition_b);
+KLBipartResult kl_sbg_bipart(const WeightedSBGraph& graph, SBG::LIB::OrdSet& partition_a, SBG::LIB::OrdSet& partition_b);
 
-int kl_sbg(const WeightedSBGraph& graph, SBG::LIB::UnordSet& partition_a, SBG::LIB::UnordSet& partition_b);
+int kl_sbg(const WeightedSBGraph& graph, SBG::LIB::OrdSet& partition_a, SBG::LIB::OrdSet& partition_b);
 
 void update_sum(
     int& par_sum,
     int g,
     int& max_par_sum,
-    std::pair<SBG::LIB::UnordSet, SBG::LIB::UnordSet>& max_par_sum_set,
-    SBG::LIB::UnordSet& a_v,
-    SBG::LIB::UnordSet& b_v);
+    std::pair<SBG::LIB::OrdSet, SBG::LIB::OrdSet>& max_par_sum_set,
+    SBG::LIB::OrdSet& a_v,
+    SBG::LIB::OrdSet& b_v);
 
 
 

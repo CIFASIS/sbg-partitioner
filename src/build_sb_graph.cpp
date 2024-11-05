@@ -215,11 +215,11 @@ map<int, Node> create_node_objects_from_json(const Document& document)
 
 
 /// Creates a set of nodes, taking into accout the offset of each one to avoid collisions.
-tuple<UnordSet, NodeWeight> create_set_of_nodes(const map<int, Node>& nodes, map<int, int>& node_offsets, int& max_value)
+tuple<OrdSet, NodeWeight> create_set_of_nodes(const map<int, Node>& nodes, map<int, int>& node_offsets, int& max_value)
 {
   // We start to build out set of intervals from 0
   int current_max = 0;
-  UnordSet node_set;
+  OrdSet node_set;
   NodeWeight weights;
 
   for (const auto& [id, node] : nodes) {
@@ -291,9 +291,9 @@ vector<pair<Var, Exp>> read_left_vars(const Node& node)
 /// @param pre_image  Subset of the domain of the expression we want to connect
 /// @param edge_domain  Domain of the map
 /// @param var_exp  Original expression of the variable
-BaseMap create_set_edge_map(const UnordSet& pre_image, const UnordSet& edge_domain, const Exp& var_exps, int set_offset)
+CanonMap create_set_edge_map(const OrdSet& pre_image, const OrdSet& edge_domain, const Exp& var_exps, int set_offset)
 {
-  BaseMap map;
+  CanonMap map;
 
   map.set_dom(edge_domain);
 
@@ -392,21 +392,21 @@ S get_edge_domain(SetPiece image_intersection_set, T& edge_set, int& max_value)
 }
 
 
-tuple<UnordSet, BasePWMap, BasePWMap, EdgeCost> create_graph_edges(
+tuple<OrdSet, CanonPWMap, CanonPWMap, EdgeCost> create_graph_edges(
         const std::map<int, Node>& nodes,
         const map<int, int>& node_offsets,
         int& max_value)
 {
-  UnordSet edge_set;  // Our set of edges
-  BasePWMap rhs_maps;  // Map object of one of the sides
-  BasePWMap lhs_maps; // Map object of one of the other side
+  OrdSet edge_set;  // Our set of edges
+  CanonPWMap rhs_maps;  // Map object of one of the sides
+  CanonPWMap lhs_maps; // Map object of one of the other side
   EdgeCost costs; // Weight of edges
 
   for (const auto& [id, node] : nodes) {
     cout << "Looking for connections with " << id << endl;
 
     // Define the equation intervals (without offsets)
-    UnordSet intervals;
+    OrdSet intervals;
     SetPiece interval_set_piece;
     // assert(node.intervals.size() == 1);
     for (const auto& node_interval : node.intervals) {
@@ -426,10 +426,10 @@ tuple<UnordSet, BasePWMap, BasePWMap, EdgeCost> create_graph_edges(
       }
 
       // Now, calculate the image of the rhs expression
-      auto rhs_map = BaseMap(intervals, right_exps);
+      auto rhs_map = CanonMap(intervals, right_exps);
       // This is the image *used* by this expression, wwe want to
       // check where is defined.
-      auto used_node_image = image(BaseMap(intervals, right_exps));
+      auto used_node_image = image(CanonMap(intervals, right_exps));
 
       // Definitions of this variable are on defs field. We want to check if
       // intersects with any node
@@ -438,7 +438,7 @@ tuple<UnordSet, BasePWMap, BasePWMap, EdgeCost> create_graph_edges(
         auto node_candidate = nodes.at(i);
 
         // Domain of the node candidate
-        UnordSet node_candidate_intervals = get_node_domain<UnordSet>(node_candidate);
+        OrdSet node_candidate_intervals = get_node_domain<OrdSet>(node_candidate);
 
         // look for definitions of the same variable
         auto exps_and_var_names = read_left_vars(node_candidate);
@@ -448,8 +448,8 @@ tuple<UnordSet, BasePWMap, BasePWMap, EdgeCost> create_graph_edges(
           }
 
           // Now, get the image.
-          auto node_candidate_basemap = BaseMap(node_candidate_intervals, node_candidate_exps);
-          auto node_candidate_image = image(node_candidate_basemap);
+          auto node_candidate_CanonMap = CanonMap(node_candidate_intervals, node_candidate_exps);
+          auto node_candidate_image = image(node_candidate_CanonMap);
 
           // we want to see if the intersection of the images is not empty
           auto candidate_image_intersection = intersection(node_candidate_image, used_node_image);
@@ -464,16 +464,24 @@ tuple<UnordSet, BasePWMap, BasePWMap, EdgeCost> create_graph_edges(
 
           // we need to create an edge for each left hand side variable, that means a couple of maps for each one
          for (const auto& [_, exp] : this_node_exps) {
-            UnordSet edge_domain_set = get_edge_domain<UnordSet>(image_intersection_set, edge_set, max_value);
+            OrdSet edge_domain_set = get_edge_domain<OrdSet>(image_intersection_set, edge_set, max_value);
             // Create map to node candidate
             auto node_candidate_map = create_set_edge_map(candidate_image_intersection, edge_domain_set, node_candidate_exps, node_offsets.at(i));
-            rhs_maps.emplace(node_candidate_map);
+            auto node_candidate_map_image = image(node_candidate_map);
+            cout << "image: " << node_candidate_map_image << endl;
 
             // Create map to current node
-            auto pre_image_current_node = preImage(UnordSet(image_intersection_set), rhs_map);
-            auto im = image(BaseMap(UnordSet(pre_image_current_node), exp));
+            auto pre_image_current_node = preImage(OrdSet(image_intersection_set), rhs_map);
+            auto im = image(CanonMap(OrdSet(pre_image_current_node), exp));
             auto current_node_map = create_set_edge_map(im, edge_domain_set, exp, node_offsets.at(id));
-            lhs_maps.emplace(current_node_map);
+            auto current_node_map_image = image(current_node_map);
+            cout << "image: " << current_node_map_image << endl;
+
+            if (not (current_node_map_image == node_candidate_map_image)) {
+                lhs_maps.emplace(current_node_map);
+                rhs_maps.emplace(node_candidate_map);
+            }
+            cout << "----" << endl;
 
             costs.insert({edge_domain_set, var.cost});
           }
@@ -513,7 +521,7 @@ WeightedSBGraph create_sb_graph(const std::map<int, Node>& nodes)
 }
 
 
-unsigned add_adjacent_nodes(const BaseMap& incoming_map, const BaseMap& arrival_map, const SetPiece& node, UnordSet& adjacents)
+unsigned add_adjacent_nodes(const CanonMap& incoming_map, const CanonMap& arrival_map, const SetPiece& node, OrdSet& adjacents)
 {
   auto map_image = image(incoming_map.dom(), incoming_map);
   auto node_map_intersection = intersection(map_image, node);
@@ -521,7 +529,7 @@ unsigned add_adjacent_nodes(const BaseMap& incoming_map, const BaseMap& arrival_
   unsigned qty = 0;
   if (not isEmpty(node_map_intersection)) {
 
-    auto pre_image = preImage(UnordSet(node_map_intersection), incoming_map);
+    auto pre_image = preImage(OrdSet(node_map_intersection), incoming_map);
     auto adjs = image(pre_image, arrival_map);
     qty += get_node_size(adjs, NodeWeight());
     for_each(adjs.begin(), adjs.end(), [&adjacents](auto& b) { adjacents.emplace(b); });
@@ -584,9 +592,9 @@ WeightedSBGraph build_sb_graph(const string& filename)
 }
 
 
-UnordSet get_adjacents(const BaseSBG& graph, const SetPiece& node)
+OrdSet get_adjacents(const CanonSBG& graph, const SetPiece& node)
 {
-  UnordSet adjacents = {};
+  OrdSet adjacents = {};
 
   // Fill adjacents
   unsigned acc = 0;
@@ -598,7 +606,7 @@ UnordSet get_adjacents(const BaseSBG& graph, const SetPiece& node)
 
       auto map2_minus_map1_dom = difference(map2.dom(), map1.dom());
       if (not isEmpty(map2_minus_map1_dom)){
-        BaseMap map2_ = BaseMap(map2_minus_map1_dom, map2.exp());
+        CanonMap map2_ = CanonMap(map2_minus_map1_dom, map2.exp());
 
         acc += add_adjacent_nodes(map2_, map1, node, adjacents);
       }
@@ -608,7 +616,7 @@ UnordSet get_adjacents(const BaseSBG& graph, const SetPiece& node)
 }
 
 
-pair<UnordSet, UnordSet> cut_bidimensional_interval(const SetPiece &set_piece, size_t s)
+pair<OrdSet, OrdSet> cut_bidimensional_interval(const SetPiece &set_piece, size_t s)
 {
     cout << "cutting interval " << set_piece << ", " << s << endl;
 
@@ -620,7 +628,7 @@ pair<UnordSet, UnordSet> cut_bidimensional_interval(const SetPiece &set_piece, s
 
     cout << "Ammount of rows " << ammount_of_rows << endl;
 
-    UnordSet unordset_ret;
+    OrdSet OrdSet_ret;
     SetPiece interval_2 = *set_piece.intervals().begin();
 
     if (ammount_of_rows > 0) {
@@ -631,7 +639,7 @@ pair<UnordSet, UnordSet> cut_bidimensional_interval(const SetPiece &set_piece, s
             interval_2 = Interval(interval_1.intervals().front().end(), 1, interval_1.intervals().front().end());
         }
         interval_1.emplaceBack(set_piece.intervals()[1]);
-        unordset_ret.emplace(interval_1);
+        OrdSet_ret.emplace(interval_1);
     }
 
     if (rest > 0){
@@ -641,25 +649,25 @@ pair<UnordSet, UnordSet> cut_bidimensional_interval(const SetPiece &set_piece, s
         tie(interval_3, interval_4) = cut_interval(set_piece.intervals()[1], set_piece.intervals()[1].begin() + rest - 1);
         rest_set_piece.emplaceBack(interval_3.intervals().front());
 
-        unordset_ret.emplace(rest_set_piece);
+        OrdSet_ret.emplace(rest_set_piece);
     }
 
-    UnordSet remaining = difference(UnordSet(set_piece), unordset_ret);
+    OrdSet remaining = difference(OrdSet(set_piece), OrdSet_ret);
 
-    cout << "original " << UnordSet(set_piece) << ", " << unordset_ret << ", " << remaining << endl;
+    cout << "original " << OrdSet(set_piece) << ", " << OrdSet_ret << ", " << remaining << endl;
 
-    return make_pair(unordset_ret, remaining);
+    return make_pair(OrdSet_ret, remaining);
 }
 
 
-pair<UnordSet, UnordSet> cut_interval_by_dimension(UnordSet& set_piece, const NodeWeight& node_weight, size_t size)
+pair<OrdSet, OrdSet> cut_interval_by_dimension(OrdSet& set_piece, const NodeWeight& node_weight, size_t size)
 {
     if (set_piece.pieces().size() == 0) {
-        return make_pair(UnordSet(), UnordSet());
+        return make_pair(OrdSet(), OrdSet());
     }
 
     if (size == 0) {
-        return make_pair(UnordSet(), set_piece);
+        return make_pair(OrdSet(), set_piece);
     }
 
     size_t actual_size = size / unsigned(get_set_cost(*set_piece.pieces().begin(), node_weight));
@@ -667,16 +675,16 @@ pair<UnordSet, UnordSet> cut_interval_by_dimension(UnordSet& set_piece, const No
     if (set_piece.pieces().begin()->intervals().size() == 1) {
         SetPiece p_1, p_2;
         tie(p_1, p_2) = cut_interval(set_piece.pieces().begin()->intervals().front(), set_piece.pieces().begin()->intervals().front().begin() + actual_size - 1);
-        return make_pair(UnordSet(p_1), UnordSet(p_2));
+        return make_pair(OrdSet(p_1), OrdSet(p_2));
     }
 
     if (set_piece.pieces().begin()->intervals().size() == 2) {
-        UnordSet cut_node;
-        UnordSet remaining_node = set_piece;
+        OrdSet cut_node;
+        OrdSet remaining_node = set_piece;
         for (const auto& piece : set_piece.pieces()) {
           size_t pice_size = get_node_size(piece, node_weight);
           size_t size_to_cut = min(pice_size, actual_size);
-          UnordSet cut_node_piece, remaining_node_piece;
+          OrdSet cut_node_piece, remaining_node_piece;
           tie(cut_node_piece, remaining_node_piece) = cut_bidimensional_interval(piece, size_to_cut);
           cut_node = cup(cut_node, cut_node_piece);
           remaining_node = difference(remaining_node, cut_node);
@@ -716,7 +724,7 @@ unsigned get_node_size(const SetPiece& node, const NodeWeight& node_weight)
 }
 
 
-unsigned get_node_size(const UnordSet& node, const NodeWeight& node_weight)
+unsigned get_node_size(const OrdSet& node, const NodeWeight& node_weight)
 {
     if (node.pieces().empty()) {
       return 0;
@@ -752,7 +760,7 @@ unsigned get_edge_set_cost(const SBG::LIB::SetPiece& node, const EdgeCost& edge_
 }
 
 
-unsigned get_edge_set_cost(const SBG::LIB::UnordSet& node, const EdgeCost& edge_cost)
+unsigned get_edge_set_cost(const SBG::LIB::OrdSet& node, const EdgeCost& edge_cost)
 {
     if (node.pieces().empty()) {
         return 0;
@@ -767,7 +775,7 @@ unsigned get_edge_set_cost(const SBG::LIB::UnordSet& node, const EdgeCost& edge_
 }
 
 
-void flatten_set(UnordSet &set, const BaseSBG& graph)
+void flatten_set(OrdSet &set, const CanonSBG& graph)
 {
     if (set.pieces().size() > 0 and set.pieces().begin()->intervals().size() > 1) {
         cout << "flatten_set for sets with "
@@ -778,54 +786,18 @@ void flatten_set(UnordSet &set, const BaseSBG& graph)
     }
 
     cout << set << endl;
-    UnordSet new_partition;
+    OrdSet new_partition;
     for (const auto& v : graph.V()) {
-        vector<Interval> set_piece_this_node_vector;
+        MDInterOrdSet set_piece_this_node_vector;
         for (auto& set_piece : set.pieces()) {
 
             if (not isEmpty(intersection(v, set_piece))) {
-                for (size_t i = 0; i < set_piece.intervals().size(); i++) {
-                    set_piece_this_node_vector.push_back(set_piece.intervals()[i]);
+                set_piece_this_node_vector.emplace(set_piece);
             }
         }
 
-        }
-
-        // sort it
-        sort(set_piece_this_node_vector.begin(), set_piece_this_node_vector.end(), [](const Interval& a, const Interval& b) {
-                return a.begin() < b.begin();
-            });
-
-        bool change = true;
-        while (change) {
-            change = false;
-
-            vector<Interval> new_set_piece_this_node;
-            new_set_piece_this_node.reserve(set_piece_this_node_vector.size());
-
-            for (size_t i = 1; i < set_piece_this_node_vector.size(); i++) {
-                if (change) {
-                    new_set_piece_this_node.emplace_back(set_piece_this_node_vector[i]);
-                    continue;
-                }
-
-                auto prev_interval = set_piece_this_node_vector[i - 1];
-                auto next_interval = set_piece_this_node_vector[i];
-                if (prev_interval.end() + prev_interval.step() == next_interval.begin()) {
-                    auto new_interval = Interval(prev_interval.begin(), prev_interval.step(), next_interval.end());
-                    new_set_piece_this_node.emplace_back(new_interval);
-                    change = true;
-                } else {
-                    new_set_piece_this_node.emplace_back(prev_interval);
-                }
-            }
-
-            if (change) {
-                set_piece_this_node_vector.swap(new_set_piece_this_node);
-            }
-        }
-
-        for_each(set_piece_this_node_vector.begin(), set_piece_this_node_vector.end(), [&new_partition] (auto &s) { new_partition.emplace(move(s)); });
+        set_piece_this_node_vector = canonize(set_piece_this_node_vector);
+        new_partition = cup(new_partition, set_piece_this_node_vector);
     }
 
     auto diff = difference(set, new_partition);

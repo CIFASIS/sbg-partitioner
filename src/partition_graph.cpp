@@ -45,7 +45,7 @@ namespace sbg_partitioner {
 // Using an unnamed manespace to define functions with internal linkage
 namespace {
 
-UnordSet get_communication_edges(UnordSet partition, const BasePWMap& map_1, const BasePWMap& map_2)
+OrdSet get_communication_edges(OrdSet partition, const CanonPWMap& map_1, const CanonPWMap& map_2)
 {
     auto pre_image = preImage(partition, map_1);
     auto image_map_2 = image(pre_image, map_2);
@@ -58,14 +58,14 @@ UnordSet get_communication_edges(UnordSet partition, const BasePWMap& map_1, con
 
 size_t get_partition_communication(WeightedSBGraph& graph, const PartitionMap& partitions)
 {
-    SBG::LIB::UnordSet s;
+    SBG::LIB::OrdSet s;
     for (auto& [i, _] : partitions) {
         auto ss = get_connectivity_set(graph, partitions, i);
         s = SBG::LIB::cup(ss, s);
-        cout << "current connectivity set " << s << ", cardinality " << get_unordset_size(s) << endl;
+        cout << "current connectivity set " << s << ", cardinality " << get_OrdSet_size(s) << endl;
     }
 
-    size_t size = get_unordset_size(s);
+    size_t size = get_OrdSet_size(s);
 
     return size;
 }
@@ -80,8 +80,8 @@ vector<PartitionMap> make_initial_partitions(WeightedSBGraph& graph, unsigned nu
     constexpr bool pre_order = true;
     auto s1 = PartitionStrategyDistributive(number_of_partitions, graph);
     add_strategy(s1, pre_order);
-    auto s2 = PartitionStrategyDistributive(number_of_partitions, graph);
-    add_strategy(s2, not pre_order);
+    // auto s2 = PartitionStrategyDistributive(number_of_partitions, graph);
+    // add_strategy(s2, not pre_order);
     auto s3 = PartitionStrategyGreedy(number_of_partitions, graph);
     add_strategy(s3, pre_order);
     auto s4 = PartitionStrategyGreedy(number_of_partitions, graph);
@@ -92,7 +92,7 @@ vector<PartitionMap> make_initial_partitions(WeightedSBGraph& graph, unsigned nu
     for (const auto& partition : partitions) {
         PartitionMap partition_set;
         for (const auto& [id, set] : partition) {
-            SBG::LIB::UnordSet set_piece;
+            SBG::LIB::OrdSet set_piece;
             for (auto& s : set) {
                 SBG::LIB::SetPiece intervals;
                 if (not s.intervals().empty()) {
@@ -145,14 +145,14 @@ best_initial_partition(
 }
 
 
-UnordSet get_connectivity_set(
-    BaseSBG& graph,
+OrdSet get_connectivity_set(
+    CanonSBG& graph,
     const PartitionMap& partitions,
     size_t partition_index)
 {
     const auto& partition = partitions.at(partition_index);
 
-    UnordSet edges;
+    OrdSet edges;
 
     for (const auto& [i, p] : partitions) {
         if (i == partition_index) {
@@ -173,7 +173,7 @@ UnordSet get_connectivity_set(
 }
 
 
-size_t get_unordset_size(const UnordSet& set)
+size_t get_OrdSet_size(const OrdSet& set)
 {
     size_t acc = 0;
     for (auto& set_piece : set.pieces()) {
@@ -190,12 +190,12 @@ void sanity_check(const WeightedSBGraph &graph, PartitionMap& partitions_set, un
 {
 # if PARTITION_SANITY_CHECK
     // This is just a sanity check
-    UnordSet nodes_to_check;
+    OrdSet nodes_to_check;
     for (unsigned i = 0; i < number_of_partitions; i++) {
         nodes_to_check = cup(nodes_to_check, partitions_set[i]);
     }
-    UnordSet diff_1 = difference(graph.V(), nodes_to_check);
-    UnordSet diff_2 = difference(nodes_to_check, graph.V());
+    OrdSet diff_1 = difference(graph.V(), nodes_to_check);
+    OrdSet diff_2 = difference(nodes_to_check, graph.V());
     assert(get_node_size(diff_1, graph.get_node_weights()) == 0 and "The intial partition has less elements than the graph");
     assert(get_node_size(diff_2, graph.get_node_weights()) == 0 and "The intial partition has more elements than the graph");
     for (unsigned i = 0; i < number_of_partitions; i++) {

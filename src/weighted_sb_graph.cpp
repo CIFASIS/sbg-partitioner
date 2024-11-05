@@ -27,7 +27,7 @@ using namespace SBG::LIB;
 
 namespace sbg_partitioner {
 
-WeightedSBGraph addSEW(BasePWMap pw1, BasePWMap pw2, EdgeCost costs, WeightedSBGraph g)
+WeightedSBGraph addSEW(CanonPWMap pw1, CanonPWMap pw2, EdgeCost costs, WeightedSBGraph g)
 {
     //save node weights
     auto weights = g.get_node_weights();
@@ -39,7 +39,7 @@ WeightedSBGraph addSEW(BasePWMap pw1, BasePWMap pw2, EdgeCost costs, WeightedSBG
 }
 
 
-WeightedSBGraph addSVW(UnordSet nodes, NodeWeight weights, WeightedSBGraph g)
+WeightedSBGraph addSVW(OrdSet nodes, NodeWeight weights, WeightedSBGraph g)
 {
     WeightedSBGraph graph = addSV(nodes, g);
     graph.set_node_weights(weights);
@@ -50,7 +50,7 @@ WeightedSBGraph addSVW(UnordSet nodes, NodeWeight weights, WeightedSBGraph g)
 
 ostream& operator<<(ostream& os, const WeightedSBGraph& graph)
 {
-    os << BaseSBG(graph);
+    os << CanonSBG(graph);
 
     os << "node weight = << ";
     for (const auto& [set, weight] : graph.get_node_weights()) {

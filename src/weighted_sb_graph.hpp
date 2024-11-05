@@ -25,33 +25,33 @@
 
 namespace sbg_partitioner {
 
-using EdgeCost = std::map<SBG::LIB::UnordSet, unsigned>;
+using EdgeCost = std::map<SBG::LIB::OrdSet, unsigned>;
 
-using NodeWeight = std::map<SBG::LIB::UnordSet, int>;
+using NodeWeight = std::map<SBG::LIB::OrdSet, int>;
 
-struct WeightedSBGraph : public SBG::LIB::BaseSBG
+struct WeightedSBGraph : public SBG::LIB::CanonSBG
 {
 public:
     WeightedSBGraph() = default;
-    WeightedSBGraph(SBG::LIB::BaseSBG& graph) : SBG::LIB::BaseSBG(graph) {}
-    WeightedSBGraph(SBG::LIB::BaseSBG&& graph) : SBG::LIB::BaseSBG(graph) {}
+    WeightedSBGraph(SBG::LIB::CanonSBG& graph) : SBG::LIB::CanonSBG(graph) {}
+    WeightedSBGraph(SBG::LIB::CanonSBG&& graph) : SBG::LIB::CanonSBG(graph) {}
 
     void set_node_weights(NodeWeight& node_weights) { _node_weights = std::move(node_weights); }
 
     NodeWeight get_node_weights() const { return _node_weights; }
 
-    void set_node_weight(const SBG::LIB::UnordSet& node_set, int weight) { _node_weights[node_set] = weight; }
+    void set_node_weight(const SBG::LIB::OrdSet& node_set, int weight) { _node_weights[node_set] = weight; }
 
-    int get_node_weight(const SBG::LIB::UnordSet& node_set) const { return _node_weights.at(node_set); }
+    int get_node_weight(const SBG::LIB::OrdSet& node_set) const { return _node_weights.at(node_set); }
 
 
     void set_edge_costs(EdgeCost& edge_costs) { _edge_costs = std::move(edge_costs); }
 
     EdgeCost get_edge_costs() const { return _edge_costs; }
 
-    void set_edge_cost(const SBG::LIB::UnordSet& edge_set, unsigned cost) { _edge_costs[edge_set] = cost; }
+    void set_edge_cost(const SBG::LIB::OrdSet& edge_set, unsigned cost) { _edge_costs[edge_set] = cost; }
 
-    unsigned get_edge_cost(const SBG::LIB::UnordSet& edge_set) const { return _edge_costs.at(edge_set); }
+    unsigned get_edge_cost(const SBG::LIB::OrdSet& edge_set) const { return _edge_costs.at(edge_set); }
 
 private:
     NodeWeight _node_weights;
@@ -59,9 +59,9 @@ private:
     EdgeCost _edge_costs;
 };
 
-WeightedSBGraph addSVW(SBG::LIB::UnordSet nodes, NodeWeight weights, WeightedSBGraph g);
+WeightedSBGraph addSVW(SBG::LIB::OrdSet nodes, NodeWeight weights, WeightedSBGraph g);
 
-WeightedSBGraph addSEW(SBG::LIB::BasePWMap pw1, SBG::LIB::BasePWMap pw2, EdgeCost costs, WeightedSBGraph g);
+WeightedSBGraph addSEW(SBG::LIB::CanonPWMap pw1, SBG::LIB::CanonPWMap pw2, EdgeCost costs, WeightedSBGraph g);
 
 std::ostream& operator<<(std::ostream& os, const WeightedSBGraph& graph);
 

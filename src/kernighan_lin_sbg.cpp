@@ -83,13 +83,13 @@ std::ostream& operator<<(std::ostream& os, const CostMatrix& cost_matrix)
 
 static GainObject compute_diff(
     size_t i, size_t j,
-    UnordSet& partition_a,
-    UnordSet& partition_b,
+    OrdSet& partition_a,
+    OrdSet& partition_b,
     const WeightedSBGraph& graph)
 {
     // Firstly, copy both partitions
-    auto a = UnordSet(partition_a[i]);
-    auto b = UnordSet(partition_b[j]);
+    auto a = OrdSet(partition_a[i]);
+    auto b = OrdSet(partition_b[j]);
 
     // Take the minimum partition size. We add 1 because it includes the last element
     size_t size_node_a = get_node_size(a, graph.get_node_weights());
@@ -105,19 +105,19 @@ static GainObject compute_diff(
 
     // No problem here, a is just a copy of partition_a[i], same for b
     // We substract 1 because it includes the last element
-    UnordSet rest_a, rest_b;
+    OrdSet rest_a, rest_b;
     tie(a, rest_a) = cut_interval_by_dimension(a, graph.get_node_weights(), min_size);
     tie(b, rest_b) = cut_interval_by_dimension(b, graph.get_node_weights(), min_size);
 
     // Now, compute external and internal cost for both maps
-    UnordSet ec_nodes_a_1, ic_nodes_a_1;
+    OrdSet ec_nodes_a_1, ic_nodes_a_1;
     tie(ec_nodes_a_1, ic_nodes_a_1) = compute_EC_IC(partition_a, a, partition_b, graph.map1(), graph.map2());
 
-    UnordSet ec_nodes_a_2, ic_nodes_a_2;
+    OrdSet ec_nodes_a_2, ic_nodes_a_2;
     tie(ec_nodes_a_2, ic_nodes_a_2) = compute_EC_IC(partition_a, a, partition_b, graph.map2(), graph.map1());
 
     // Get the union between both external and internal costs for both combination of maps
-    UnordSet ec_nodes_a, ic_nodes_a;
+    OrdSet ec_nodes_a, ic_nodes_a;
     ec_nodes_a = cup(ec_nodes_a_1, ec_nodes_a_2);
     ic_nodes_a = cup(ic_nodes_a_1, ic_nodes_a_2);
 
@@ -126,13 +126,13 @@ static GainObject compute_diff(
     int d_a = ec_a - ic_a;
 
     // Same as before for partition b
-    UnordSet ec_nodes_b_1, ic_nodes_b_1;
+    OrdSet ec_nodes_b_1, ic_nodes_b_1;
     tie(ec_nodes_b_1, ic_nodes_b_1) = compute_EC_IC(partition_b, b, partition_a, graph.map1(), graph.map2());
 
-    UnordSet ec_nodes_b_2, ic_nodes_b_2;
+    OrdSet ec_nodes_b_2, ic_nodes_b_2;
     tie(ec_nodes_b_2, ic_nodes_b_2) = compute_EC_IC(partition_b, b, partition_a, graph.map2(), graph.map1());
 
-    UnordSet ec_nodes_b, ic_nodes_b;
+    OrdSet ec_nodes_b, ic_nodes_b;
     ec_nodes_b = cup(ec_nodes_b_1, ec_nodes_b_2);
     ic_nodes_b = cup(ic_nodes_b_1, ic_nodes_b_2);
 
@@ -153,8 +153,8 @@ static GainObject compute_diff(
 
 
 static CostMatrix generate_gain_matrix(
-    UnordSet& partition_a,
-    UnordSet& partition_b,
+    OrdSet& partition_a,
+    OrdSet& partition_b,
     const WeightedSBGraph& graph)
 {
     CostMatrix cost_matrix;
@@ -175,7 +175,7 @@ static CostMatrix generate_gain_matrix(
 
 static void remove_nodes_from_cost_matrix(
     CostMatrix& cost_matrix,
-    UnordSet& partition,
+    OrdSet& partition,
     const GainObject& gain_object)
 {
     vector<CostMatrix::iterator> to_be_removed;
@@ -194,8 +194,8 @@ static void remove_nodes_from_cost_matrix(
 
 
 static void update_cost_matrix(
-    UnordSet& partition_a,
-    UnordSet& partition_b,
+    OrdSet& partition_a,
+    OrdSet& partition_b,
     const GainObject& gain_object,
     const WeightedSBGraph& graph,
     CostMatrix& cost_matrix)
@@ -209,27 +209,27 @@ static void update_cost_matrix(
 
 
 // Partition a and b (A_c and B_c in the definition) are the remining nodes to be visited, not the actual partitions
-static pair<UnordSet, UnordSet> update_sets(
-    UnordSet& partition_a,
-    UnordSet& partition_b,
-    UnordSet& current_moved_partition_a,
-    UnordSet& current_moved_partition_b,
+static pair<OrdSet, OrdSet> update_sets(
+    OrdSet& partition_a,
+    OrdSet& partition_b,
+    OrdSet& current_moved_partition_a,
+    OrdSet& current_moved_partition_b,
     const GainObject& gain_object,
     const NodeWeight& node_weight)
 {
-    auto node_a = UnordSet(partition_a[gain_object.i]);
+    auto node_a = OrdSet(partition_a[gain_object.i]);
     size_t partition_size_a = get_node_size(node_a, node_weight);
     bool node_a_is_fully_used = partition_size_a == gain_object.size;
     if (not node_a_is_fully_used) {
-        UnordSet rest_a;
+        OrdSet rest_a;
         tie(node_a, rest_a) = cut_interval_by_dimension(node_a, node_weight, gain_object.size);
     }
 
-    auto node_b = UnordSet(partition_b[gain_object.j]);
+    auto node_b = OrdSet(partition_b[gain_object.j]);
     size_t partition_size_b = get_node_size(node_b, node_weight);
     bool node_b_is_fully_used = partition_size_b == gain_object.size;
     if (not node_b_is_fully_used) {
-        UnordSet rest_b;
+        OrdSet rest_b;
         tie(node_b, rest_b) = cut_interval_by_dimension(node_b, node_weight, gain_object.size);
     }
 
@@ -255,8 +255,8 @@ static pair<UnordSet, UnordSet> update_sets(
 
 static void update_diff(
     CostMatrix& cost_matrix,
-    UnordSet& partition_a,
-    UnordSet& partition_b,
+    OrdSet& partition_a,
+    OrdSet& partition_b,
     const WeightedSBGraph& graph,
     const GainObject& gain_object)
 {
@@ -279,7 +279,7 @@ static void update_diff(
 
 
 
-int kl_sbg(const WeightedSBGraph& graph, UnordSet& partition_a, UnordSet& partition_b)
+int kl_sbg(const WeightedSBGraph& graph, OrdSet& partition_a, OrdSet& partition_b)
 {
 #if KERNIGHAN_LIN_SBG_DEBUG
     cout << "Algorithm starts with " << partition_a << ", " << partition_b << endl;
@@ -287,10 +287,10 @@ int kl_sbg(const WeightedSBGraph& graph, UnordSet& partition_a, UnordSet& partit
     auto a_c = partition_a;
     auto b_c = partition_b;
     int max_par_sum = 0;
-    auto max_par_sum_set = make_pair(UnordSet(), UnordSet());
+    auto max_par_sum_set = make_pair(OrdSet(), OrdSet());
     int par_sum = 0;
-    UnordSet a_v = UnordSet();
-    UnordSet b_v = UnordSet();
+    OrdSet a_v = OrdSet();
+    OrdSet b_v = OrdSet();
 
     CostMatrix gm = generate_gain_matrix(partition_a, partition_b, graph);
 
@@ -300,7 +300,7 @@ int kl_sbg(const WeightedSBGraph& graph, UnordSet& partition_a, UnordSet& partit
 
     while ((not isEmpty(a_c)) and (not isEmpty(b_c))) {
         GainObject g = max_diff(gm, a_c, b_c, graph);
-        UnordSet a_, b_;
+        OrdSet a_, b_;
         tie(a_, b_) = update_sets(a_c, b_c, a_v, b_v, g, graph.get_node_weights());
         update_diff(gm, a_c, b_c, graph, g);
         update_sum(par_sum, g.gain, max_par_sum, max_par_sum_set, a_v, b_v);
@@ -319,7 +319,7 @@ int kl_sbg(const WeightedSBGraph& graph, UnordSet& partition_a, UnordSet& partit
 }
 
 
-KLBipartResult kl_sbg_bipart(const WeightedSBGraph& graph, SBG::LIB::UnordSet& partition_a, SBG::LIB::UnordSet& partition_b)
+KLBipartResult kl_sbg_bipart(const WeightedSBGraph& graph, SBG::LIB::OrdSet& partition_a, SBG::LIB::OrdSet& partition_b)
 {
     auto partition_a_copy = partition_a;
     auto partition_b_copy = partition_b;
@@ -351,7 +351,7 @@ ostream& operator<<(ostream& os, const kl_sbg_partitioner_result& result)
 
 static kl_sbg_partitioner_result kl_sbg_partitioner_function(const WeightedSBGraph& graph, PartitionMap& partitions)
 {
-    kl_sbg_partitioner_result best_gain = kl_sbg_partitioner_result{ 0, 0, -1, UnordSet(), UnordSet()};
+    kl_sbg_partitioner_result best_gain = kl_sbg_partitioner_result{ 0, 0, -1, OrdSet(), OrdSet()};
     for (size_t i = 0; i < partitions.size(); i++) {
         for (size_t j = i + 1; j < partitions.size(); j++) {
             auto p_1_copy = partitions[i];
@@ -376,13 +376,13 @@ static kl_sbg_partitioner_result kl_sbg_partitioner_function(const WeightedSBGra
 
 static kl_sbg_partitioner_result kl_sbg_partitioner_multithreading(const WeightedSBGraph& graph, PartitionMap& partitions)
 {
-    kl_sbg_partitioner_result best_gain = kl_sbg_partitioner_result{ 0, 0, -1, UnordSet(), UnordSet()};
+    kl_sbg_partitioner_result best_gain = kl_sbg_partitioner_result{ 0, 0, -1, OrdSet(), OrdSet()};
     vector<future<kl_sbg_partitioner_result>> workers;
     for (size_t i = 0; i < partitions.size(); i++) {
         for (size_t j = i + 1; j < partitions.size(); j++) {
             auto th = async([&graph, &partitions, i, j] () {
-                UnordSet p_1_copy = partitions[i];
-                UnordSet p_2_copy = partitions[j];
+                OrdSet p_1_copy = partitions[i];
+                OrdSet p_2_copy = partitions[j];
                 KLBipartResult results = kl_sbg_bipart(graph, p_1_copy, p_2_copy);
                 return kl_sbg_partitioner_result{i, j, results.gain, results.A, results.B};
             });

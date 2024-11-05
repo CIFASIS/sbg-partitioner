@@ -37,13 +37,13 @@ namespace metrics {
 
 namespace {
 
-UnordSet get_edge_cut(
-    const UnordSet& partition_a,
-    const UnordSet& partition_b,
-    const MapSet<SBG::LIB::UnordSet>& maps_1,
-    const MapSet<SBG::LIB::UnordSet>& maps_2)
+OrdSet get_edge_cut(
+    const OrdSet& partition_a,
+    const OrdSet& partition_b,
+    const MapSet<SBG::LIB::OrdSet>& maps_1,
+    const MapSet<SBG::LIB::OrdSet>& maps_2)
 {
-    UnordSet external_communication;
+    OrdSet external_communication;
     for (size_t i = 0; i < maps_1.size(); i++) {
         auto map_1 = *(maps_1.begin() + i);
         auto map_2 = *(maps_2.begin() + i);
@@ -64,7 +64,7 @@ int communication_volume_one_dim(const PartitionMap& partitions, const SetPiece&
     for (unsigned value = v.intervals()[0].begin(); value <= v.intervals()[0].end(); value += v.intervals()[0].step()) {
         int local_total_vol = 0;
         Interval set_piece = Interval(value, v.intervals()[0].step(), value);
-        const UnordSet adjacents = get_adjacents(sb_graph, set_piece);
+        const OrdSet adjacents = get_adjacents(sb_graph, set_piece);
 
         for (unsigned j = 0; j < partitions.size(); j++) {
             if (i == j) {
@@ -98,7 +98,7 @@ int communication_volume_two_dim(const PartitionMap& partitions, const SetPiece&
             set_piece.emplaceBack(interval_0);
             set_piece.emplaceBack(interval_1);
 
-            const UnordSet adjacents = get_adjacents(sb_graph, set_piece);
+            const OrdSet adjacents = get_adjacents(sb_graph, set_piece);
 
             for (unsigned j = 0; j < partitions.size(); j++) {
                 if (i == j) {
@@ -181,13 +181,13 @@ void write_node_by_partition(const PartitionMap& partitions, const WeightedSBGra
 
 int edge_cut(const PartitionMap& partitions, const WeightedSBGraph& sb_graph)
 {
-    UnordSet ec;
+    OrdSet ec;
     const auto& maps_1 = sb_graph.map1().maps();
     const auto& maps_2 = sb_graph.map2().maps();;
     for (size_t i = 0; i < partitions.size(); i++) {
-        const UnordSet& partition_1 = partitions.at(i);
+        const OrdSet& partition_1 = partitions.at(i);
         for (size_t j = i + 1; j < partitions.size(); j++) {
-            const UnordSet& partition_2 = partitions.at(j);
+            const OrdSet& partition_2 = partitions.at(j);
             ec = cup(get_edge_cut(partition_1, partition_2, maps_1, maps_2), ec);
             ec = cup(get_edge_cut(partition_1, partition_2, maps_2, maps_1), ec);
         }

@@ -46,7 +46,7 @@ SBG::LIB::Interval get_pre_image(const SBG::LIB::Interval& image_interval, const
 /// @param graph the graph where we are looking for connections.
 /// @param node set of nodes we want to know its connections.
 /// @return a set of nodes connected to the function parameter.
-SBG::LIB::UnordSet get_adjacents(const SBG::LIB::BaseSBG& graph, const SBG::LIB::SetPiece& node);
+SBG::LIB::OrdSet get_adjacents(const SBG::LIB::CanonSBG& graph, const SBG::LIB::SetPiece& node);
 
 
 /// Takes a set piece and calculate its size of the intervals. E.g [1:10] has 10 elements,
@@ -57,16 +57,16 @@ unsigned get_node_size(const SBG::LIB::SetPiece& node, const NodeWeight& node_we
 
 
 /// Takes each set piece and calculates its size, then adds them
-unsigned get_node_size(const SBG::LIB::UnordSet& node, const NodeWeight& node_weight);
+unsigned get_node_size(const SBG::LIB::OrdSet& node, const NodeWeight& node_weight);
 
 
-unsigned get_edge_set_cost(const SBG::LIB::UnordSet& node, const EdgeCost& edge_cost);
+unsigned get_edge_set_cost(const SBG::LIB::OrdSet& node, const EdgeCost& edge_cost);
 
 
 unsigned get_edge_set_cost(const SBG::LIB::SetPiece& node, const EdgeCost& edge_cost);
 
 
-void flatten_set(SBG::LIB::UnordSet &set, const SBG::LIB::BaseSBG& graph);
+void flatten_set(SBG::LIB::OrdSet &set, const SBG::LIB::CanonSBG& graph);
 
 
 /// It returns the edge cost or node weight of the input set. It looks for a key in cost that intersects
@@ -75,12 +75,12 @@ void flatten_set(SBG::LIB::UnordSet &set, const SBG::LIB::BaseSBG& graph);
 /// @param costs hashtable with set/costs.
 /// @return the cost of set.
 template<typename T>
-T get_set_cost(const SBG::LIB::SetPiece& set, const std::map<SBG::LIB::UnordSet, T>& costs)
+T get_set_cost(const SBG::LIB::SetPiece& set, const std::map<SBG::LIB::OrdSet, T>& costs)
 {
     T weight = 1;
-    SBG::LIB::UnordSet unordset = SBG::LIB::UnordSet(set);
+    SBG::LIB::OrdSet OrdSet = SBG::LIB::OrdSet(set);
     for (const auto [cost_set, w] : costs) {
-        if (intersection(unordset, cost_set).size() > 0) {
+        if (intersection(OrdSet, cost_set).size() > 0) {
             weight = costs.at(cost_set);
         }
     }
@@ -89,5 +89,5 @@ T get_set_cost(const SBG::LIB::SetPiece& set, const std::map<SBG::LIB::UnordSet,
 }
 
 
-std::pair<SBG::LIB::UnordSet, SBG::LIB::UnordSet> cut_interval_by_dimension(SBG::LIB::UnordSet& set_piece, const NodeWeight& node_weight, size_t size);
+std::pair<SBG::LIB::OrdSet, SBG::LIB::OrdSet> cut_interval_by_dimension(SBG::LIB::OrdSet& set_piece, const NodeWeight& node_weight, size_t size);
 }

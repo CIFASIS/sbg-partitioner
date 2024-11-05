@@ -94,7 +94,7 @@ private:
     unsigned _acceptable_amount;
     std::map<unsigned, std::set<SBG::LIB::SetPiece>> _partitions;
     std::map<unsigned, unsigned> _current_size_by_partition;
-    SBG::LIB::UnordSet _nodes;
+    SBG::LIB::OrdSet _nodes;
     NodeWeight _node_weight;
 };
 

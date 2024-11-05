@@ -17,6 +17,7 @@
 
  ******************************************************************************/
 
+#include <chrono>
 #include <getopt.h>
 #include <iostream>
 #include <optional>
@@ -61,7 +62,7 @@ int main(int argc, char** argv)
     static struct option long_options[] = {
       {"filename", required_argument, 0, 'f'},
       {"partitions", required_argument, 0, 'p'},
-      {"output", required_argument, 0, 'o'},
+      // {"output", required_argument, 0, 'o'},
       {"version", no_argument, 0, 'v'},
       {"help", no_argument, 0, 'h'}
     };
@@ -128,7 +129,11 @@ int main(int argc, char** argv)
   cout << "filename is " << *filename << endl;
   cout << "number of partitions is " << *number_of_partitions << endl;
 
+  auto start = chrono::high_resolution_clock::now();
   auto partition_str = partitionate_nodes(*filename, *number_of_partitions, *epsilon, output_sb_graph);
+  auto end = chrono::high_resolution_clock::now();
+  auto duration = chrono::duration_cast<chrono::milliseconds>(end - start);
+  cout << "total time: " << duration.count() << endl;
 
   cout << "final results " << partition_str << endl;
 

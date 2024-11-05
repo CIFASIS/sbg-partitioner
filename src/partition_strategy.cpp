@@ -75,7 +75,7 @@ void PartitionStrategyGreedy::operator() (const SetPiece& node)
 #if DEBUG_PARTITION_STRATEGY_ENABLED
     cout << "Adding node " << node << endl;
 #endif
-    UnordSet node_to_be_added = node;
+    OrdSet node_to_be_added = node;
 
     // let's just work with sizes
     map<unsigned, unsigned> size_by_partition;
@@ -105,7 +105,7 @@ void PartitionStrategyGreedy::operator() (const SetPiece& node)
         _current_size_by_partition[p] += to_be_added;
     }
 
-    UnordSet remaining_node = UnordSet(node);
+    OrdSet remaining_node = OrdSet(node);
     for (unsigned i = 0; i < _number_of_partitions; i++) {
         if (size_by_partition[i] == 0) {
             continue;
@@ -113,7 +113,7 @@ void PartitionStrategyGreedy::operator() (const SetPiece& node)
 
         auto &p = _partitions[i];
 
-        UnordSet node_to_be_added;
+        OrdSet node_to_be_added;
         tie(node_to_be_added, remaining_node) = cut_interval_by_dimension(remaining_node, _node_weight, size_by_partition[i]);
 
         for_each(node_to_be_added.begin(), node_to_be_added.end(), [&p](const auto& set_piece) { p.insert(set_piece); });
@@ -195,7 +195,7 @@ void PartitionStrategyDistributive::operator() (const SBG::LIB::SetPiece& node)
         add_surplus_sorting_by_value(_current_size_by_partition, size_by_partition, surplus);
     }
 
-    UnordSet node_to_be_added = node;
+    OrdSet node_to_be_added = node;
     for (const auto [i, n] : size_by_partition) {
 #if DEBUG_PARTITION_STRATEGY_ENABLED
         cout << "For partition " << i << " size: " << n << endl;
@@ -204,13 +204,13 @@ void PartitionStrategyDistributive::operator() (const SBG::LIB::SetPiece& node)
             continue;
         }
         auto &p = _partitions[i];
-        UnordSet temp_node;
+        OrdSet temp_node;
 
         tie(temp_node, node_to_be_added) = cut_interval_by_dimension(node_to_be_added, NodeWeight(), size_by_partition[i]);
 #if DEBUG_PARTITION_STRATEGY_ENABLED
         cout << "About to add " << temp_node << " to " << i << ", remaining: " << node_to_be_added << endl;
 #endif
-        for_each(temp_node.pieces().begin(), temp_node.pieces().end(), [&p](const SetPiece& s) { p.insert(s); });
+        for_each(temp_node.begin(), temp_node.end(), [&p](const SetPiece& s) { p.insert(s); });
         _current_size_by_partition[i] += get_node_size(temp_node, _node_weight);
     }
 }

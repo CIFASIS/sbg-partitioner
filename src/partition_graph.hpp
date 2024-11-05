@@ -30,7 +30,7 @@
 
 namespace sbg_partitioner {
 
-typedef std::map<unsigned, SBG::LIB::UnordSet> PartitionMap;
+typedef std::map<unsigned, SBG::LIB::OrdSet> PartitionMap;
 
 enum PartitionAlgorithm
 {
@@ -39,7 +39,7 @@ enum PartitionAlgorithm
 };
 
 // I wish this was a separate function, not part of PartitionGraph but there were a lot of
-// compile problems if partitions map object is created locally and UnordSet objects are added.
+// compile problems if partitions map object is created locally and OrdSet objects are added.
 std::vector<PartitionMap>
 make_initial_partitions(
     WeightedSBGraph& graph,
@@ -53,16 +53,16 @@ best_initial_partition(
 
 
 /// Returns the connectivity set of a set of edges contained in map1 and map2 of
-/// the graph (I mean, edges in BaseSBG::map1()[edge_index] and BaseSBG::map2()[edge_index]).
+/// the graph (I mean, edges in CanonSBG::map1()[edge_index] and CanonSBG::map2()[edge_index]).
 /// So that, we consider the graph as an undirected graph.
-SBG::LIB::UnordSet get_connectivity_set(
-    SBG::LIB::BaseSBG& graph,
+SBG::LIB::OrdSet get_connectivity_set(
+    SBG::LIB::CanonSBG& graph,
     const PartitionMap& partitions,
     size_t edge_index);
 
 
-/// This function returns the cardinality of a UnordSet.
-size_t get_unordset_size(const SBG::LIB::UnordSet& set);
+/// This function returns the cardinality of a OrdSet.
+size_t get_OrdSet_size(const SBG::LIB::OrdSet& set);
 
 
 std::string get_output(const PartitionMap& partition_map);
