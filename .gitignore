@@ -20,3 +20,9 @@ bin/
 
 # Ignore tests results.
 src/test/system/test_data/*
+
+# Generated partition files.
+*.partition
+
+# Generated bear compile_commands.
+compile_commands.json
