@@ -92,8 +92,8 @@ sbg-partitioner-lib: build-sbg-partitioner-lib lib-boost lib-sbg | create-folder
 
 build-sbg-partitioner-lib: $(LIB_SBG_PARTITIONER)
 
-$(LIB_SBG_PARTITIONER): $(OSOURCES)
-	ar rcs $(LIB_SBG_PARTITIONER) $(SCR_DIR)/*.o
+$(LIB_SBG_PARTITIONER): $(OSOURCES) | create-folders
+	ar rcs $(LIB_SBG_PARTITIONER) $(SCR_DIR)/*.o $(SBG_LIB_PATH)/$(SBG_DEV)/usr/lib/libsbgraph.a
 
 sbg-partitioner-main: $(MAIN_OBJ)
 	$(CXX) $(INCLUDES) -c $(MAIN_SRC) -o $(MAIN_OBJ) $(CXXFLAGS)

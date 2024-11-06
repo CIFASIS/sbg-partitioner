@@ -79,7 +79,7 @@ T get_set_cost(const SBG::LIB::SetPiece& set, const std::map<SBG::LIB::UnordSet,
 {
     T weight = 1;
     SBG::LIB::UnordSet unordset = SBG::LIB::UnordSet(set);
-    for (const auto [cost_set, w] : costs) {
+    for (const auto& [cost_set, w] : costs) {
         if (intersection(unordset, cost_set).size() > 0) {
             weight = costs.at(cost_set);
         }
