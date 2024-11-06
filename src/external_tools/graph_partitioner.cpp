@@ -1,0 +1,263 @@
+/*****************************************************************************
+
+ This file is part of SBG Partitioner.
+
+ SBG Partitioner is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ SBG Partitioner is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+
+ You should have received a copy of the GNU General Public License
+ along with SBG Partitioner.  If not, see <http://www.gnu.org/licenses/>.
+
+ *****************************************************************************/
+
+#include <array>
+#include <algorithm>
+#include <cassert>
+#include <cstdlib>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <stdexcept>
+#include <string>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unordered_map>
+#include <unistd.h>
+#include <vector>
+
+#include <kahip/kaHIP_interface.h>
+#include <patoh/patoh.h>
+#include <build_sb_graph.hpp>
+
+#include "graph_partitioner.hpp"
+
+constexpr const char *VALID_PARTITION_METHODS = "{ Scotch, Metis, HMetis, Patoh }";
+
+// Initialize the map outside the function
+static const std::unordered_map<std::string, PartitionMethod> PARTITION_METHOD_MAP = {{"Metis", PartitionMethod::Metis},
+                                                                                      {"HMetis", PartitionMethod::HMetis},
+                                                                                      {"Scotch", PartitionMethod::Scotch},
+                                                                                      {"Patoh", PartitionMethod::Patoh},
+                                                                                      {"Kahip", PartitionMethod::Kahip}};
+
+GraphPartitioner::GraphPartitioner(const std::string &name) : _name(name) { generateInputGraph(); }
+
+const std::string GraphPartitioner::validPartitionMethodsStr()
+{
+    std::ostringstream valid_methods;
+    valid_methods << "{";
+    for (const auto& pair : PARTITION_METHOD_MAP) {
+        if (&pair != &*PARTITION_METHOD_MAP.begin()) {
+            valid_methods << ",";
+        }
+        valid_methods << pair.first;
+    }
+    valid_methods << "}";
+    return valid_methods.str();
+}
+
+Partition GraphPartitioner::createPartition(const std::string &partition_method_name, unsigned int partitions)
+{
+  Partition partition;
+  PartitionMethod partition_method = partitionMethod(partition_method_name);
+
+  if (partition_method == PartitionMethod::Unknown) {
+      std::cerr << "Unknown partition method, valid values are: " << validPartitionMethodsStr() << std::endl;
+    return partition;
+  }
+
+  partition.resize(_nbr_vtxs);
+
+  _nbr_parts = partitions;
+
+  partition.resize(_nbr_vtxs);
+  if (_nbr_vtxs > _nbr_parts) {
+    switch (partition_method) {
+    case PartitionMethod::Metis:
+      partitionUsingMetis(partition);
+      break;
+    case PartitionMethod::HMetis:
+      partitionUsingHMetis(partition);
+      break;
+    case PartitionMethod::Scotch:
+      partitionUsingScotch(partition);
+      break;
+    case PartitionMethod::Patoh:
+      partitionUsingPatoh(partition);
+      break;
+    case PartitionMethod::Kahip:
+      partitionUsingKaHip(partition);
+      break;
+    default:
+      break;
+    }
+  }
+
+  savePartitionToFile(partition, partition_method_name);
+  return partition;
+}
+
+void GraphPartitioner::generateInputGraph()
+{
+  // @todo: Read the JSON file and generate the input graph for the partitioners.
+  sbg_partitioner::WeightedSBGraph sbg_graph =  sbg_partitioner::build_sb_graph(_name);
+  
+  // Dummy test input.
+  _nbr_vtxs = 6;                             // Number of vertices
+  _edges = 7;                                // Number of edges
+  _xadj = {0, 2, 4, 6, 7, 9, 10};            // Adjacency list index
+  _adjncy = {1, 2, 0, 3, 1, 4, 2, 5, 3, 4};  // Adjacency list
+  _vwgt.resize(_nbr_vtxs, 1);                // Vertex weights
+  _ewgt.resize(_edges, 1);                   // Edge weights
+}
+
+PartitionMethod GraphPartitioner::partitionMethod(const std::string &partition_method) const
+{
+  if (auto it = PARTITION_METHOD_MAP.find(partition_method); it != PARTITION_METHOD_MAP.end()) {
+      return it->second;
+  } 
+  return PartitionMethod::Unknown;
+}
+
+void GraphPartitioner::savePartitionToFile(const Partition &partition, const std::string &method_name) const
+{
+  std::string fileName = _name + "-" + method_name + "-" + std::to_string(_nbr_parts) + "-" + std::to_string(_nbr_vtxs) + ".partition";
+  std::ofstream file(fileName);
+  if (file.is_open()) {
+    for (const auto &value : partition.values) {
+      file << value << std::endl;
+    }
+    file.close();
+  }
+}
+
+void GraphPartitioner::partitionUsingMetis(Partition &partition)
+{
+  idx_t ncon = 1;
+  idx_t edgecut;
+  std::array<idx_t, METIS_NOPTIONS> options;
+
+  METIS_SetDefaultOptions(options.data());
+  options[METIS_OPTION_CONTIG] = 1;
+  options[METIS_OPTION_PTYPE] = METIS_PTYPE_KWAY;
+  options[METIS_OPTION_OBJTYPE] = METIS_OBJTYPE_VOL;
+  options[METIS_OPTION_SEED] = 1;
+
+  METIS_PartGraphKway(&_nbr_vtxs, &ncon, _xadj.data(), _adjncy.data(), _vwgt.data(), nullptr, _ewgt.data(), &_nbr_parts, nullptr, nullptr,
+                      options.data(), &edgecut, partition.values.data());
+}
+
+void GraphPartitioner::partitionUsingHMetis(Partition &partition)
+{
+  std::string h_graph_name = _name + ".hmetis";
+  if (fork() == 0) {
+    // Child process
+    createHMetisGraphFile(h_graph_name);
+    executeKhmetis(h_graph_name);
+    std::abort();
+  } else {
+    wait(nullptr);
+    readPartitionFile(h_graph_name, partition);
+  }
+}
+
+void GraphPartitioner::createHMetisGraphFile(const std::string &file_name)
+{
+  std::ofstream h_graph_file(file_name);
+  if (h_graph_file.is_open()) {
+    h_graph_file << _edges << " " << _nbr_vtxs << "\n";
+    for (grp_t i = 0; i < _edges; ++i) {
+      h_graph_file << _ewgt[i] << " ";
+      for (grp_t j = _xadj[i]; j < _xadj[i + 1]; ++j) {
+        h_graph_file << _adjncy[j] + 1 << " ";
+      }
+      h_graph_file << "\n";
+    }
+    for (grp_t i = 0; i < _nbr_vtxs; ++i) {
+      if (!_vwgt.empty()) {
+        h_graph_file << _vwgt[i] << "\n";
+      }
+    }
+    h_graph_file.close();
+  }
+}
+
+void GraphPartitioner::executeKhmetis(const std::string &h_graph_name) const
+{
+  std::string parts = std::to_string(_nbr_parts);
+  execlp("./khmetis", "./khmetis", h_graph_name.c_str(), parts.c_str(), "5", "10", "1", "1", "0", "0", nullptr);
+}
+
+void GraphPartitioner::readPartitionFile(const std::string &file_name, Partition &partition) const
+{
+  std::ifstream part_file(file_name);
+  if (!part_file.is_open()) {
+    std::cerr << "Error opening file: " << file_name << std::endl;
+    return;
+  }
+
+  grp_t part;
+  while (part_file >> part) {  // Read until the end of the file
+    partition.values.push_back(part);
+  }
+  part_file.close();
+}
+
+void GraphPartitioner::partitionUsingScotch(Partition &partition)
+{
+  SCOTCH_Graph *graph_sc = SCOTCH_graphAlloc();
+  if (graph_sc == nullptr) {
+    std::cerr << "Error allocating graph" << std::endl;
+    return;
+  }
+  SCOTCH_Strat *strat = SCOTCH_stratAlloc();
+  SCOTCH_stratInit(strat);
+
+  if (SCOTCH_graphBuild(graph_sc, 0, _nbr_vtxs, _xadj.data(), nullptr, _vwgt.data(), nullptr, _edges, _adjncy.data(), _ewgt.data()) != 0) {
+    std::cerr << "Error: Scotch Graph Build" << std::endl;
+    return;
+  }
+  if (SCOTCH_graphPart(graph_sc, _nbr_parts, strat, partition.values.data()) != 0) {
+    std::cerr << "Error: Scotch Graph Partition" << std::endl;
+    return;
+  }
+
+  SCOTCH_stratExit(strat);
+  SCOTCH_graphFree(graph_sc);
+}
+
+void GraphPartitioner::partitionUsingPatoh(Partition &partition)
+{
+  int n_const = 1;
+  int edge_cut = 0;
+  std::vector<int> part_weights(_nbr_parts * n_const, 0);
+
+  PaToH_Parameters args;
+  PaToH_Initialize_Parameters(&args, PATOH_CUTPART, PATOH_SUGPARAM_QUALITY);
+
+  args._k = _nbr_parts;
+  args.final_imbal = 0.1;
+  args.seed = 1;
+
+  PaToH_Alloc(&args, _nbr_vtxs, _edges, n_const, _vwgt.data(), _ewgt.data(), _xadj.data(), _adjncy.data());
+  PaToH_Part(&args, _nbr_vtxs, _edges, n_const, 0, _vwgt.data(), _ewgt.data(), _xadj.data(), _adjncy.data(), nullptr,
+             partition.values.data(), part_weights.data(), &edge_cut);
+  PaToH_Free();
+}
+
+void GraphPartitioner::partitionUsingKaHip(Partition &partition)
+{
+  int edge_cut = 0;
+  int seed = 0;
+  const bool SUPPRESS_OUTPUT = false;
+
+  kaffpa(&_nbr_vtxs, nullptr, _xadj.data(), nullptr, _adjncy.data(), &_nbr_parts, &_imbalance, SUPPRESS_OUTPUT, seed, STRONG, &edge_cut,
+         partition.values.data());
+}
