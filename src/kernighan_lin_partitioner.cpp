@@ -53,7 +53,11 @@ struct GainObjectImbalance {
     size_t i;
     size_t j;
     int gain;
+    OrdSet ec_nodes_i;
+    OrdSet ic_nodes_i;
     size_t size_i;
+    OrdSet ec_nodes_j;
+    OrdSet ic_nodes_j;
     size_t size_j;
 };
 
@@ -148,17 +152,14 @@ size_t get_c_ab(
     const CanonPWMap& map_2,
     const EdgeCost& costs)
 {
-    auto f = [](auto& a, auto& b, const CanonPWMap& departure_map, const CanonPWMap& arrival_map) {
+    auto f = [](auto& a, auto& b, const CanonPWMap& map_1, const CanonPWMap& map_2) {
         OrdSet comm_edges;
-        for (size_t i = 0; i < departure_map.maps().size(); i++) {
-            auto map_1 = *(departure_map.maps().begin() + i);
-            auto map_2 = *(arrival_map.maps().begin() + i);
-            auto d = preImage(a, map_1);
-            auto im = image(d, map_2);
-            auto inters = intersection(b, im);
-            auto edges = preImage(inters, map_2);
-            comm_edges = cup(edges, comm_edges);
-        }
+        auto d = preImage(a, map_1);
+        auto im = image(d, map_2);
+        auto inters = intersection(b, im);
+        auto edges = preImage(inters, map_2);
+        edges = intersection(edges, d);
+        comm_edges = cup(edges, comm_edges);
 
         return comm_edges;
     };
@@ -181,24 +182,20 @@ ec_ic compute_EC_IC(
     const OrdSet& partition,
     const OrdSet& nodes,
     const OrdSet& partition_2,
-    const CanonPWMap& departure_map,
-    const CanonPWMap& arrival_map)
+    const CanonPWMap& map_1,
+    const CanonPWMap& map_2)
 {
     OrdSet ec, ic;
-    for (size_t i = 0; i < departure_map.maps().size(); i++) {
-        auto map_1 = *(departure_map.maps().begin() + i);
-        auto map_2 = *(arrival_map.maps().begin() + i);
-        auto d = preImage(nodes, map_1);
-        auto im = image(d, map_2);
-        auto ic_nodes = intersection(partition, im);
-        ic_nodes = difference(ic_nodes, nodes);
-        auto ec_nodes = difference(im, ic_nodes);
-        ec_nodes = intersection(ec_nodes, partition_2);
-        auto ic_ = preImage(ic_nodes, map_2);
-        auto ec_ = preImage(ec_nodes, map_2);
-        ec = cup(ec_, ec);
-        ic = cup(ic_, ic);
-    }
+    auto d = preImage(nodes, map_1);
+    auto im = image(d, map_2);
+    auto ic_nodes = intersection(partition, im);
+    ic_nodes = difference(ic_nodes, nodes);
+    auto ec_nodes = difference(im, ic_nodes);
+    ec_nodes = intersection(ec_nodes, partition_2);
+    auto ic_ = intersection(preImage(ic_nodes, map_2), d);
+    auto ec_ = intersection(preImage(ec_nodes, map_2), d);
+    ec = cup(ec_, ec);
+    ic = cup(ic_, ic);
 
     return make_pair(ec, ic);
 }
@@ -333,7 +330,7 @@ void compute_partition_imbalance(unsigned i, unsigned j, OrdSet& partition_a,
         // calculate gain
         int gain = d_a + d_b - 2 * c_ab;
 
-        auto gain_obj = GainObjectImbalance{i, j, gain, i_a[idx], i_b[idx]};
+        auto gain_obj = GainObjectImbalance{i, j, gain, ec_nodes_a, ic_nodes_a, i_a[idx], ec_nodes_b, ic_nodes_b, i_b[idx]};
         cost_matrix.emplace(move(gain_obj));
     }
 }
@@ -360,7 +357,7 @@ CostMatrixImbalance generate_gain_matrix(
 
 
 // Partition a and b (A_c and B_c in the definition) are the remining nodes to be visited, not the actual partitions
-pair<OrdSet, OrdSet> update_sets(
+pair<pair<OrdSet, OrdSet>, pair<OrdSet, OrdSet>> update_sets(
     OrdSet& partition_a,
     OrdSet& partition_b,
     OrdSet& current_moved_partition_a,
@@ -371,8 +368,8 @@ pair<OrdSet, OrdSet> update_sets(
     auto node_a = OrdSet(partition_a[gain_object.i]);
     size_t partition_size_a = get_node_size(node_a, graph.get_node_weights());
     bool node_a_is_fully_used = partition_size_a == gain_object.size_i;
+    OrdSet rest_a;
     if (not node_a_is_fully_used) {
-        OrdSet rest_a;
         tie(node_a, rest_a) = cut_interval_by_dimension(node_a, graph.get_node_weights(), gain_object.size_i);
         cout << "cut_interval_by_dimension " << gain_object.size_i << ": " << node_a << rest_a << endl;
     }
@@ -380,8 +377,8 @@ pair<OrdSet, OrdSet> update_sets(
     auto node_b = OrdSet(partition_b[gain_object.j]);
     size_t partition_size_b = get_node_size(node_b, graph.get_node_weights());
     bool node_b_is_fully_used = partition_size_b == gain_object.size_j;
+    OrdSet rest_b;
     if (not node_b_is_fully_used) {
-        OrdSet rest_b;
         tie(node_b, rest_b) = cut_interval_by_dimension(node_b, graph.get_node_weights(), gain_object.size_j);
         cout << "cut_interval_by_dimension " << gain_object.size_j << ": " << node_b << rest_b << endl;
     }
@@ -392,31 +389,122 @@ pair<OrdSet, OrdSet> update_sets(
     current_moved_partition_a = cup(current_moved_partition_a, node_a);
     current_moved_partition_b = cup(current_moved_partition_b, node_b);
 
-    flatten_set(partition_a, graph);
-    flatten_set(partition_b, graph);
-
-    flatten_set(current_moved_partition_a, graph);
-    flatten_set(current_moved_partition_b, graph);
-
-    return make_pair(node_a, node_b);
+    return make_pair(make_pair(node_a, rest_a), make_pair(node_b, rest_b));
 }
 
 
 void update_diff(
     CostMatrixImbalance& cost_matrix,
     OrdSet& partition_a,
+    pair<OrdSet, OrdSet> affected_node_a,
     OrdSet& partition_b,
+    pair<OrdSet, OrdSet> affected_node_b,
     const WeightedSBGraph& graph,
     const NodeWeight& node_weight,
     const GainObjectImbalance& gain_object,
     unsigned LMin,
     unsigned LMax)
 {
-    // this must be improved
-    cost_matrix.clear();
-    cost_matrix = generate_gain_matrix(graph, node_weight, partition_a, partition_b, LMin, LMax);
+    cout << affected_node_a.first << ", " << affected_node_a.second << endl;
+    cout << affected_node_b.first << ", " << affected_node_b.second << endl;
+
+    // Firstly, check if indexes need fixing. Three possible causes.
+    size_t partition_size_a = get_node_size(affected_node_a.second, node_weight);
+    bool node_a_fully_used = partition_size_a == 0;
+
+    size_t partition_size_b = get_node_size(affected_node_b.second, node_weight);
+    bool node_b_fully_used = partition_size_b == 0;
+    // all the interval was used
+    // fix indexes:
+    if (node_a_fully_used or node_b_fully_used) {
+        CostMatrixImbalance new_cost_matrix;
+        for (auto g : cost_matrix) {
+            if (node_a_fully_used and g.i == gain_object.i) {
+                continue;
+            }
+
+            if (node_b_fully_used and g.j == gain_object.j) {
+                continue;
+            }
+
+            if (node_a_fully_used and g.i > gain_object.i) {
+                g.i--;
+            }
+
+            if (node_b_fully_used and g.j > gain_object.j) {
+                g.j--;
+            }
+
+            new_cost_matrix.insert(g);
+        }
+        cost_matrix = new_cost_matrix;
+    }
+
+    if (not node_a_fully_used) {
+        CostMatrixImbalance new_cost_matrix;
+        for (auto g : cost_matrix) {
+            if (g.i == gain_object.i) {
+                compute_partition_imbalance(gain_object.i, g.j, partition_a, partition_b, graph, node_weight, LMin, LMax, new_cost_matrix);
+            } else {
+                new_cost_matrix.insert(g);
+            }
+        }
+
+        cost_matrix = new_cost_matrix;
+    }
+
+    if (not node_b_fully_used) {
+        CostMatrixImbalance new_cost_matrix;
+        for (auto g : cost_matrix) {
+            if (g.j == gain_object.j) {
+                compute_partition_imbalance(g.i, gain_object.j, partition_a, partition_b, graph, node_weight, LMin, LMax, new_cost_matrix);
+            } else {
+                new_cost_matrix.insert(g);
+            }
+        }
+
+        cost_matrix = new_cost_matrix;
+    }
+
+    CostMatrixImbalance new_cost_matrix;
+    for (auto g : cost_matrix) {
+        bool change = false;
+        if (not isEmpty(intersection(g.ic_nodes_i, gain_object.ic_nodes_i)) or not isEmpty(intersection(g.ec_nodes_i, gain_object.ec_nodes_j))) {
+            g.ic_nodes_i = difference(g.ic_nodes_i, gain_object.ic_nodes_i);
+            g.ec_nodes_i = difference(g.ec_nodes_i, gain_object.ec_nodes_j);
+            change = true;
+        }
+
+        if (not isEmpty(intersection(g.ic_nodes_j, gain_object.ic_nodes_j)) or not isEmpty(intersection(g.ec_nodes_j, gain_object.ec_nodes_i))) {
+            g.ic_nodes_j = difference(g.ic_nodes_j, gain_object.ic_nodes_j);
+            g.ec_nodes_j = difference(g.ec_nodes_j, gain_object.ec_nodes_i);
+            change = true;
+        }
+
+        if (change) {
+            size_t ec_i = get_edge_set_cost(g.ec_nodes_i, graph.get_edge_costs());
+            size_t ic_i = get_edge_set_cost(g.ic_nodes_i, graph.get_edge_costs());
+            int d_i = ec_i - ic_i;
+
+            size_t ec_j = get_edge_set_cost(g.ec_nodes_j, graph.get_edge_costs());
+            size_t ic_j = get_edge_set_cost(g.ic_nodes_j, graph.get_edge_costs());
+            int d_j = ec_j - ic_j;
+
+            // Get communication between a and b
+            size_t c_ab = get_c_ab(partition_a[g.i], partition_b[g.j], graph.map1(), graph.map2(), graph.get_edge_costs());
+
+            // calculate gain
+            int gain = d_i + d_j - 2 * c_ab;
+            g.gain = gain;
+        }
+
+        cout << "CHANGE " << change << endl;
+
+        new_cost_matrix.insert(g);
+    }
+
 #if PARTITION_IMBALANCE_DEBUG
-    cout << partition_a << ", " << partition_b << ", " << cost_matrix << endl;
+    cout << partition_a << ", " << partition_b << ", " << gain_object << ", " << cost_matrix << endl;
 #endif
 }
 
@@ -487,9 +575,9 @@ int kl_sbg_imbalance(
         cout << "inside the while " << a_c << b_c << endl;
         GainObjectImbalance g = max_diff(gm, a_c, b_c, graph);
         cout << g << endl;
-        OrdSet a_, b_;
+        pair<OrdSet, OrdSet> a_, b_;
         tie(a_, b_) = update_sets(a_c, b_c, a_v, b_v, g, graph);
-        update_diff(gm, a_c, b_c, graph, node_weights, g, LMin, LMax);
+        update_diff(gm, a_c, a_, b_c, b_, graph, node_weights, g, LMin, LMax);
         update_sum(par_sum, g.gain, max_par_sum, max_par_sum_set, a_v, b_v);
     }
 
