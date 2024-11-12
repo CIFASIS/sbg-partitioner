@@ -268,7 +268,7 @@ void compute_partition_imbalance(unsigned i, unsigned j, OrdSet& partition_a,
     i_a.push_back(nodes_bal_part_a);
     i_b.push_back(nodes_bal_part_b);
 
-    if (false) {
+    if (LMin > 0 or LMax > 0) {
         partition_imbalance(nodes_a, partition_a, partition_b, node_weight, i_a, i_b, LMin, LMax);
 
         partition_imbalance(nodes_b, partition_b, partition_a, node_weight, i_b, i_a, LMin, LMax);
@@ -677,7 +677,7 @@ kl_sbg_partitioner_result kl_sbg_partitioner_multithreading(
 void kl_sbg_imbalance_partitioner(
     const WeightedSBGraph& graph, PartitionMap& partitions, const float imbalance_epsilon)
 {
-    auto [LMin, LMax] = compute_lmin_lmax(graph, partitions.size(), imbalance_epsilon);
+    auto [LMin, LMax] = imbalance_epsilon > 0.0 ? compute_lmin_lmax(graph, partitions.size(), imbalance_epsilon) : make_pair<unsigned, unsigned>(0, 0);
     bool change = true;
     int counter = 0;
     while (change) {
