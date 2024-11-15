@@ -79,12 +79,8 @@ void DFS::initialize_adjacents()
         for (node_identifier edge_counter = 0; edge_counter < _graph.E().size() - 1; edge_counter++) {
             const auto edge = _graph.E()[edge_counter];
 
-            for (node_identifier map_counter = 0; map_counter < _graph.map1().size(); map_counter++) {
-                const auto map1 = _graph.map1()[map_counter];
-                add_adjacent_nodes(i, map1, edge);
-                const auto map2 = _graph.map2()[map_counter];
-                add_adjacent_nodes(i, map2, edge);
-            }
+            add_adjacent_nodes(i, _graph.map1(), edge);
+            add_adjacent_nodes(i, _graph.map2(), edge);
         }
     }
 
@@ -102,11 +98,11 @@ void DFS::initialize_adjacents()
 }
 
 
-void DFS::add_adjacent_nodes(const node_identifier id, const CanonMap& map, const SetPiece& edge)
+void DFS::add_adjacent_nodes(const node_identifier id, const CanonPWMap& map, const SetPiece& edge)
 {
-    const auto edge_map_intersection = intersection(edge, map.dom());
+    const auto edge_map_intersection = intersection(edge, dom(map));
     if (not isEmpty(edge_map_intersection)) {
-        const auto map_image = image(*edge_map_intersection.pieces().begin(), map.exp());
+        const auto map_image = image(edge_map_intersection, map);
 
         for (node_identifier node_idx = 0; node_idx < _graph.V().size(); node_idx++) {
             if (node_idx == id) {
