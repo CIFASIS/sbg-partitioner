@@ -211,13 +211,13 @@ void partition_imbalance(
     unsigned LMin,
     unsigned LMax)
 {
-    unsigned p_size = get_node_size(partition, node_weights);
+    unsigned p_size = get_node_size(partition_2, node_weights);
     unsigned max_imbal_part = LMax > p_size ? LMax - p_size : 0;
-    cout << "For " << partition << " are " << LMax << ", " << p_size << ", " << max_imbal_part << endl;
+    cout << "For " << partition_2 << " are " << LMax << ", " << p_size << ", " << max_imbal_part << endl;
 
-    unsigned p_size_2 = get_node_size(partition_2, node_weights);
-    unsigned min_imbal_part = p_size_2 > LMin ? p_size_2 - LMin : 0;
-    cout << "For " << partition_2 << " are " << LMin << ", " << p_size_2 << ", " << min_imbal_part << endl;
+    unsigned p_size_ = get_node_size(partition, node_weights);
+    unsigned min_imbal_part = p_size_ > LMin ? p_size_ - LMin : 0;
+    cout << "For " << partition << " are " << LMin << ", " << p_size_ << ", " << min_imbal_part << endl;
 
     // assuming we only move one set piece
     assert(nodes.size() == 1);
@@ -233,12 +233,12 @@ void partition_imbalance(
     }
 
     if (nodes_imbal_part > 0 and unsigned(nodes_imbal_part) > get_node_size(nodes, NodeWeight())) {
-        nodes_imbal_part = get_node_size(nodes, NodeWeight());
+        nodes_imbal_part = get_node_size(nodes, node_weights);
     }
 
     if (nodes_imbal_part > 0) {
-        i.push_back(0);
-        i_2.push_back(nodes_imbal_part);
+        i.push_back(nodes_imbal_part);
+        i_2.push_back(0);
     }
 }
 
