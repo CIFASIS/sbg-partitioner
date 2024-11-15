@@ -693,7 +693,7 @@ void kl_sbg_imbalance_partitioner(
 
         // now, apply changes
         if (best_gain.gain > 0) {
-            // change = true;
+            change = true;
             partitions[best_gain.i] = best_gain.A;
             partitions[best_gain.j] = best_gain.B;
         }
