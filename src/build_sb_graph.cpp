@@ -265,7 +265,7 @@ tuple<OrdSet, NodeWeight> create_set_of_nodes(const map<int, Node>& nodes, map<i
 }
 
 
-vector<pair<Var, Exp>> read_left_vars(const Node& node)
+vector<pair<Var, Exp>> read_left_vars(const Node& node, const string& var_id = "")
 {
   const auto& l_nodes = node.lhs;
 
@@ -273,6 +273,10 @@ vector<pair<Var, Exp>> read_left_vars(const Node& node)
 
   vector<pair<Var, Exp>> exps;
   for (const auto& l_node : l_nodes) {
+    if (not var_id.empty() and l_node.id != var_id) {
+      continue;
+    }
+
     Var var = l_node;
     Exp exp;
 
@@ -335,6 +339,7 @@ CanonMap create_set_edge_map(const OrdSet& pre_image, const OrdSet& edge_domain,
 
     i++;
   }
+  cout << "created " << i << " maps out of " << var_exps << endl;
 
   // And create the map
   map.set_exp(map_exps);
@@ -406,14 +411,14 @@ tuple<OrdSet, CanonPWMap, CanonPWMap, EdgeCost> create_graph_edges(
     cout << "Looking for connections with " << id << endl;
 
     // Define the equation intervals (without offsets)
-    OrdSet intervals;
+    OrdSet current_node_domain;
     SetPiece interval_set_piece;
     // assert(node.intervals.size() == 1);
     for (const auto& node_interval : node.intervals) {
       Interval interval(node_interval.first, 1, node_interval.second);
       interval_set_piece.emplaceBack(interval);
     }
-    intervals.emplace(interval_set_piece);
+    current_node_domain.emplace(interval_set_piece);
 
     vector<pair<Var, Exp>> this_node_exps = read_left_vars(node);
 
@@ -426,10 +431,10 @@ tuple<OrdSet, CanonPWMap, CanonPWMap, EdgeCost> create_graph_edges(
       }
 
       // Now, calculate the image of the rhs expression
-      auto rhs_map = CanonMap(intervals, right_exps);
+      auto rhs_map = CanonMap(current_node_domain, right_exps);
       // This is the image *used* by this expression, wwe want to
       // check where is defined.
-      auto used_node_image = image(CanonMap(intervals, right_exps));
+      auto used_node_image = image(CanonMap(current_node_domain, right_exps));
 
       // Definitions of this variable are on defs field. We want to check if
       // intersects with any node
@@ -438,17 +443,17 @@ tuple<OrdSet, CanonPWMap, CanonPWMap, EdgeCost> create_graph_edges(
         auto node_candidate = nodes.at(i);
 
         // Domain of the node candidate
-        OrdSet node_candidate_intervals = get_node_domain<OrdSet>(node_candidate);
+        OrdSet node_candidate_domain = get_node_domain<OrdSet>(node_candidate);
 
         // look for definitions of the same variable
-        auto exps_and_var_names = read_left_vars(node_candidate);
+        auto exps_and_var_names = read_left_vars(node_candidate, right_var.id);
         for (const auto& [var, node_candidate_exps] : exps_and_var_names) {
           if (var.id != right_var.id) {
             continue;
           }
 
           // Now, get the image.
-          auto node_candidate_CanonMap = CanonMap(node_candidate_intervals, node_candidate_exps);
+          auto node_candidate_CanonMap = CanonMap(node_candidate_domain, node_candidate_exps);
           auto node_candidate_image = image(node_candidate_CanonMap);
 
           // we want to see if the intersection of the images is not empty
@@ -463,28 +468,27 @@ tuple<OrdSet, CanonPWMap, CanonPWMap, EdgeCost> create_graph_edges(
           auto image_intersection_set = candidate_image_intersection[0];
 
           // we need to create an edge for each left hand side variable, that means a couple of maps for each one
-         for (const auto& [_, exp] : this_node_exps) {
-            OrdSet edge_domain_set = get_edge_domain<OrdSet>(image_intersection_set, edge_set, max_value);
-            // Create map to node candidate
-            auto node_candidate_map = create_set_edge_map(candidate_image_intersection, edge_domain_set, node_candidate_exps, node_offsets.at(i));
-            auto node_candidate_map_image = image(node_candidate_map);
-            cout << "image: " << node_candidate_map_image << endl;
+          const auto& [_, exp] = *this_node_exps.begin();
+          OrdSet edge_domain_set = get_edge_domain<OrdSet>(image_intersection_set, edge_set, max_value);
+          // Create map to node candidate
+          auto node_candidate_map = create_set_edge_map(candidate_image_intersection, edge_domain_set, node_candidate_exps, node_offsets.at(i));
+          auto node_candidate_map_image = image(node_candidate_map);
+          cout << "image: " << node_candidate_map_image << endl;
 
-            // Create map to current node
-            auto pre_image_current_node = preImage(OrdSet(image_intersection_set), rhs_map);
-            auto im = image(CanonMap(OrdSet(pre_image_current_node), exp));
-            auto current_node_map = create_set_edge_map(im, edge_domain_set, exp, node_offsets.at(id));
-            auto current_node_map_image = image(current_node_map);
-            cout << "image: " << current_node_map_image << endl;
+          // Create map to current node
+          auto pre_image_current_node = preImage(OrdSet(image_intersection_set), rhs_map);
+          auto im = image(CanonMap(OrdSet(pre_image_current_node), exp));
+          auto current_node_map = create_set_edge_map(im, edge_domain_set, exp, node_offsets.at(id));
+          auto current_node_map_image = image(current_node_map);
+          cout << "image: " << current_node_map_image << endl;
 
-            if (not (current_node_map_image == node_candidate_map_image)) {
-                lhs_maps.emplace(current_node_map);
-                rhs_maps.emplace(node_candidate_map);
-            }
-            cout << "----" << endl;
-
-            costs.insert({edge_domain_set, var.cost});
+          if (not (current_node_map_image == node_candidate_map_image)) {
+              lhs_maps.emplace(current_node_map);
+              rhs_maps.emplace(node_candidate_map);
           }
+          cout << "----" << endl;
+
+          costs.insert({edge_domain_set, var.cost});
         }
       }
     }
