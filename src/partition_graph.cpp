@@ -159,14 +159,10 @@ OrdSet get_connectivity_set(
             continue;
         }
 
-        for (size_t i = 0; i < graph.map1().size(); i++) {
-            auto map_1 = *(graph.map1().maps().begin() + i);
-            auto map_2 = *(graph.map2().maps().begin() + i);
-            auto comm_edges_1 = get_communication_edges(partition, map_1, map_2);
-            auto comm_edges_2 = get_communication_edges(partition, map_2, map_1);
-            auto comm_edges = cup (comm_edges_1, comm_edges_2);
-            edges = cup(edges, comm_edges);
-        }
+        auto comm_edges_1 = get_communication_edges(partition, graph.map1(), graph.map2());
+        auto comm_edges_2 = get_communication_edges(partition, graph.map2(), graph.map1());
+        auto comm_edges = cup (comm_edges_1, comm_edges_2);
+        edges = cup(edges, comm_edges);
     }
 
     return edges;
