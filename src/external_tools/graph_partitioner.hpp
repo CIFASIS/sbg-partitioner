@@ -47,12 +47,14 @@ class GraphPartitioner {
 
   Partition createPartition(const std::string& partition_method, unsigned int partitions);
 
-  static const std::string validPartitionMethodsStr();
+  static std::string validPartitionMethodsStr();
 
   private:
   PartitionMethod partitionMethod(const std::string& partition_method) const;
 
   void generateInputGraph();
+
+  void readGraph(const std::string& file_name);
 
   void savePartitionToFile(const Partition &partition, const std::string& method_name) const;
   void readPartitionFile(const std::string &file_name, Partition &partition) const;

@@ -49,7 +49,7 @@ static const std::unordered_map<std::string, PartitionMethod> PARTITION_METHOD_M
 
 GraphPartitioner::GraphPartitioner(const std::string &name) : _name(name) { generateInputGraph(); }
 
-const std::string GraphPartitioner::validPartitionMethodsStr()
+std::string GraphPartitioner::validPartitionMethodsStr()
 {
     std::ostringstream valid_methods;
     valid_methods << "{";
@@ -116,6 +116,43 @@ void GraphPartitioner::generateInputGraph()
   _adjncy = {1, 2, 0, 3, 1, 4, 2, 5, 3, 4};  // Adjacency list
   _vwgt.resize(_nbr_vtxs, 1);                // Vertex weights
   _ewgt.resize(_edges, 1);                   // Edge weights
+}
+
+void GraphPartitioner::readGraph(const std::string& file_name)
+{
+  const std::string graph_file_name = file_name + ".graph";
+  const std::string graph_size_file_name = graph_file_name + ".size";
+
+  std::ifstream graph_size_file(graph_size_file_name, std::ios::binary);
+  if (!graph_size_file) {
+      std::cerr << "Error opening file: " << graph_size_file_name << std::endl;
+      return;
+  }
+
+  std::ifstream graph_file(graph_file_name, std::ios::binary);
+  if (!graph_file) {
+      std::cerr << "Error opening file: " << graph_file_name << std::endl;
+      return;
+  }
+  
+  graph_size_file.read(reinterpret_cast<char*>(&_nbr_vtxs), sizeof(_nbr_vtxs));
+  graph_size_file.read(reinterpret_cast<char*>(&_edges), sizeof(_edges));
+
+  graph_size_file.close();  
+
+  _xadj.resize(_nbr_vtxs + 1);  
+  _xadj[0] = 0;
+
+  for (int i = 0; i < _nbr_vtxs; ++i) {
+      graph_file.read(reinterpret_cast<char*>(&_xadj[i+1]), sizeof(int));
+  }
+
+  _adjncy.resize(_edges);  
+  for (int i = 0; i < _edges; ++i) {
+      graph_file.read(reinterpret_cast<char*>(&_adjncy[i]), sizeof(int));
+  }
+
+  graph_file.close();
 }
 
 PartitionMethod GraphPartitioner::partitionMethod(const std::string &partition_method) const
