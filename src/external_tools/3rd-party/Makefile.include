@@ -8,14 +8,16 @@ LIB_PATOH      := $(LIB_PATOH_DIR)/libpatoh.a
 
 # Build KaHIP library
 $(LIB_KAHIP): | create-folders
+ifeq ("$(wildcard $(LIB_DIR)/kahip)","")
 	cd $(3RD_PARTY_DIR)/KaHIP && tar xvzf ./KaHIP-3.16.tar.gz
 	cd $(KAHIP_DIR) && ./compile_withcmake.sh
 	mkdir -p $(BIN_DIR)/kahip $(LIB_DIR)/kahip $(INC_DIR)/kahip
-	mv $(KAHIP_DIR)/deploy/*.a $(LIB_DIR)/kahip/ || true
-	mv $(KAHIP_DIR)/deploy/*.h $(INC_DIR)/kahip/ || true
-	mv $(KAHIP_DIR)/deploy/parallel $(LIB_DIR)/kahip/ || true
-	mv $(KAHIP_DIR)/deploy/* $(BIN_DIR)/kahip/ || true
+	mv $(KAHIP_DIR)/deploy/*.a $(LIB_DIR)/kahip/
+	mv $(KAHIP_DIR)/deploy/*.h $(INC_DIR)/kahip/
+	mv $(KAHIP_DIR)/deploy/parallel $(LIB_DIR)/kahip/
+	mv $(KAHIP_DIR)/deploy/* $(BIN_DIR)/kahip/
 	rm -rf $(KAHIP_DIR)
+endif
 
 # Install pre-compiled PatoH library
 $(LIB_PATOH): | create-folders
