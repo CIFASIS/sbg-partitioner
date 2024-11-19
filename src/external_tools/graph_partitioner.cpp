@@ -20,6 +20,7 @@
 #include <array>
 #include <algorithm>
 #include <cassert>
+#include <chrono>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
@@ -78,6 +79,9 @@ Partition GraphPartitioner::createPartition(const std::string &partition_method_
   _nbr_parts = partitions;
 
   partition.resize(_nbr_vtxs);
+
+  auto start = std::chrono::high_resolution_clock::now();
+
   if (_nbr_vtxs > _nbr_parts) {
     switch (partition_method) {
     case PartitionMethod::Metis:
@@ -100,27 +104,38 @@ Partition GraphPartitioner::createPartition(const std::string &partition_method_
     }
   }
 
+  auto end = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> duration = end - start;
+
+  std::cout << "Partition Time: " << duration.count() << " seconds." << std::endl;
+
   savePartitionToFile(partition, partition_method_name);
   return partition;
 }
 
-void GraphPartitioner::generateInputGraph()
+bool GraphPartitioner::endsWithJson()
 {
-  // @todo: Read the JSON file and generate the input graph for the partitioners.
-  sbg_partitioner::WeightedSBGraph sbg_graph =  sbg_partitioner::build_sb_graph(_name);
-  
-  // Dummy test input.
-  _nbr_vtxs = 6;                             // Number of vertices
-  _edges = 7;                                // Number of edges
-  _xadj = {0, 2, 4, 6, 7, 9, 10};            // Adjacency list index
-  _adjncy = {1, 2, 0, 3, 1, 4, 2, 5, 3, 4};  // Adjacency list
-  _vwgt.resize(_nbr_vtxs, 1);                // Vertex weights
-  _ewgt.resize(_edges, 1);                   // Edge weights
+  return _name.size() >= 5 && _name.compare(_name.size() - 5, 5, ".json") == 0;
 }
 
-void GraphPartitioner::readGraph(const std::string& file_name)
+void GraphPartitioner::generateInputGraph()
 {
-  const std::string graph_file_name = file_name + ".graph";
+  if (endsWithJson()) {
+    readGraphFromJson();
+  } else {
+    readGraph();
+  }
+}
+
+void GraphPartitioner::readGraphFromJson()
+{
+  sbg_partitioner::WeightedSBGraph sbg_graph =  sbg_partitioner::build_sb_graph(_name);
+  // @todo: Fill the vectors used by the partitiones from the SBG Graph.
+}
+
+void GraphPartitioner::readGraph()
+{
+  const std::string graph_file_name = _name + ".graph";
   const std::string graph_size_file_name = graph_file_name + ".size";
 
   std::ifstream graph_size_file(graph_size_file_name, std::ios::binary);
@@ -153,6 +168,10 @@ void GraphPartitioner::readGraph(const std::string& file_name)
   }
 
   graph_file.close();
+
+  // @todo: Read weights files.
+  _vwgt.resize(_nbr_vtxs, 1);
+  _ewgt.resize(_edges, 1);
 }
 
 PartitionMethod GraphPartitioner::partitionMethod(const std::string &partition_method) const

@@ -54,7 +54,10 @@ class GraphPartitioner {
 
   void generateInputGraph();
 
-  void readGraph(const std::string& file_name);
+  bool endsWithJson();
+
+  void readGraphFromJson();
+  void readGraph();
 
   void savePartitionToFile(const Partition &partition, const std::string& method_name) const;
   void readPartitionFile(const std::string &file_name, Partition &partition) const;
