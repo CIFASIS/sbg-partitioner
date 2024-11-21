@@ -69,6 +69,9 @@ unsigned get_edge_set_cost(const SBG::LIB::SetPiece& node, const EdgeCost& edge_
 void flatten_set(SBG::LIB::OrdSet &set, const SBG::LIB::CanonSBG& graph);
 
 
+WeightedSBGraph create_air_conditioners_graph();
+
+
 /// It returns the edge cost or node weight of the input set. It looks for a key in cost that intersects
 /// the input set, and returns its value. If no key intersects the input set, it will return 1.
 /// @param set input set we want to know the cost or weight/

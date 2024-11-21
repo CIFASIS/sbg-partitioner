@@ -47,7 +47,7 @@ namespace sbg_partitioner {
 // Using unnamed namespace to define functions with internal linkage
 namespace {
 
-constexpr bool multithreading_enabled = true;
+constexpr bool multithreading_enabled = false;
 
 struct GainObjectImbalance {
     size_t i;
@@ -169,6 +169,8 @@ size_t get_c_ab(
 
     auto communication_edges = cup(intersection1, intersection2);
 
+    cout << "Comm between " << a << " and " << b << ": " << communication_edges << endl;
+
     size_t comm_size = get_edge_set_cost(communication_edges, costs);
 
     return comm_size;
@@ -213,16 +215,13 @@ void partition_imbalance(
 {
     unsigned p_size = get_node_size(partition_2, node_weights);
     unsigned max_imbal_part = LMax > p_size ? LMax - p_size : 0;
-    cout << "For " << partition_2 << " are " << LMax << ", " << p_size << ", " << max_imbal_part << endl;
 
     unsigned p_size_ = get_node_size(partition, node_weights);
     unsigned min_imbal_part = p_size_ > LMin ? p_size_ - LMin : 0;
-    cout << "For " << partition << " are " << LMin << ", " << p_size_ << ", " << min_imbal_part << endl;
 
     // assuming we only move one set piece
     assert(nodes.size() == 1);
     unsigned node_weight = get_set_cost(nodes[0], node_weights);
-    cout << "node weight is " << node_weight << endl;
 
     unsigned nodes_imbal_part = floor(max_imbal_part / node_weight);
 
@@ -263,7 +262,7 @@ void compute_partition_imbalance(unsigned i, unsigned j, OrdSet& partition_a,
     int weight_b = get_set_cost(partition_b[j], node_weight);
 
     int nodes_bal_part_a = floor(min_size / weight_a);
-    int nodes_bal_part_b = floor(min_size / weight_b);
+    int nodes_bal_part_b = floor(min_size / weight_b); 
 
     i_a.push_back(nodes_bal_part_a);
     i_b.push_back(nodes_bal_part_b);
@@ -275,16 +274,6 @@ void compute_partition_imbalance(unsigned i, unsigned j, OrdSet& partition_a,
     }
 
     assert(i_a.size() == i_b.size());
-
-    cout << nodes_a << endl;
-    cout << "i_a: ";
-    for_each(i_a.cbegin(), i_a.cend(), [](const auto& s) { cout << s << " "; });
-    cout << endl;
-
-    cout << nodes_b << endl;
-    cout << "i_b: ";
-    for_each(i_b.cbegin(), i_b.cend(), [](const auto& s) { cout << s << " "; });
-    cout << endl;
 
     for (size_t idx = 0; idx < i_a.size(); idx++) {
         // No problem here, a is just a copy of partition_a[i], same for b
@@ -305,6 +294,8 @@ void compute_partition_imbalance(unsigned i, unsigned j, OrdSet& partition_a,
         ec_nodes_a = cup(ec_nodes_a_1, ec_nodes_a_2);
         ic_nodes_a = cup(ic_nodes_a_1, ic_nodes_a_2);
 
+        cout << "Node " << i << ", " << nodes_a << " ec: " << ec_nodes_a << " and ic: " << ic_nodes_a << endl;
+
         size_t ec_a = get_edge_set_cost(ec_nodes_a, graph.get_edge_costs());
         size_t ic_a = get_edge_set_cost(ic_nodes_a, graph.get_edge_costs());
         int d_a = ec_a - ic_a;
@@ -319,6 +310,8 @@ void compute_partition_imbalance(unsigned i, unsigned j, OrdSet& partition_a,
         OrdSet ec_nodes_b, ic_nodes_b;
         ec_nodes_b = cup(ec_nodes_b_1, ec_nodes_b_2);
         ic_nodes_b = cup(ic_nodes_b_1, ic_nodes_b_2);
+
+        cout << "Node: " << j << ", " << nodes_b << " ec: " << ec_nodes_b << " and ic: " << ic_nodes_b << endl;
 
         size_t ec_b = get_edge_set_cost(ec_nodes_b, graph.get_edge_costs());
         size_t ic_b = get_edge_set_cost(ic_nodes_b, graph.get_edge_costs());
@@ -382,9 +375,12 @@ pair<pair<OrdSet, OrdSet>, pair<OrdSet, OrdSet>> update_sets(
         tie(node_b, rest_b) = cut_interval_by_dimension(node_b, graph.get_node_weights(), gain_object.size_j);
         cout << "cut_interval_by_dimension " << gain_object.size_j << ": " << node_b << rest_b << endl;
     }
-
+    cout << "we remove " << node_a << " from " << partition_a << " and we get: ";
     partition_a = difference(partition_a, node_a);
+    cout << partition_a << endl;
+    cout << "we remove " << node_b << " from " << partition_b << " and we get: ";
     partition_b = difference(partition_b, node_b);
+    cout << partition_b << endl;
 
     current_moved_partition_a = cup(current_moved_partition_a, node_a);
     current_moved_partition_b = cup(current_moved_partition_b, node_b);
@@ -498,7 +494,6 @@ void update_diff(
             g.gain = gain;
         }
 
-        cout << "CHANGE " << change << endl;
 
         new_cost_matrix.insert(g);
     }
@@ -599,22 +594,12 @@ int kl_sbg_imbalance(
 KLBipartResult kl_sbg_bipart_imbalance(const WeightedSBGraph& graph, OrdSet& partition_a,
     OrdSet& partition_b, unsigned LMin, unsigned LMax)
 {
-    auto partition_a_copy = partition_a;
-    auto partition_b_copy = partition_b;
-    int gain = kl_sbg_imbalance(graph, partition_a_copy, partition_b_copy, LMin, LMax);
-
-    while (not (partition_a_copy == partition_a) and not (partition_b_copy == partition_b)) {
-        partition_a = partition_a_copy;
-        partition_b = partition_b_copy;
-        gain = max(kl_sbg_imbalance(graph, partition_a_copy, partition_b_copy, LMin, LMax), gain);
-#if PARTITION_IMBALANCE_DEBUG
-        cout << "gain: " << gain << endl;
-#endif
-    }
+    int gain = kl_sbg_imbalance(graph, partition_a, partition_b, LMin, LMax);
 
 #if PARTITION_IMBALANCE_DEBUG
     cout << "Final: " << partition_a << ", " << partition_b << endl;
 #endif
+
     return KLBipartResult{partition_a, partition_b, gain};
 }
 
@@ -810,7 +795,8 @@ string partitionate_nodes(
     const float epsilon,
     optional<string>& graph_str)
 {
-    auto sb_graph = build_sb_graph(filename.c_str());
+    // auto sb_graph = build_sb_graph(filename.c_str());
+    auto sb_graph = create_air_conditioners_graph();
 
     cout << sb_graph << endl;
     cout << "sb graph created!" << endl;
@@ -843,7 +829,8 @@ pair<WeightedSBGraph, PartitionMap> partitionate_nodes_for_metrics(
     const unsigned number_of_partitions,
     const float epsilon)
 {
-    auto sb_graph = build_sb_graph(filename.c_str());
+    // auto sb_graph = build_sb_graph(filename.c_str());
+    auto sb_graph = create_air_conditioners_graph();
 
     cout << sb_graph << endl;
     cout << "sb graph created!" << endl;

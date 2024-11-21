@@ -473,6 +473,7 @@ tuple<OrdSet, CanonPWMap, CanonPWMap, EdgeCost> create_graph_edges(
           // Create map to node candidate
           auto node_candidate_map = create_set_edge_map(candidate_image_intersection, edge_domain_set, node_candidate_exps, node_offsets.at(i));
           auto node_candidate_map_image = image(node_candidate_map);
+          cout << "map is " << node_candidate_map << endl;
           cout << "image: " << node_candidate_map_image << endl;
 
           // Create map to current node
@@ -480,6 +481,7 @@ tuple<OrdSet, CanonPWMap, CanonPWMap, EdgeCost> create_graph_edges(
           auto im = image(CanonMap(OrdSet(pre_image_current_node), exp));
           auto current_node_map = create_set_edge_map(im, edge_domain_set, exp, node_offsets.at(id));
           auto current_node_map_image = image(current_node_map);
+          cout << "map is " << current_node_map << endl;
           cout << "image: " << current_node_map_image << endl;
 
           if (not (current_node_map_image == node_candidate_map_image)) {
@@ -809,6 +811,85 @@ void flatten_set(OrdSet &set, const CanonSBG& graph)
     assert(isEmpty(diff));
 
     set = new_partition;
+}
+
+
+
+
+WeightedSBGraph create_air_conditioners_graph()
+{
+    OrdSet nodes = OrdSet();
+    nodes.emplaceBack(Interval(0, 1, 99)); //th
+    nodes.emplaceBack(Interval(100, 1, 100)); //ierr
+    nodes.emplaceBack(Interval(101, 1, 101)); //ptotal
+    nodes.emplaceBack(Interval(102, 1, 103)); //ev_1
+    nodes.emplaceBack(Interval(104, 1, 105)); //ev_2
+    nodes.emplaceBack(Interval(106, 1, 106)); //ev_3
+    nodes.emplaceBack(Interval(107, 1, 107)); //ev_4
+    nodes.emplaceBack(Interval(108, 1, 108)); //ev_5
+    nodes.emplaceBack(Interval(109, 1, 158)); //ev_6
+    nodes.emplaceBack(Interval(159, 1, 208)); //ev_7
+    nodes.emplaceBack(Interval(209, 1, 308)); //ev_8
+
+    // maps
+    CanonPWMap lhs_maps;
+    CanonPWMap rhs_maps;
+
+    lhs_maps.emplaceBack(CanonMap(Interval(319, 1, 368), Exp(LExp(1, RAT(-319, 1))))); // E1
+    rhs_maps.emplaceBack(CanonMap(Interval(319, 1, 368), Exp(LExp(1, RAT(-210, 1)))));
+
+    lhs_maps.emplaceBack(CanonMap(Interval(369, 1, 418), Exp(LExp(1, RAT(-319, 1))))); // E2
+    rhs_maps.emplaceBack(CanonMap(Interval(369, 1, 418), Exp(LExp(1, RAT(-210, 1)))));
+
+    lhs_maps.emplaceBack(CanonMap(Interval(419, 1, 518), Exp(LExp(1, RAT(-419, 1))))); // E3
+    rhs_maps.emplaceBack(CanonMap(Interval(419, 1, 518), Exp(LExp(1, RAT(-210,1 )))));
+
+    lhs_maps.emplaceBack(CanonMap(Interval(519, 1, 519), Exp(LExp(0, 100)))); // E4
+    rhs_maps.emplaceBack(CanonMap(Interval(519, 1, 519), Exp(LExp(0, 106))));
+
+    lhs_maps.emplaceBack(CanonMap(Interval(520, 1, 520), Exp(LExp(0, 100)))); // E5
+    rhs_maps.emplaceBack(CanonMap(Interval(520, 1, 520), Exp(LExp(0, 107))));
+
+    lhs_maps.emplaceBack(CanonMap(Interval(521, 1, 521), Exp(LExp(0, 100)))); // E6
+    rhs_maps.emplaceBack(CanonMap(Interval(521, 1, 521), Exp(LExp(0, 108))));
+
+    lhs_maps.emplaceBack(CanonMap(Interval(522, 1, 523), Exp(LExp(1, RAT(-420, 1))))); // E7
+    rhs_maps.emplaceBack(CanonMap(Interval(522, 1, 523), Exp(LExp(1, RAT(-418, 1)))));
+
+    lhs_maps.emplaceBack(CanonMap(Interval(524, 1, 525), Exp(LExp(1, RAT(-420, 1))))); // E8
+    rhs_maps.emplaceBack(CanonMap(Interval(524, 1, 525), Exp(LExp(0, 101))));
+
+    lhs_maps.emplaceBack(CanonMap(Interval(526, 1, 526), Exp(LExp(0, 106)))); // E9
+    rhs_maps.emplaceBack(CanonMap(Interval(526, 1, 526), Exp(LExp(0, 108))));
+
+    lhs_maps.emplaceBack(CanonMap(Interval(527, 1, 527), Exp(LExp(0, 107)))); // E10
+    rhs_maps.emplaceBack(CanonMap(Interval(527, 1, 527), Exp(LExp(0, 108))));
+
+    lhs_maps.emplaceBack(CanonMap(Interval(528, 1, 528), Exp(LExp(0, 101)))); // E11
+    rhs_maps.emplaceBack(CanonMap(Interval(528, 1, 528), Exp(LExp(0, 108))));
+
+    lhs_maps.emplaceBack(CanonMap(Interval(529, 1, 578), Exp(LExp(0, 102)))); // E12
+    rhs_maps.emplaceBack(CanonMap(Interval(529, 1, 578), Exp(LExp(1, RAT(-420, 1)))));
+
+    lhs_maps.emplaceBack(CanonMap(Interval(579, 1, 628), Exp(LExp(0, 103)))); // E13
+    rhs_maps.emplaceBack(CanonMap(Interval(579, 1, 628), Exp(LExp(1, RAT(-420, 1)))));
+
+    lhs_maps.emplaceBack(CanonMap(Interval(629, 1, 678), Exp(LExp(0, 108)))); // E14
+    rhs_maps.emplaceBack(CanonMap(Interval(629, 1, 678), Exp(LExp(1, RAT(-520, 1)))));
+
+    lhs_maps.emplaceBack(CanonMap(Interval(679, 1, 729), Exp(LExp(0, 108)))); // E15
+    rhs_maps.emplaceBack(CanonMap(Interval(679, 1, 729), Exp(LExp(1, RAT(-520, 1)))));
+
+      // Now, let's build a graph!
+    WeightedSBGraph graph; // This will be our graph
+
+    // Firstly, add nodes to the graph.
+    graph = addSVW(nodes, NodeWeight(), graph);
+
+    // Now add those edges and maps to the graph
+    graph = addSEW(lhs_maps, rhs_maps, EdgeCost(), graph);
+
+    return graph;
 }
 
 }
