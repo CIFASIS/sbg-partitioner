@@ -16,11 +16,13 @@
 
  ******************************************************************************/
 
+#include <filesystem>
 #include <getopt.h>
 #include <iostream>
 #include <optional>
 #include <string>
 
+#include "build_sb_graph.hpp"
 #include "kernighan_lin_partitioner.hpp"
 #include "partition_metrics_api.hpp"
 
@@ -28,6 +30,25 @@
 using namespace std;
 
 using namespace sbg_partitioner;
+
+
+typedef std::vector<std::string> stringvec;
+ 
+struct path_leaf_string
+{
+    std::string operator()(const std::filesystem::directory_entry& entry) const
+    {
+        return entry.path().string();
+    }
+};
+
+void read_directory(const std::string& name, stringvec& v)
+{
+    std::filesystem::path p(name);
+    std::filesystem::directory_iterator start(p);
+    std::filesystem::directory_iterator end;
+    std::transform(start, end, std::back_inserter(v), path_leaf_string());
+}
 
 void usage()
 {
@@ -38,6 +59,7 @@ void usage()
     cout << endl;
     cout << "SBG Partitioner home page: https://github.com/CIFASIS/sbg-partitioner " << endl;
 }
+
 
 void version()
 {
@@ -51,6 +73,7 @@ void version()
 int main(int argc, char** argv)
 {
     int opt;
+    optional<string> filename = nullopt;
     optional<string> directory = nullopt;
     optional<unsigned> number_of_partitions = nullopt;
     optional<string> output_sb_graph = nullopt;
@@ -59,6 +82,7 @@ int main(int argc, char** argv)
     while (true) {
 
         static struct option long_options[] = {
+            {"filename", required_argument, 0, 'f'},
             {"directory", required_argument, 0, 'd'},
             {"partitions", required_argument, 0, 'p'},
             // {"output", required_argument, 0, 'o'},
@@ -67,13 +91,17 @@ int main(int argc, char** argv)
         };
 
         int option_index = 0;
-        opt = getopt_long(argc, argv, "d:p:e:gvh:", long_options, &option_index);
+        opt = getopt_long(argc, argv, "f:d:p:e:gvh:", long_options, &option_index);
         if (opt == EOF) break;
 
         switch (opt) {
+        case 'f':
+          if (optarg) {
+            filename = string(optarg);
+          }
         case 'd':
             if (optarg) {
-                directory = string(optarg);
+              directory = string(optarg);
             }
             break;
 
@@ -106,9 +134,26 @@ int main(int argc, char** argv)
         }
     }
 
-    cout << *directory << ", " << *number_of_partitions << ", " << *epsilon << endl;
+    stringvec dir_files;
+    read_directory(*directory, dir_files);
 
-    const auto [wg, pm] = partitionate_nodes_for_metrics(*directory, *number_of_partitions, *epsilon);
+    map<string, metrics::communication_metrics> metrics;
+
+    for (const auto& f : dir_files) {
+      auto wg = create_air_conditioners_graph();
+      auto partitions = metrics::read_partition_from_file(f, create_air_conditioners_graph());
+
+      int edge_cut = metrics::edge_cut(partitions, wg);
+
+      auto [comm_volume, max_comm_volume] = metrics::communication_volume(partitions, wg);
+
+      auto max_imb = metrics::maximum_imbalance(partitions, wg);
+
+      metrics::communication_metrics comm_metrics = metrics::communication_metrics{ edge_cut, comm_volume, max_comm_volume, max_imb };
+      metrics[std::filesystem::path(f).filename().string()] = comm_metrics;
+    }
+
+    const auto [wg, pm] = partitionate_nodes_for_metrics(*filename, *number_of_partitions, *epsilon);
 
     int edge_cut = metrics::edge_cut(pm, wg);
 
@@ -116,7 +161,12 @@ int main(int argc, char** argv)
 
     auto max_imb = metrics::maximum_imbalance(pm, wg);
 
-    cout << "Edge cut: " << edge_cut << " communication volume " << comm_volume << ", " << max_comm_volume << " maximum imbalance " << max_imb << endl;
+    metrics::communication_metrics comm_metrics = metrics::communication_metrics{ edge_cut, comm_volume, max_comm_volume, max_imb };
+    metrics["sbg-partitioner"] = comm_metrics;
+
+    for (const auto& [f, m] : metrics) {
+      cout << f << ": " << m << endl;
+    }
 
     return 0;
 }

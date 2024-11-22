@@ -169,11 +169,6 @@ void write_node_by_partition(const PartitionMap& partitions, const WeightedSBGra
         };
 
         sort(nodes.begin(), nodes.end(), f_sort);
-        cout << "sorted nodes? ";
-        for (const auto& v : nodes) {
-            cout << v << " ";
-        }
-        cout << endl;
     }
 }
 
@@ -240,6 +235,55 @@ float maximum_imbalance(const PartitionMap& partitions, const WeightedSBGraph& s
     write_node_by_partition(partitions, sb_graph);
 
     return max_imbalance;
+}
+
+
+PartitionMap read_partition_from_file(const string& name, const WeightedSBGraph& sb_graph)
+{
+
+    ifstream file(name);
+    string line; // String to store each line of the file.
+
+    PartitionMap partitions;
+    if (file.is_open()) {
+        // Read each line from the file and store it in the
+        // 'line' variable.
+        int node_counter = 0;
+        while (getline(file, line)) {
+            partitions[stoi(line)].emplaceBack(Interval(node_counter, 1, node_counter));
+            node_counter++;
+        }
+
+        for (auto& [i, s] : partitions) {
+            flatten_set(s, sb_graph);
+        }
+
+        // Close the file stream once all lines have been
+        // read.
+        file.close();
+    }
+    else {
+        // Print an error message to the standard error
+        // stream if the file cannot be opened.
+        cerr << "Unable to open file! " << name << endl;
+    }
+
+    return partitions;
+}
+
+
+ostream& operator<<(ostream& os, const communication_metrics& comm_metrics)
+{
+    os << "communication metrics, edge cut: "
+         << comm_metrics.edge_cut
+         << ", communication volume: "
+         << comm_metrics.comm_volume
+         << ", maximum communication volume: "
+         << comm_metrics.max_comm_volume
+         << ", maximum imbalance: "
+         << comm_metrics.max_comm_volume;
+
+    return os;
 }
 
 }

@@ -24,11 +24,24 @@ namespace sbg_partitioner {
 
 namespace metrics {
 
+
+struct communication_metrics {
+    int edge_cut;
+    int comm_volume;
+    int max_comm_volume;
+    float maximum_imbalance;
+};
+
+
 int edge_cut(const PartitionMap& partitions, const WeightedSBGraph& sb_graph);
 
 std::pair<int, int> communication_volume(const PartitionMap& partitions, const WeightedSBGraph& sb_graph);
 
 float maximum_imbalance(const PartitionMap& partitions, const WeightedSBGraph& sb_graph);
+
+PartitionMap read_partition_from_file(const std::string& name, const WeightedSBGraph& sb_graph);
+
+std::ostream& operator<<(std::ostream& os, const communication_metrics& comm_metrics);
 }
 
 }
