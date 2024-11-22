@@ -47,6 +47,7 @@ SBG::LIB::Interval get_pre_image(const SBG::LIB::Interval& image_interval, const
 /// @param node set of nodes we want to know its connections.
 /// @return a set of nodes connected to the function parameter.
 SBG::LIB::OrdSet get_adjacents(const SBG::LIB::CanonSBG& graph, const SBG::LIB::SetPiece& node);
+SBG::LIB::OrdSet get_adjacents(const SBG::LIB::CanonSBG& graph, const SBG::LIB::OrdSet& node);
 
 
 /// Takes a set piece and calculate its size of the intervals. E.g [1:10] has 10 elements,
@@ -81,9 +82,9 @@ template<typename T>
 T get_set_cost(const SBG::LIB::SetPiece& set, const std::map<SBG::LIB::OrdSet, T>& costs)
 {
     T weight = 1;
-    SBG::LIB::UnordSet unordset = SBG::LIB::UnordSet(set);
+    SBG::LIB::OrdSet ordset = SBG::LIB::OrdSet(set);
     for (const auto& [cost_set, w] : costs) {
-        if (intersection(unordset, cost_set).size() > 0) {
+        if (intersection(ordset, cost_set).size() > 0) {
             weight = costs.at(cost_set);
         }
     }

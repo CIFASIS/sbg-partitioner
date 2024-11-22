@@ -527,9 +527,10 @@ WeightedSBGraph create_sb_graph(const std::map<int, Node>& nodes)
 }
 
 
-unsigned add_adjacent_nodes(const CanonMap& incoming_map, const CanonMap& arrival_map, const SetPiece& node, OrdSet& adjacents)
+template<typename Set>
+unsigned add_adjacent_nodes(const CanonPWMap& incoming_map, const CanonPWMap& arrival_map, const Set& node, OrdSet& adjacents)
 {
-  auto map_image = image(incoming_map.dom(), incoming_map);
+  auto map_image = image(incoming_map);
   auto node_map_intersection = intersection(map_image, node);
 
   unsigned qty = 0;
@@ -597,6 +598,16 @@ WeightedSBGraph build_sb_graph(const string& filename)
   return graph;
 }
 
+
+OrdSet get_adjacents(const CanonSBG& graph, const OrdSet& node)
+{
+  OrdSet adjacents = {};
+
+  add_adjacent_nodes(graph.map1(), graph.map2(), node, adjacents);
+  add_adjacent_nodes(graph.map2(), graph.map1(), node, adjacents);
+
+  return adjacents;
+}
 
 OrdSet get_adjacents(const CanonSBG& graph, const SetPiece& node)
 {

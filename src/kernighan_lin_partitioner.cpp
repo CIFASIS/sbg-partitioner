@@ -47,7 +47,7 @@ namespace sbg_partitioner {
 // Using unnamed namespace to define functions with internal linkage
 namespace {
 
-constexpr bool multithreading_enabled = false;
+constexpr bool multithreading_enabled = true;
 
 struct GainObjectImbalance {
     size_t i;
@@ -657,8 +657,22 @@ kl_sbg_partitioner_result kl_sbg_partitioner_multithreading(
 {
     kl_sbg_partitioner_result best_gain = kl_sbg_partitioner_result{ 0, 0, -1, OrdSet(), OrdSet()};
     vector<future<kl_sbg_partitioner_result>> workers;
+    map<size_t, OrdSet> adjacents;
     for (size_t i = 0; i < partitions.size(); i++) {
+
+        if (adjacents.find(i) == adjacents.end()) {
+            adjacents[i] = get_adjacents(graph, partitions[i]);
+        }
+
         for (size_t j = i + 1; j < partitions.size(); j++) {
+            if (adjacents.find(j) == adjacents.end()) {
+                adjacents[j] = get_adjacents(graph, partitions[j]);
+            }
+
+            if (isEmpty(intersection(adjacents[i], partitions[j]))) {
+                continue;
+            }
+
             auto th = async([&graph, &partitions, i, j, LMin, LMax] () {
                 OrdSet p_1_copy = partitions[i];
                 OrdSet p_2_copy = partitions[j];
