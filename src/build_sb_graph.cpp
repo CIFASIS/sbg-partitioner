@@ -791,7 +791,6 @@ void flatten_set(OrdSet &set, const CanonSBG& graph)
         return;
     }
 
-    cout << set << endl;
     OrdSet new_partition;
     for (const auto& v : graph.V()) {
         MDInterOrdSet set_piece_this_node_vector;
@@ -807,7 +806,6 @@ void flatten_set(OrdSet &set, const CanonSBG& graph)
     }
 
     auto diff = difference(set, new_partition);
-    cout << "difference " << set << ", " << new_partition << diff << ", " << isEmpty(diff) << endl;
     assert(isEmpty(diff));
 
     set = new_partition;
