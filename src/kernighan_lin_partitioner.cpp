@@ -79,6 +79,24 @@ struct kl_sbg_partitioner_result
 };
 
 
+ostream& operator<<(ostream& os, const kl_sbg_partitioner_result& result)
+{
+    os << "{ partition results: "
+       << result.i
+       << ", "
+       << result.j
+       << ", "
+       << result.gain
+       << ", A: "
+       << result.A
+       << ", B: "
+       << result.B
+       << "}";
+
+    return os;
+}
+
+
 template<typename G>
 struct GainObjectComparatorTemplate {
     bool operator()(const G& gain_1, const G& gain_2) const
@@ -497,6 +515,7 @@ void update_diff(
 
         new_cost_matrix.insert(g);
     }
+    cost_matrix = new_cost_matrix;
 
 #if PARTITION_IMBALANCE_DEBUG
     cout << partition_a << ", " << partition_b << ", " << gain_object << ", " << cost_matrix << endl;
@@ -605,7 +624,8 @@ KLBipartResult kl_sbg_bipart_imbalance(const WeightedSBGraph& graph, OrdSet& par
 
 
 kl_sbg_partitioner_result kl_sbg_partitioner_function(
-    const WeightedSBGraph& graph, PartitionMap& partitions, unsigned LMin, unsigned LMax)
+    const WeightedSBGraph& graph, PartitionMap& partitions, unsigned LMin, unsigned LMax,
+    vector<kl_sbg_partitioner_result>& gains)
 {
     kl_sbg_partitioner_result best_gain = kl_sbg_partitioner_result{ 0, 0, -1, OrdSet(), OrdSet()};
     for (size_t i = 0; i < partitions.size(); i++) {
@@ -616,6 +636,7 @@ kl_sbg_partitioner_result kl_sbg_partitioner_function(
     #if PARTITION_IMBALANCE_DEBUG
             cout << "current_gain " << current_gain << endl;
     #endif
+            gains.emplace_back(kl_sbg_partitioner_result{ i, j, current_gain.gain, current_gain.A, current_gain.B });
             if (current_gain.gain > best_gain.gain) {
                 best_gain.i = i;
                 best_gain.j = j;
@@ -631,7 +652,8 @@ kl_sbg_partitioner_result kl_sbg_partitioner_function(
 
 
 kl_sbg_partitioner_result kl_sbg_partitioner_multithreading(
-    const WeightedSBGraph& graph, PartitionMap& partitions, unsigned LMin, unsigned LMax)
+    const WeightedSBGraph& graph, PartitionMap& partitions, unsigned LMin, unsigned LMax,
+    vector<kl_sbg_partitioner_result>& gains)
 {
     kl_sbg_partitioner_result best_gain = kl_sbg_partitioner_result{ 0, 0, -1, OrdSet(), OrdSet()};
     vector<future<kl_sbg_partitioner_result>> workers;
@@ -647,9 +669,10 @@ kl_sbg_partitioner_result kl_sbg_partitioner_multithreading(
         }
     }
 
-    for_each(workers.begin(), workers.end(), [&best_gain] (future<kl_sbg_partitioner_result>& th) {
+    for_each(workers.begin(), workers.end(), [&best_gain, &gains] (future<kl_sbg_partitioner_result>& th) {
         // here we wait for each thread to finish and get its results
         auto current_gain = th.get();
+        gains.emplace_back(current_gain);
         if (current_gain.gain > best_gain.gain) {
             best_gain = move(current_gain);
         }
@@ -669,23 +692,77 @@ void kl_sbg_imbalance_partitioner(
         cout << "*****ITERATION NUMBER " << counter++ << endl;
         change = false;
 
+        vector<kl_sbg_partitioner_result> gains;
         kl_sbg_partitioner_result best_gain;
         if (multithreading_enabled) {
-            best_gain = kl_sbg_partitioner_multithreading(graph, partitions, LMin, LMax);
+            best_gain = kl_sbg_partitioner_multithreading(graph, partitions, LMin, LMax, gains);
         } else {
-            best_gain = kl_sbg_partitioner_function(graph, partitions, LMin, LMax);
+            best_gain = kl_sbg_partitioner_function(graph, partitions, LMin, LMax, gains);
         }
+
+        cout << "Best gain results is: " << best_gain << endl;
 
         // now, apply changes
-        if (best_gain.gain > 0) {
-            change = true;
-            partitions[best_gain.i] = best_gain.A;
-            partitions[best_gain.j] = best_gain.B;
+        constexpr int strategy = 1;
+        // first strategy
+        switch (strategy)
+        {
+        case 1:
+            if (best_gain.gain > 0) {
+                change = true;
+                partitions[best_gain.i] = best_gain.A;
+                partitions[best_gain.j] = best_gain.B;
+            }
+
+            if (change and graph.V()[0].intervals().size() == 1) {
+                flatten_set(partitions[best_gain.i], graph);
+                flatten_set(partitions[best_gain.j], graph);
+            }
+
+            break;
+        default:
+
+            int it_counter = 0;
+            while (not gains.empty() and best_gain.gain > 0) {
+                cout << "change number " << it_counter << " changing " << best_gain.i << ", " << best_gain.j << endl;
+                it_counter++;
+                change = true;
+                partitions[best_gain.i] = best_gain.A;
+                partitions[best_gain.j] = best_gain.B;
+
+                flatten_set(partitions[best_gain.i], graph);
+                flatten_set(partitions[best_gain.j], graph);
+
+                gains.erase(std::remove_if(
+                    gains.begin(), gains.end(),
+                    [&best_gain](const kl_sbg_partitioner_result& g) {
+                        return g.i == best_gain.i or g.j == best_gain.j
+                            or g.i == best_gain.j or g.j == best_gain.i;
+                    }), gains.end());
+
+                cout << "best gain is " << best_gain << endl;
+                cout << "and vector is ";
+                for_each(gains.begin(), gains.end(), [](const kl_sbg_partitioner_result& g) { cout << g << " "; });
+                cout << endl;
+
+                if (not gains.empty()){
+                    auto max_gain_it = max_element(gains.begin(), gains.end(),
+                        [] (const kl_sbg_partitioner_result& a, const kl_sbg_partitioner_result& b) {
+                            return a.gain < b.gain;
+                        });
+                    if (max_gain_it != gains.end()) {
+                        best_gain = *max_gain_it;
+                    } else {
+                        gains.clear();
+                    }
+                }
+            }
+
+            break;
         }
 
-        if (change and graph.V()[0].intervals().size() == 1) {
-            flatten_set(partitions[best_gain.i], graph);
-            flatten_set(partitions[best_gain.j], graph);
+        for (size_t i = 0; i < partitions.size(); i++) {
+            SBG_LOG << i << ": " << partitions[i] << endl;
         }
     }
 
