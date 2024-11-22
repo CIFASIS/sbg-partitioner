@@ -81,9 +81,9 @@ template<typename T>
 T get_set_cost(const SBG::LIB::SetPiece& set, const std::map<SBG::LIB::OrdSet, T>& costs)
 {
     T weight = 1;
-    SBG::LIB::OrdSet OrdSet = SBG::LIB::OrdSet(set);
-    for (const auto [cost_set, w] : costs) {
-        if (intersection(OrdSet, cost_set).size() > 0) {
+    SBG::LIB::UnordSet unordset = SBG::LIB::UnordSet(set);
+    for (const auto& [cost_set, w] : costs) {
+        if (intersection(unordset, cost_set).size() > 0) {
             weight = costs.at(cost_set);
         }
     }

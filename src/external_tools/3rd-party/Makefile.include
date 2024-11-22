@@ -1,0 +1,28 @@
+# Directories
+KAHIP_DIR      := $(3RD_PARTY_DIR)/KaHIP/KaHIP-3.16
+PATOH_DIR      := $(3RD_PARTY_DIR)/patoh/Linux-x86_64
+LIB_KAHIP_DIR  := $(LIB_DIR)/kahip
+LIB_PATOH_DIR  := $(LIB_DIR)/patoh
+LIB_KAHIP      := $(LIB_KAHIP_DIR)/libkahip.a
+LIB_PATOH      := $(LIB_PATOH_DIR)/libpatoh.a
+
+# Build KaHIP library
+$(LIB_KAHIP): | create-folders
+	cd $(3RD_PARTY_DIR)/KaHIP && tar xvzf ./KaHIP-3.16.tar.gz
+	cd $(KAHIP_DIR) && ./compile_withcmake.sh
+	mkdir -p $(BIN_DIR)/kahip $(LIB_DIR)/kahip $(INC_DIR)/kahip
+	mv $(KAHIP_DIR)/deploy/*.a $(LIB_DIR)/kahip/ || true
+	mv $(KAHIP_DIR)/deploy/*.h $(INC_DIR)/kahip/ || true
+	mv $(KAHIP_DIR)/deploy/parallel $(LIB_DIR)/kahip/ || true
+	mv $(KAHIP_DIR)/deploy/* $(BIN_DIR)/kahip/ || true
+	rm -rf $(KAHIP_DIR)
+
+# Install pre-compiled PatoH library
+$(LIB_PATOH): | create-folders
+	mkdir -p $(INC_DIR)/patoh $(LIB_DIR)/patoh
+	cp $(PATOH_DIR)/*.a $(LIB_DIR)/patoh/ || true
+	cp $(PATOH_DIR)/*.h $(INC_DIR)/patoh/ || true
+
+# Rules
+kahip: $(LIB_KAHIP)
+patoh: $(LIB_PATOH)
