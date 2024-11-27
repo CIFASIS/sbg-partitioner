@@ -158,11 +158,11 @@ void GraphPartitioner::readGraph()
   _xadj.resize(_nbr_vtxs + 1);  
   _xadj[0] = 0;
 
-  for (int i = 0; i < _nbr_vtxs; ++i) {
-      graph_file.read(reinterpret_cast<char*>(&_xadj[i+1]), sizeof(int));
+  for (int i = 1; i <= _nbr_vtxs; ++i) {
+    graph_file.read(reinterpret_cast<char*>(&_xadj[i]), sizeof(int));
   }
 
-  _adjncy.resize(_edges);  
+  _adjncy.resize(_edges, 1);  
   for (int i = 0; i < _edges; ++i) {
       graph_file.read(reinterpret_cast<char*>(&_adjncy[i]), sizeof(int));
   }
