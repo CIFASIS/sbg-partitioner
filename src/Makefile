@@ -99,7 +99,7 @@ sbg-partitioner-main: $(MAIN_OBJ)
 	$(CXX) $(INCLUDES) -c $(MAIN_SRC) -o $(MAIN_OBJ) $(CXXFLAGS)
 
 
-sbg-partitioner: sbg-partitioner-main sbg-partitioner-lib lib-boost lib-sbg | create-folders
+sbg-partitioner: lib-sbg lib-boost sbg-partitioner-main sbg-partitioner-lib | create-folders
 	$(CXX) $(MAIN_OBJ) -L$(LIB_DIR) -lsbg-partitioner -o $(TARGET) $(CXXFLAGS) $(LIBS)
 
 sbg-partitioner-metrics-main: $(METRICS_OBJ)

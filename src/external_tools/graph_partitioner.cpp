@@ -20,6 +20,7 @@
 #include <array>
 #include <algorithm>
 #include <cassert>
+#include <chrono>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
@@ -49,7 +50,7 @@ static const std::unordered_map<std::string, PartitionMethod> PARTITION_METHOD_M
 
 GraphPartitioner::GraphPartitioner(const std::string &name) : _name(name) { generateInputGraph(); }
 
-const std::string GraphPartitioner::validPartitionMethodsStr()
+std::string GraphPartitioner::validPartitionMethodsStr()
 {
     std::ostringstream valid_methods;
     valid_methods << "{";
@@ -78,6 +79,9 @@ Partition GraphPartitioner::createPartition(const std::string &partition_method_
   _nbr_parts = partitions;
 
   partition.resize(_nbr_vtxs);
+
+  auto start = std::chrono::high_resolution_clock::now();
+
   if (_nbr_vtxs > _nbr_parts) {
     switch (partition_method) {
     case PartitionMethod::Metis:
@@ -100,22 +104,74 @@ Partition GraphPartitioner::createPartition(const std::string &partition_method_
     }
   }
 
+  auto end = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> duration = end - start;
+
+  std::cout << "Partition Time: " << duration.count() << " seconds." << std::endl;
+
   savePartitionToFile(partition, partition_method_name);
   return partition;
 }
 
+bool GraphPartitioner::endsWithJson()
+{
+  return _name.size() >= 5 && _name.compare(_name.size() - 5, 5, ".json") == 0;
+}
+
 void GraphPartitioner::generateInputGraph()
 {
-  // @todo: Read the JSON file and generate the input graph for the partitioners.
+  if (endsWithJson()) {
+    readGraphFromJson();
+  } else {
+    readGraph();
+  }
+}
+
+void GraphPartitioner::readGraphFromJson()
+{
   sbg_partitioner::WeightedSBGraph sbg_graph =  sbg_partitioner::build_sb_graph(_name);
+  // @todo: Fill the vectors used by the partitiones from the SBG Graph.
+}
+
+void GraphPartitioner::readGraph()
+{
+  const std::string graph_file_name = _name + ".graph";
+  const std::string graph_size_file_name = graph_file_name + ".size";
+
+  std::ifstream graph_size_file(graph_size_file_name, std::ios::binary);
+  if (!graph_size_file) {
+      std::cerr << "Error opening file: " << graph_size_file_name << std::endl;
+      return;
+  }
+
+  std::ifstream graph_file(graph_file_name, std::ios::binary);
+  if (!graph_file) {
+      std::cerr << "Error opening file: " << graph_file_name << std::endl;
+      return;
+  }
   
-  // Dummy test input.
-  _nbr_vtxs = 6;                             // Number of vertices
-  _edges = 7;                                // Number of edges
-  _xadj = {0, 2, 4, 6, 7, 9, 10};            // Adjacency list index
-  _adjncy = {1, 2, 0, 3, 1, 4, 2, 5, 3, 4};  // Adjacency list
-  _vwgt.resize(_nbr_vtxs, 1);                // Vertex weights
-  _ewgt.resize(_edges, 1);                   // Edge weights
+  graph_size_file.read(reinterpret_cast<char*>(&_nbr_vtxs), sizeof(_nbr_vtxs));
+  graph_size_file.read(reinterpret_cast<char*>(&_edges), sizeof(_edges));
+
+  graph_size_file.close();  
+
+  _xadj.resize(_nbr_vtxs + 1);  
+  _xadj[0] = 0;
+
+  for (int i = 1; i <= _nbr_vtxs; ++i) {
+    graph_file.read(reinterpret_cast<char*>(&_xadj[i]), sizeof(int));
+  }
+
+  _adjncy.resize(_edges, 1);  
+  for (int i = 0; i < _edges; ++i) {
+      graph_file.read(reinterpret_cast<char*>(&_adjncy[i]), sizeof(int));
+  }
+
+  graph_file.close();
+
+  // @todo: Read weights files.
+  _vwgt.resize(_nbr_vtxs, 1);
+  _ewgt.resize(_edges, 1);
 }
 
 PartitionMethod GraphPartitioner::partitionMethod(const std::string &partition_method) const

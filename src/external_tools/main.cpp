@@ -25,9 +25,9 @@
 
 void usage()
 {
-  std::cout << "Usage: grap_partitioner -f <json_file_name> -n <num_partitions> -m <partition_method> -i <imbalance>" << std::endl;
+  std::cout << "Usage: grap_partitioner -f <file_name> -n <num_partitions> -m <partition_method> -i <imbalance>" << std::endl;
   std::cout << "Options:" << std::endl;
-  std::cout << "  -f <json_file_name>   SBG input JSON file name" << std::endl;
+  std::cout << "  -f <file_name>        SBG input JSON file name or generated graph input." << std::endl;
   std::cout << "  -n <num_partitions>   Number of partitions" << std::endl;
   std::cout << "  -m <partition_method> Partition method, possible values: " << GraphPartitioner::validPartitionMethodsStr() << std::endl;
   std::cout << "  -i <imbalance>        Partition imbalance" << std::endl;
@@ -75,12 +75,6 @@ int main(int argc, char* argv[])
 
   GraphPartitioner partitioner(json_file_name);
   Partition partition = partitioner.createPartition(partition_method, partitions);
-
-  // Output the results
-  std::cout << "Partition results:" << std::endl;
-  for (grp_t i = 0; i < partition.values.size(); ++i) {
-    std::cout << "Vertex " << i << " is in partition " << partition.values[i] << std::endl;
-  }
 
   return 0;
 }
