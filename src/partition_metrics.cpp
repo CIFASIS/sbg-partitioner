@@ -164,6 +164,8 @@ int main(int argc, char** argv)
     metrics::communication_metrics comm_metrics = metrics::communication_metrics{ edge_cut, comm_volume, max_comm_volume, max_imb };
     metrics["sbg-partitioner"] = comm_metrics;
 
+    cout << "Results: " << pm << endl;
+
     for (const auto& [f, m] : metrics) {
       cout << f << ": " << m << endl;
     }

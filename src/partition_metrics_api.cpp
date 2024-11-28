@@ -64,7 +64,7 @@ int communication_volume_one_dim(const PartitionMap& partitions, const SetPiece&
     for (unsigned value = v.intervals()[0].begin(); value <= v.intervals()[0].end(); value += v.intervals()[0].step()) {
         int local_total_vol = 0;
         Interval set_piece = Interval(value, v.intervals()[0].step(), value);
-        const OrdSet adjacents = get_adjacents(sb_graph, set_piece);
+        const OrdSet adjacents = get_adjacents(sb_graph, OrdSet(set_piece));
 
         for (unsigned j = 0; j < partitions.size(); j++) {
             if (i == j) {
@@ -281,7 +281,7 @@ ostream& operator<<(ostream& os, const communication_metrics& comm_metrics)
          << ", maximum communication volume: "
          << comm_metrics.max_comm_volume
          << ", maximum imbalance: "
-         << comm_metrics.max_comm_volume;
+         << comm_metrics.maximum_imbalance;
 
     return os;
 }
