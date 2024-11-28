@@ -16,6 +16,7 @@
 
  ******************************************************************************/
 
+#include <algorithm>
 #include <chrono>
 #include <future>
 #include <map>
@@ -47,7 +48,7 @@ namespace sbg_partitioner {
 // Using unnamed namespace to define functions with internal linkage
 namespace {
 
-constexpr bool multithreading_enabled = true;
+constexpr bool multithreading_enabled = false;
 
 struct GainObjectImbalance {
     size_t i;
@@ -221,52 +222,93 @@ ec_ic compute_EC_IC(
 }
 
 
-void partition_imbalance(
-    OrdSet& nodes,
-    OrdSet& partition,
-    OrdSet& partition_2,
-    const NodeWeight& node_weights,
-    vector<size_t>& i,
-    vector<size_t>& i_2,
-    unsigned LMin,
-    unsigned LMax)
+unsigned get_imbalance_size(unsigned min_imbal_part, unsigned max_imbal_part, unsigned size_node_a, unsigned size_node_b, unsigned current_moved_size)
 {
-    unsigned p_size = get_node_size(partition_2, node_weights);
-    unsigned max_imbal_part = LMax > p_size ? LMax - p_size : 0;
+    cout << "nodes_imbal_part = " << max_imbal_part << ", " << size_node_a << endl;
+    unsigned nodes_imbal_part = size_node_a > 0 ? floor(max_imbal_part / size_node_a) : 0;
 
-    unsigned p_size_ = get_node_size(partition, node_weights);
-    unsigned min_imbal_part = p_size_ > LMin ? p_size_ - LMin : 0;
-
-    // assuming we only move one set piece
-    assert(nodes.size() == 1);
-    unsigned node_weight = get_set_cost(nodes[0], node_weights);
-
-    unsigned nodes_imbal_part = floor(max_imbal_part / node_weight);
-
-    unsigned min_nodes_imbal_part = floor(min_imbal_part / node_weight);
+    unsigned min_nodes_imbal_part = size_node_b > 0 ? floor(min_imbal_part / size_node_b) : 0;
 
     if (nodes_imbal_part > min_imbal_part) {
         nodes_imbal_part = min_nodes_imbal_part;
     }
 
-    if (nodes_imbal_part > 0 and unsigned(nodes_imbal_part) > get_node_size(nodes, NodeWeight())) {
-        nodes_imbal_part = get_node_size(nodes, node_weights);
-    }
+    unsigned remaining_node_a = unsigned(size_node_a - current_moved_size);
+    cout << "min between " << remaining_node_a << " and " << current_moved_size << endl;
+    nodes_imbal_part = std::min(unsigned(current_moved_size), remaining_node_a);
+    unsigned new_size_a = current_moved_size + nodes_imbal_part;
 
-    if (nodes_imbal_part > 0) {
-        i.push_back(nodes_imbal_part);
-        i_2.push_back(0);
-    }
+    return new_size_a;
 }
 
 
-void compute_partition_imbalance(unsigned i, unsigned j, OrdSet& partition_a,
-    OrdSet& partition_b, const WeightedSBGraph& graph, const NodeWeight& node_weight,
+GainObjectImbalance get_gain(
+    unsigned idx_a,
+    OrdSet& nodes_a,
+    const OrdSet& partition_a,
+    unsigned size_a,
+    unsigned idx_b,
+    OrdSet& nodes_b,
+    const OrdSet& partition_b,
+    unsigned size_b,
+    const WeightedSBGraph& graph,
+    const NodeWeight& node_weight)
+{
+    OrdSet a, b, rest_a, rest_b;
+    tie(a, rest_a) = cut_interval_by_dimension(nodes_a, node_weight, size_a);
+    tie(b, rest_b) = cut_interval_by_dimension(nodes_b, node_weight, size_b);
+
+    // Now, compute external and internal cost for both maps
+    OrdSet ec_nodes_a_1, ic_nodes_a_1;
+    tie(ec_nodes_a_1, ic_nodes_a_1) = compute_EC_IC(partition_a, a, partition_b, graph.map1(), graph.map2());
+
+    OrdSet ec_nodes_a_2, ic_nodes_a_2;
+    tie(ec_nodes_a_2, ic_nodes_a_2) = compute_EC_IC(partition_a, a, partition_b, graph.map2(), graph.map1());
+
+    // Get the union between both external and internal costs for both combination of maps
+    OrdSet ec_nodes_a, ic_nodes_a;
+    ec_nodes_a = cup(ec_nodes_a_1, ec_nodes_a_2);
+    ic_nodes_a = cup(ic_nodes_a_1, ic_nodes_a_2);
+
+    cout << "Node " << idx_a << ", " << nodes_a << " ec: " << ec_nodes_a << " and ic: " << ic_nodes_a << endl;
+
+    size_t ec_a = get_edge_set_cost(ec_nodes_a, graph.get_edge_costs());
+    size_t ic_a = get_edge_set_cost(ic_nodes_a, graph.get_edge_costs());
+    int d_a = ec_a - ic_a;
+
+    // Same as before for partition b
+    OrdSet ec_nodes_b_1, ic_nodes_b_1;
+    tie(ec_nodes_b_1, ic_nodes_b_1) = compute_EC_IC(partition_b, b, partition_a, graph.map1(), graph.map2());
+
+    OrdSet ec_nodes_b_2, ic_nodes_b_2;
+    tie(ec_nodes_b_2, ic_nodes_b_2) = compute_EC_IC(partition_b, b, partition_a, graph.map2(), graph.map1());
+
+    OrdSet ec_nodes_b, ic_nodes_b;
+    ec_nodes_b = cup(ec_nodes_b_1, ec_nodes_b_2);
+    ic_nodes_b = cup(ic_nodes_b_1, ic_nodes_b_2);
+
+    // cout << "Node: " << idx_b << ", " << nodes_b << " ec: " << ec_nodes_b << " and ic: " << ic_nodes_b << endl;
+
+    size_t ec_b = get_edge_set_cost(ec_nodes_b, graph.get_edge_costs());
+    size_t ic_b = get_edge_set_cost(ic_nodes_b, graph.get_edge_costs());
+    int d_b = ec_b - ic_b;
+
+    // Get communication between a and b
+    size_t c_ab = get_c_ab(a, b, graph.map1(), graph.map2(), graph.get_edge_costs());
+
+    // calculate gain
+    int gain = d_a + d_b - 2 * c_ab;
+
+    auto gain_obj = GainObjectImbalance{idx_a, idx_b, gain, ec_nodes_a, ic_nodes_a, size_a, ec_nodes_b, ic_nodes_b, size_b};
+
+    return gain_obj;
+}
+
+
+void compute_exchange(unsigned i, unsigned j, OrdSet& partition_a, unsigned current_size_a,
+    OrdSet& partition_b, unsigned current_size_b, const WeightedSBGraph& graph, const NodeWeight& node_weight,
     unsigned LMin, unsigned LMax, CostMatrixImbalance& cost_matrix)
 {
-    vector<size_t> i_a;
-    vector<size_t> i_b;
-
     auto nodes_a = OrdSet(partition_a[i]);
     auto nodes_b = OrdSet(partition_b[j]);
 
@@ -275,75 +317,46 @@ void compute_partition_imbalance(unsigned i, unsigned j, OrdSet& partition_a,
     size_t size_node_b = get_node_size(nodes_b, node_weight);
     size_t min_size = min(size_node_a, size_node_b);
 
-    // check how many nodes we can move from one side to another
-    int weight_a = get_set_cost(partition_a[i], node_weight);
-    int weight_b = get_set_cost(partition_b[j], node_weight);
+    // No problem here, a is just a copy of partition_a[i], same for b
+    GainObjectImbalance gain_obj = get_gain(i, nodes_a, partition_a, min_size, j, nodes_b, partition_b, min_size, graph, node_weight);
 
-    int nodes_bal_part_a = floor(min_size / weight_a);
-    int nodes_bal_part_b = floor(min_size / weight_b); 
+    // gain is greater than 0 and we are not moving all elements of node_a
+    bool is_imbalance_enabled = LMin > 0 or LMax > 0;
+    bool is_gain_positive = gain_obj.gain > 0;
+    if (is_imbalance_enabled and is_gain_positive and size_node_a > min_size) {
+        unsigned max_imbal_part = LMax > current_size_b ? LMax - current_size_b : 0; // this is what we can move to b
 
-    i_a.push_back(nodes_bal_part_a);
-    i_b.push_back(nodes_bal_part_b);
+        unsigned min_imbal_part = current_size_a > LMin ? current_size_a - LMin : 0; // this is what we can move from a
 
-    if (LMin > 0 or LMax > 0) {
-        partition_imbalance(nodes_a, partition_a, partition_b, node_weight, i_a, i_b, LMin, LMax);
+        unsigned new_size_a = get_imbalance_size(min_imbal_part, max_imbal_part, size_node_a, size_node_b, min_size);
 
-        partition_imbalance(nodes_b, partition_b, partition_a, node_weight, i_b, i_a, LMin, LMax);
+        GainObjectImbalance gain_obj_imbalance = get_gain(i, nodes_a, partition_a, new_size_a, j, nodes_b, partition_b, min_size, graph, node_weight);
+
+        cout << "is gain better? " << gain_obj << ", " << gain_obj_imbalance << endl;
+
+        if (gain_obj_imbalance.gain > gain_obj.gain) {
+            gain_obj = move(gain_obj_imbalance);
+        }
     }
 
-    assert(i_a.size() == i_b.size());
+    // gain is greater than 0 and we are not moving all elements of node_b
+    if (is_imbalance_enabled and is_gain_positive and size_node_b > min_size) {
+        unsigned max_imbal_part = LMax > current_size_a ? LMax - current_size_a : 0; // this is what we can move to a
 
-    for (size_t idx = 0; idx < i_a.size(); idx++) {
-        // No problem here, a is just a copy of partition_a[i], same for b
-        // We substract 1 because it includes the last element
-        OrdSet a, b, rest_a, rest_b;
-        tie(a, rest_a) = cut_interval_by_dimension(nodes_a, node_weight, i_a[idx]);
-        tie(b, rest_b) = cut_interval_by_dimension(nodes_b, node_weight, i_b[idx]);
+        unsigned min_imbal_part = current_size_b > LMin ? current_size_b - LMin : 0; // this is what we can move from b
 
-        // Now, compute external and internal cost for both maps
-        OrdSet ec_nodes_a_1, ic_nodes_a_1;
-        tie(ec_nodes_a_1, ic_nodes_a_1) = compute_EC_IC(partition_a, a, partition_b, graph.map1(), graph.map2());
+        unsigned new_size_b = get_imbalance_size(min_imbal_part, max_imbal_part, size_node_b, size_node_a, min_size);
 
-        OrdSet ec_nodes_a_2, ic_nodes_a_2;
-        tie(ec_nodes_a_2, ic_nodes_a_2) = compute_EC_IC(partition_a, a, partition_b, graph.map2(), graph.map1());
+        GainObjectImbalance gain_obj_imbalance = get_gain(i, nodes_a, partition_a, min_size, j, nodes_b, partition_b, new_size_b, graph, node_weight);
 
-        // Get the union between both external and internal costs for both combination of maps
-        OrdSet ec_nodes_a, ic_nodes_a;
-        ec_nodes_a = cup(ec_nodes_a_1, ec_nodes_a_2);
-        ic_nodes_a = cup(ic_nodes_a_1, ic_nodes_a_2);
+        cout << "is gain better? " << gain_obj << ", " << gain_obj_imbalance << endl;
 
-        cout << "Node " << i << ", " << nodes_a << " ec: " << ec_nodes_a << " and ic: " << ic_nodes_a << endl;
-
-        size_t ec_a = get_edge_set_cost(ec_nodes_a, graph.get_edge_costs());
-        size_t ic_a = get_edge_set_cost(ic_nodes_a, graph.get_edge_costs());
-        int d_a = ec_a - ic_a;
-
-        // Same as before for partition b
-        OrdSet ec_nodes_b_1, ic_nodes_b_1;
-        tie(ec_nodes_b_1, ic_nodes_b_1) = compute_EC_IC(partition_b, b, partition_a, graph.map1(), graph.map2());
-
-        OrdSet ec_nodes_b_2, ic_nodes_b_2;
-        tie(ec_nodes_b_2, ic_nodes_b_2) = compute_EC_IC(partition_b, b, partition_a, graph.map2(), graph.map1());
-
-        OrdSet ec_nodes_b, ic_nodes_b;
-        ec_nodes_b = cup(ec_nodes_b_1, ec_nodes_b_2);
-        ic_nodes_b = cup(ic_nodes_b_1, ic_nodes_b_2);
-
-        cout << "Node: " << j << ", " << nodes_b << " ec: " << ec_nodes_b << " and ic: " << ic_nodes_b << endl;
-
-        size_t ec_b = get_edge_set_cost(ec_nodes_b, graph.get_edge_costs());
-        size_t ic_b = get_edge_set_cost(ic_nodes_b, graph.get_edge_costs());
-        int d_b = ec_b - ic_b;
-
-        // Get communication between a and b
-        size_t c_ab = get_c_ab(a, b, graph.map1(), graph.map2(), graph.get_edge_costs());
-
-        // calculate gain
-        int gain = d_a + d_b - 2 * c_ab;
-
-        auto gain_obj = GainObjectImbalance{i, j, gain, ec_nodes_a, ic_nodes_a, i_a[idx], ec_nodes_b, ic_nodes_b, i_b[idx]};
-        cost_matrix.emplace(move(gain_obj));
+        if (gain_obj_imbalance.gain > gain_obj.gain) {
+            gain_obj = move(gain_obj_imbalance);
+        }
     }
+
+    cost_matrix.emplace(move(gain_obj));
 }
 
 
@@ -357,9 +370,12 @@ CostMatrixImbalance generate_gain_matrix(
 {
     CostMatrixImbalance cost_matrix;
 
+    unsigned p_size_a = get_node_size(partition_a, graph.get_node_weights());
+    unsigned p_size_b = get_node_size(partition_b, graph.get_node_weights());
+
     for (size_t i = 0; i < partition_a.pieces().size(); i++) {
         for (size_t j = 0; j < partition_b.pieces().size(); j++) {
-            compute_partition_imbalance(i, j, partition_a, partition_b, graph, node_weight, LMin, LMax, cost_matrix);
+            compute_exchange(i, j, partition_a, p_size_a, partition_b, p_size_b, graph, node_weight, LMin, LMax, cost_matrix);
         }
     }
 
@@ -409,9 +425,11 @@ pair<pair<OrdSet, OrdSet>, pair<OrdSet, OrdSet>> update_sets(
 
 void update_diff(
     CostMatrixImbalance& cost_matrix,
-    OrdSet& partition_a,
+    OrdSet& remaining_partition_a,
+    OrdSet& moved_from_partition_a,
     pair<OrdSet, OrdSet> affected_node_a,
-    OrdSet& partition_b,
+    OrdSet& remaining_partition_b,
+    OrdSet& moved_from_partition_b,
     pair<OrdSet, OrdSet> affected_node_b,
     const WeightedSBGraph& graph,
     const NodeWeight& node_weight,
@@ -423,11 +441,18 @@ void update_diff(
     cout << affected_node_b.first << ", " << affected_node_b.second << endl;
 
     // Firstly, check if indexes need fixing. Three possible causes.
-    size_t partition_size_a = get_node_size(affected_node_a.second, node_weight);
-    bool node_a_fully_used = partition_size_a == 0;
+    size_t affected_node_a_size = get_node_size(affected_node_a.second, node_weight);
+    bool node_a_fully_used = affected_node_a_size == 0;
 
-    size_t partition_size_b = get_node_size(affected_node_b.second, node_weight);
-    bool node_b_fully_used = partition_size_b == 0;
+    size_t affected_node_b_size = get_node_size(affected_node_b.second, node_weight);
+    bool node_b_fully_used = affected_node_b_size == 0;
+
+    unsigned size_a = get_node_size(remaining_partition_a, node_weight);
+    size_a += get_node_size(moved_from_partition_b, node_weight);
+
+    unsigned size_b = get_node_size(remaining_partition_b, node_weight);
+    size_b += get_node_size(moved_from_partition_a, node_weight);
+
     // all the interval was used
     // fix indexes:
     if (node_a_fully_used or node_b_fully_used) {
@@ -458,7 +483,7 @@ void update_diff(
         CostMatrixImbalance new_cost_matrix;
         for (auto g : cost_matrix) {
             if (g.i == gain_object.i) {
-                compute_partition_imbalance(gain_object.i, g.j, partition_a, partition_b, graph, node_weight, LMin, LMax, new_cost_matrix);
+                compute_exchange(gain_object.i, g.j, remaining_partition_a, size_a, remaining_partition_b, size_b, graph, node_weight, LMin, LMax, new_cost_matrix);
             } else {
                 new_cost_matrix.insert(g);
             }
@@ -471,7 +496,7 @@ void update_diff(
         CostMatrixImbalance new_cost_matrix;
         for (auto g : cost_matrix) {
             if (g.j == gain_object.j) {
-                compute_partition_imbalance(g.i, gain_object.j, partition_a, partition_b, graph, node_weight, LMin, LMax, new_cost_matrix);
+                compute_exchange(g.i, gain_object.j, remaining_partition_a, size_a, remaining_partition_b, size_b, graph, node_weight, LMin, LMax, new_cost_matrix);
             } else {
                 new_cost_matrix.insert(g);
             }
@@ -505,7 +530,7 @@ void update_diff(
             int d_j = ec_j - ic_j;
 
             // Get communication between a and b
-            size_t c_ab = get_c_ab(partition_a[g.i], partition_b[g.j], graph.map1(), graph.map2(), graph.get_edge_costs());
+            size_t c_ab = get_c_ab(remaining_partition_a[g.i], remaining_partition_b[g.j], graph.map1(), graph.map2(), graph.get_edge_costs());
 
             // calculate gain
             int gain = d_i + d_j - 2 * c_ab;
@@ -518,7 +543,7 @@ void update_diff(
     cost_matrix = new_cost_matrix;
 
 #if PARTITION_IMBALANCE_DEBUG
-    cout << partition_a << ", " << partition_b << ", " << gain_object << ", " << cost_matrix << endl;
+    cout << remaining_partition_a << ", " << remaining_partition_b << ", " << gain_object << ", " << cost_matrix << endl;
 #endif
 }
 
@@ -547,8 +572,8 @@ void update_sum(
     int g,
     int& max_par_sum,
     pair<OrdSet, OrdSet>& max_par_sum_set,
-    OrdSet& a_v,
-    OrdSet& b_v)
+    const OrdSet& a_v,
+    const OrdSet& b_v)
 {
     par_sum += g;
     if (par_sum > max_par_sum) {
@@ -591,11 +616,12 @@ int kl_sbg_imbalance(
         cout << g << endl;
         pair<OrdSet, OrdSet> a_, b_;
         tie(a_, b_) = update_sets(a_c, b_c, a_v, b_v, g, graph);
-        update_diff(gm, a_c, a_, b_c, b_, graph, node_weights, g, LMin, LMax);
+        update_diff(gm, a_c, a_v, a_, b_c, b_v, b_, graph, node_weights, g, LMin, LMax);
         update_sum(par_sum, g.gain, max_par_sum, max_par_sum_set, a_v, b_v);
     }
 
     if (max_par_sum > 0) {
+
         partition_a = cup(difference(partition_a, max_par_sum_set.first), max_par_sum_set.second);
         partition_b = cup(difference(partition_b, max_par_sum_set.second), max_par_sum_set.first);
 
@@ -947,8 +973,8 @@ pair<WeightedSBGraph, PartitionMap> partitionate_nodes_for_metrics(
     const unsigned number_of_partitions,
     const float epsilon)
 {
-    auto sb_graph = build_sb_graph(filename.c_str());
-    // auto sb_graph = create_air_conditioners_graph();
+    // auto sb_graph = build_sb_graph(filename.c_str());
+    auto sb_graph = create_air_conditioners_graph();
 
     cout << sb_graph << endl;
     cout << "sb graph created!" << endl;
