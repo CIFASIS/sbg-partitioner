@@ -40,11 +40,6 @@ def generate_section_controller_records(sections, airs_per_section, enumerate_se
                     "id": "dtref",
                     "exp": [[0, 1]],
                     "defs": [8]
-                },
-                {
-                    "id": "partTotal",
-                    "exp": [[0, int(section_nbr)]],
-                    "defs": enumerate_sections
                 }
             ]
         }
