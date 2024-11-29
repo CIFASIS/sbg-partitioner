@@ -472,7 +472,7 @@ tuple<OrdSet, CanonPWMap, CanonPWMap, EdgeCost> create_graph_edges(
 
           if (node_candidate_exps.exps()[0].slope() == 0) {
             cout << "This should be 1-N " << node_candidate_domain << endl;
-            auto node_size = node_candidate_domain[0][0].end() - node_candidate_domain[0][0].begin() + 1;
+            auto node_size = node_candidate_domain[0][0].end() - node_candidate_domain[0][0].begin();
             image_intersection_set[0] = Interval(image_intersection_set[0].begin(), 1, image_intersection_set[0].begin() + node_size);
 
             OrdSet edge_domain_set = get_edge_domain<OrdSet>(image_intersection_set, edge_set, max_value);
@@ -494,7 +494,7 @@ tuple<OrdSet, CanonPWMap, CanonPWMap, EdgeCost> create_graph_edges(
             continue;
           } else if (exp.exps()[0].slope() == 0) {
             cout << "This should be N-1" << endl;
-            auto node_size = current_node_domain[0][0].end() - current_node_domain[0][0].begin() + 1;
+            auto node_size = current_node_domain[0][0].end() - current_node_domain[0][0].begin();
             image_intersection_set[0] = Interval(image_intersection_set[0].begin(), 1, image_intersection_set[0].begin() + node_size);
 
             OrdSet edge_domain_set = get_edge_domain<OrdSet>(image_intersection_set, edge_set, max_value);
