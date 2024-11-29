@@ -7,7 +7,7 @@ def generate_section_controller_records(sections, airs_per_section, enumerate_se
     for section_nbr in range(sections):
         record = {
             "id": int(10 + section_nbr),
-            "interval": [[1, int(airs_per_section)]],
+            "interval": [[int(airs_per_section * section_nbr + 1), int(airs_per_section + airs_per_section * section_nbr)]],
             "lhs": [
                 {
                     "id": "ev_" + str(7 + int(section_nbr)),
@@ -21,7 +21,7 @@ def generate_section_controller_records(sections, airs_per_section, enumerate_se
                 },
                 {
                     "id": "partTotal",
-                    "exp": [[0, int(section_nbr)]],
+                    "exp": [[0, int(section_nbr + 1)]],
                     "defs": []
                 }
             ],
