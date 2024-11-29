@@ -61,9 +61,9 @@ def generate_neuron_connection_records(conns, size):
             ]
         }
         if ev == 1:
-            record["lhs"].append(generate_reinits("exReinit", conns, offset))
+            record["lhs"] += generate_reinits("exReinit", conns, offset)
         else:
-            record["lhs"].append(generate_reinits("inhReinit", conns, offset))
+            record["lhs"] += generate_reinits("inhReinit", conns, offset)
         records.append(record)
 
     return json.dumps(records)
