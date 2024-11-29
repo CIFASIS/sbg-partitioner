@@ -827,10 +827,6 @@ void kl_sbg_imbalance_partitioner(
 
             break;
         }
-
-        for (size_t i = 0; i < partitions.size(); i++) {
-            SBG_LOG << i << ": " << partitions[i] << endl;
-        }
     }
 
     for (size_t i = 0; i < partitions.size(); i++) {
