@@ -469,7 +469,52 @@ tuple<OrdSet, CanonPWMap, CanonPWMap, EdgeCost> create_graph_edges(
 
           // we need to create an edge for each left hand side variable, that means a couple of maps for each one
           const auto& [_, exp] = *this_node_exps.begin();
+
+          if (node_candidate_exps.exps()[0].slope() == 0) {
+            cout << "This should be 1-N " << node_candidate_domain << endl;
+            auto node_size = node_candidate_domain[0][0].end() - node_candidate_domain[0][0].begin() + 1;
+            image_intersection_set[0] = Interval(image_intersection_set[0].begin(), 1, image_intersection_set[0].begin() + node_size);
+
+            OrdSet edge_domain_set = get_edge_domain<OrdSet>(image_intersection_set, edge_set, max_value);
+
+            int offset = node_candidate_domain[0][0].begin() + node_offsets.at(i) - edge_domain_set[0][0].begin();
+            cout << "node offset " << node_offsets.at(i) << ", " << edge_domain_set << " so offset is " << offset << endl;
+            CanonMap to_node_candidate = CanonMap(edge_domain_set, LExp(1, RAT(offset, 1)));
+            cout << "to_node_candidate " << to_node_candidate << endl;
+
+            cout << to_node_candidate << endl;
+
+            auto im = Interval(node_candidate_exps.exps()[0].offset().numerator(), 1, node_candidate_exps.exps()[0].offset().numerator());
+            CanonMap to_current_node = create_set_edge_map(OrdSet(im), edge_domain_set, Exp(LExp(0, node_candidate_exps.exps()[0].offset())), node_offsets.at(id));
+            cout << "to_current_node " << to_current_node << endl;
+
+            lhs_maps.emplace(to_current_node);
+            rhs_maps.emplace(to_node_candidate);
+
+            continue;
+          } else if (exp.exps()[0].slope() == 0) {
+            cout << "This should be N-1" << endl;
+            auto node_size = current_node_domain[0][0].end() - current_node_domain[0][0].begin() + 1;
+            image_intersection_set[0] = Interval(image_intersection_set[0].begin(), 1, image_intersection_set[0].begin() + node_size);
+
+            OrdSet edge_domain_set = get_edge_domain<OrdSet>(image_intersection_set, edge_set, max_value);
+
+            int offset = current_node_domain[0][0].begin() + node_offsets.at(id) - edge_domain_set[0][0].begin();
+            CanonMap to_current_node = CanonMap(edge_domain_set, LExp(1, RAT(offset, 1)));
+            cout << "to_current_node " << to_current_node << endl;
+
+            auto im = Interval(exp.exps()[0].offset().numerator(), 1, exp.exps()[0].offset().numerator());
+            CanonMap to_node_candidate = create_set_edge_map(OrdSet(im), edge_domain_set, Exp(LExp(0, node_candidate_exps.exps()[0].offset())), node_offsets.at(i));
+            cout << "to_node_candidate " << to_node_candidate << endl;
+
+            lhs_maps.emplace(to_current_node);
+            rhs_maps.emplace(to_node_candidate);
+
+            continue;
+          }
+
           OrdSet edge_domain_set = get_edge_domain<OrdSet>(image_intersection_set, edge_set, max_value);
+
           // Create map to node candidate
           auto node_candidate_map = create_set_edge_map(candidate_image_intersection, edge_domain_set, node_candidate_exps, node_offsets.at(i));
           auto node_candidate_map_image = image(node_candidate_map);
