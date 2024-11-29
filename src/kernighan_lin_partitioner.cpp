@@ -939,8 +939,7 @@ string partitionate_nodes(
     const float epsilon,
     optional<string>& graph_str)
 {
-    // auto sb_graph = build_sb_graph(filename.c_str());
-    auto sb_graph = create_air_conditioners_graph();
+    auto sb_graph = build_sb_graph(filename.c_str());
 
     cout << sb_graph << endl;
     cout << "sb graph created!" << endl;
@@ -973,8 +972,8 @@ pair<WeightedSBGraph, PartitionMap> partitionate_nodes_for_metrics(
     const unsigned number_of_partitions,
     const float epsilon)
 {
-    // auto sb_graph = build_sb_graph(filename.c_str());
-    auto sb_graph = create_air_conditioners_graph();
+    auto sb_graph = build_sb_graph(filename.c_str());
+    // auto sb_graph = create_air_conditioners_graph();
 
     cout << sb_graph << endl;
     cout << "sb graph created!" << endl;
