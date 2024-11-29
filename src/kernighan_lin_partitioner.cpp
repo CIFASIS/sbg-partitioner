@@ -196,9 +196,7 @@ size_t get_c_ab(
 }
 
 
-#if PARTITION_IMBALANCE_PROFILE
-static chrono::milliseconds total_duration;
-#endif
+
 ec_ic compute_EC_IC(
     const OrdSet& partition,
     const OrdSet& nodes,
