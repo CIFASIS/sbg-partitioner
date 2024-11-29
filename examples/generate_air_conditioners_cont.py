@@ -1,7 +1,7 @@
 import argparse
 import json
 
-def generate_section_controller_records(sections, airs_per_section, enumerate_sections):
+def generate_section_controller_records(sections, airs_per_section, enumerate_sections, on_definitions):
     records = []
     # Generate list for partial total node definition
     for section_nbr in range(sections):
@@ -34,7 +34,7 @@ def generate_section_controller_records(sections, airs_per_section, enumerate_se
                 {
                     "id": "on",
                     "exp": [[1, 0]],
-                    "defs": [9]
+                    "defs": on_definitions
                 },
                 {
                     "id": "dtref",
@@ -65,6 +65,7 @@ def generate_json(sections, size):
     """
     airs_per_section = size/sections
     enumerate_sections = [int(4)] + [int(10 + i) for i in range(sections)]
+    on_definitions = [int(10 + i) for i in range(sections)]
     data = {
         "nodes": [
             {
@@ -81,12 +82,12 @@ def generate_json(sections, size):
                     {
                         "id": "on",
                         "exp": [[1, 0]],
-                        "defs": [9]
+                        "defs": on_definitions
                     },
                     {
                         "id": "noise",
                         "exp": [[1, 0]],
-                        "defs": [10]
+                        "defs": [9]
                     },
                     {
                         "id": "th",
@@ -340,7 +341,7 @@ def generate_json(sections, size):
     }
 
     # Concatenate section controller records
-    section_records = json.loads(generate_section_controller_records(sections, airs_per_section, enumerate_sections))
+    section_records = json.loads(generate_section_controller_records(sections, airs_per_section, enumerate_sections, on_definitions))
     data["nodes"].extend(section_records)
 
     return json.dumps(data)
