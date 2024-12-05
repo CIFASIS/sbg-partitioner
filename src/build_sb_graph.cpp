@@ -470,6 +470,7 @@ tuple<OrdSet, CanonPWMap, CanonPWMap, EdgeCost> create_graph_edges(
           // we need to create an edge for each left hand side variable, that means a couple of maps for each one
           const auto& [_, exp] = *this_node_exps.begin();
 
+          // we have to use the first map of candidate node
           if (node_candidate_exps.exps()[0].slope() == 0) {
             cout << "This should be 1-N " << node_candidate_domain << endl;
             auto node_size = node_candidate_domain[0][0].end() - node_candidate_domain[0][0].begin();
@@ -516,7 +517,10 @@ tuple<OrdSet, CanonPWMap, CanonPWMap, EdgeCost> create_graph_edges(
           OrdSet edge_domain_set = get_edge_domain<OrdSet>(image_intersection_set, edge_set, max_value);
 
           // Create map to node candidate
-          auto node_candidate_map = create_set_edge_map(candidate_image_intersection, edge_domain_set, node_candidate_exps, node_offsets.at(i));
+          auto first_lhs_node_candidate = Exp(LExp(RAT(node_candidate.lhs[0].exps[0].first, 1), RAT(node_candidate.lhs[0].exps[0].second, 1)));
+          auto pre_ima_candidate = preImage(node_candidate_CanonMap);
+          cout << "pre_ima_candidate " << pre_ima_candidate << " from " << node_candidate_CanonMap << endl;
+          auto node_candidate_map = create_set_edge_map(pre_ima_candidate, edge_domain_set, first_lhs_node_candidate, node_offsets.at(i));
           auto node_candidate_map_image = image(node_candidate_map);
           cout << "map is " << node_candidate_map << endl;
           cout << "image: " << node_candidate_map_image << endl;
