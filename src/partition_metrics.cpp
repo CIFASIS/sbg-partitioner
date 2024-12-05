@@ -99,6 +99,8 @@ int main(int argc, char** argv)
           if (optarg) {
             filename = string(optarg);
           }
+          break;
+
         case 'd':
             if (optarg) {
               directory = string(optarg);
@@ -134,37 +136,42 @@ int main(int argc, char** argv)
         }
     }
 
-    stringvec dir_files;
-    read_directory(*directory, dir_files);
-
     map<string, metrics::communication_metrics> metrics;
 
-    for (const auto& f : dir_files) {
-      auto wg = create_air_conditioners_graph();
-      auto partitions = metrics::read_partition_from_file(f, create_air_conditioners_graph());
+    if (directory) {
+      stringvec dir_files;
+      read_directory(*directory, dir_files);
 
-      int edge_cut = metrics::edge_cut(partitions, wg);
+      for (const auto& f : dir_files) {
+        auto wg = build_sb_graph(*filename);
+        cout << "graph created " << wg << endl;
+        auto partitions = metrics::read_partition_from_file(f, wg);
 
-      auto [comm_volume, max_comm_volume] = metrics::communication_volume(partitions, wg);
+        int edge_cut = metrics::edge_cut(partitions, wg);
 
-      auto max_imb = metrics::maximum_imbalance(partitions, wg);
+        auto [comm_volume, max_comm_volume] = metrics::communication_volume(partitions, wg);
 
-      metrics::communication_metrics comm_metrics = metrics::communication_metrics{ edge_cut, comm_volume, max_comm_volume, max_imb };
-      metrics[std::filesystem::path(f).filename().string()] = comm_metrics;
+        auto max_imb = metrics::maximum_imbalance(partitions, wg);
+
+        metrics::communication_metrics comm_metrics = metrics::communication_metrics{ edge_cut, comm_volume, max_comm_volume, max_imb };
+        metrics[std::filesystem::path(f).filename().string()] = comm_metrics;
+      }
     }
 
-    const auto [wg, pm] = partitionate_nodes_for_metrics(*filename, *number_of_partitions, *epsilon);
+    if (filename and number_of_partitions) {
+      const auto [wg, pm] = partitionate_nodes_for_metrics(*filename, *number_of_partitions, *epsilon);
 
-    int edge_cut = metrics::edge_cut(pm, wg);
+      int edge_cut = metrics::edge_cut(pm, wg);
 
-    auto [comm_volume, max_comm_volume] = metrics::communication_volume(pm, wg);
+      auto [comm_volume, max_comm_volume] = metrics::communication_volume(pm, wg);
 
-    auto max_imb = metrics::maximum_imbalance(pm, wg);
+      auto max_imb = metrics::maximum_imbalance(pm, wg);
 
-    metrics::communication_metrics comm_metrics = metrics::communication_metrics{ edge_cut, comm_volume, max_comm_volume, max_imb };
-    metrics["sbg-partitioner"] = comm_metrics;
+      metrics::communication_metrics comm_metrics = metrics::communication_metrics{ edge_cut, comm_volume, max_comm_volume, max_imb };
+      metrics["sbg-partitioner"] = comm_metrics;
 
-    cout << "Results: " << pm << endl;
+      cout << "Results: " << pm << endl;
+    }
 
     for (const auto& [f, m] : metrics) {
       cout << f << ": " << m << endl;
