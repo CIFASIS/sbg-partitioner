@@ -18,7 +18,7 @@ def generate_neuron_connection_records(conns, size):
     # Generate list for partial total node definition
     for ev in range(2):
         record = {
-            "id": int(7+ev),
+            "id": int(8+ev),
             "interval": [[1, size-conns-offset]],
             "lhs": [
                 {
@@ -60,7 +60,7 @@ def generate_neuron_connection_records(conns, size):
                 }
             ]
         }
-        if ev == 1:
+        if ev == 0:
             record["lhs"] += generate_reinits("exReinit", conns, offset)
         else:
             record["lhs"] += generate_reinits("inhReinit", conns, offset)
@@ -208,7 +208,7 @@ def generate_json(size, conns, inputs):
                     {
                         "id": "inhReinit",
                         "exp": [[1, 0]],
-                        "defs": [5, 8]
+                        "defs": [5, 9]
                     },
                     {
                         "id": "ginh",
