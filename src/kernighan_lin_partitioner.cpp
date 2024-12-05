@@ -48,7 +48,7 @@ namespace sbg_partitioner {
 // Using unnamed namespace to define functions with internal linkage
 namespace {
 
-constexpr bool multithreading_enabled = false;
+constexpr bool multithreading_enabled = true;
 
 struct GainObjectImbalance {
     size_t i;
