@@ -28,6 +28,7 @@ RM = rm -rf
 # The Target Binary Program
 TARGET      := $(BIN_DIR)/sbg-partitioner
 TARGET_METRICS      := $(BIN_DIR)/sbg-partitioner-metrics
+TARGET_EXEC_TIME      := $(BIN_DIR)/sbg-partitioner-exec-time
 
 # Source files
 SOURCES := build_sb_graph.cpp \
@@ -42,6 +43,8 @@ MAIN_SRC := main.cpp
 MAIN_OBJ := $(MAIN_SRC:.cpp=.o)
 METRICS_SRC := partition_metrics.cpp
 METRICS_OBJ := $(METRICS_SRC:.cpp=.o)
+EXEC_TIME_SRC := execution_time.cpp
+EXEC_TIME_OBJ := $(METRICS_SRC:.cpp=.o)
 
 # Flags, Libraries and Includes
 INCLUDES := -I. -I$(SBG_LIB_PATH)/$(SBG_DEV)/usr/include -I$(BOOST_LIB_PATH)/include -I$(3RD_PARTY_DIR)/rapidjson/include
@@ -108,7 +111,14 @@ sbg-partitioner-metrics-main: $(METRICS_OBJ)
 	$(CXX) $(INCLUDES) -c $(METRICS_SRC) -o $(METRICS_OBJ) $(CXXFLAGS)
 
 sbg-partitioner-metrics: sbg-partitioner-metrics-main sbg-partitioner-lib lib-boost lib-sbg | create-folders
-	$(CXX) $(METRICS_OBJ) -L$(LIB_DIR) -lsbg-partitioner -o $(TARGET_METRICS) $(CXXFLAGS) $(LIBS)
+	$(CXX) $(METRICS_OBJ) -L$(LIB_DIR) -lsbg-partitioner -o $(TARGET_EXEC_TIME) $(CXXFLAGS) $(LIBS)
+
+
+sbg-partitioner-exec-time-main: $(METRICS_OBJ)
+	$(CXX) $(INCLUDES) -c $(EXEC_TIME_SRC) -o $(EXEC_TIME_OBJ) $(CXXFLAGS)
+
+sbg-partitioner-exec-time: sbg-partitioner-exec-time-main sbg-partitioner-lib lib-boost lib-sbg | create-folders
+	$(CXX) $(EXEC_TIME_OBJ) -L$(LIB_DIR) -lsbg-partitioner -o $(TARGET_EXEC_TIME) $(CXXFLAGS) $(LIBS)
 
 
 create-folders::
