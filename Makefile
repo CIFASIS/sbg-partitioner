@@ -1,5 +1,5 @@
 # Target variables
-MODE ?= Debug
+MODE ?= Release
 sbg_branch ?= sbg-partioner-related-branch
 build_sbg ?= True
 repo_checkout=ssh

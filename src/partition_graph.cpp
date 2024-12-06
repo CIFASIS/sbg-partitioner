@@ -27,9 +27,7 @@
 #include "build_sb_graph.hpp"
 #include "dfs_on_sbg.hpp"
 #include "partition_graph.hpp"
-
-
-#define PARTITION_SANITY_CHECK 1
+#include "sbg_partitioner_log.hpp"
 
 
 using namespace std;
@@ -62,7 +60,7 @@ size_t get_partition_communication(WeightedSBGraph& graph, const PartitionMap& p
     for (auto& [i, _] : partitions) {
         auto ss = get_connectivity_set(graph, partitions, i);
         s = SBG::LIB::cup(ss, s);
-        cout << "current connectivity set " << s << ", cardinality " << get_OrdSet_size(s) << endl;
+        logging::sbg_log << "current connectivity set " << s << ", cardinality " << get_OrdSet_size(s) << endl;
     }
 
     size_t size = get_OrdSet_size(s);
@@ -110,7 +108,7 @@ vector<PartitionMap> make_initial_partitions(WeightedSBGraph& graph, unsigned nu
     }
 
     for_each(partitions_sets.begin(), partitions_sets.end(), [&graph, number_of_partitions] (PartitionMap& p) {
-        cout << p << endl;
+        logging::sbg_log << p << endl;
         sanity_check(graph, p, number_of_partitions);
     });
 
@@ -139,7 +137,7 @@ best_initial_partition(
         }
     }
 
-    cout << "Best is " << best_initial_partitions << " with communication " << best_communication_set_cardinality << endl;
+    logging::sbg_log << "Best is " << best_initial_partitions << " with communication " << best_communication_set_cardinality << endl;
 
     return best_initial_partitions;
 }
@@ -184,7 +182,7 @@ size_t get_OrdSet_size(const OrdSet& set)
 
 void sanity_check(const WeightedSBGraph &graph, PartitionMap& partitions_set, unsigned number_of_partitions)
 {
-# if PARTITION_SANITY_CHECK
+# ifdef PARTITION_SANITY_CHECK
     // This is just a sanity check
     OrdSet nodes_to_check;
     for (unsigned i = 0; i < number_of_partitions; i++) {

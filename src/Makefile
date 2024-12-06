@@ -1,5 +1,5 @@
 # Target variables
-MODE ?= Debug
+MODE ?= Release
 DISTRO := $(shell lsb_release -r 2>/dev/null | grep Release | awk '{ print $$2 }')
 sbg_branch ?= sbg-partioner-related-branch
 build_sbg ?= True
@@ -48,6 +48,8 @@ INCLUDES := -I. -I$(SBG_LIB_PATH)/$(SBG_DEV)/usr/include -I$(BOOST_LIB_PATH)/inc
 CXXFLAGS := -std=c++17 -Wall -Werror -Wno-reorder -O3 -pthread
 ifeq ($(MODE),Debug)
 CXXFLAGS 	+= -ggdb  
+CXXFLAGS    += -D PARTITION_SANITY_CHECK
+CXXFLAGS    += -D SBG_PARTITIONER_LOGGING
 endif
 LIB_SBG_PARTITIONER = $(LIB_DIR)/libsbg-partitioner.a
 LIBS     := -L./lib -L$(SBG_LIB_PATH)/$(SBG_DEV)/usr/lib -lsbgraph -lstdc++fs
@@ -120,6 +122,8 @@ test: lib-gtest
 clean:
 	$(RM) $(BUILD_DIR)
 	$(RM) $(OSOURCES)
+	$(RM) $(MAIN_OBJ)
+	$(RM) $(METRICS_OBJ)
 	@cd test && $(MAKE) clean
 
 help:

@@ -17,12 +17,14 @@
 
  ******************************************************************************/
 
-#include "build_sb_graph.hpp"
-#include "partition_strategy.hpp"
-
 #include <bits/stdc++.h>
 
-#define DEBUG_PARTITION_STRATEGY_ENABLED 1
+#include "build_sb_graph.hpp"
+#include "partition_strategy.hpp"
+#include "sbg_partitioner_log.hpp"
+
+
+#define DEBUG_PARTITION_STRATEGY_ENABLED 0
 
 
 using namespace std;
@@ -46,7 +48,7 @@ PartitionStrategyGreedy::PartitionStrategyGreedy(unsigned number_of_partitions, 
     unsigned surplus = actual_total_of_nodes % number_of_partitions;
     // unsigned acceptable_surplus = ceil(min_amount_by_partition * 0.05);
 
-    cout << "PartitionStrategyGreedy::PartitionStrategyGreedy " << actual_total_of_nodes << ", " << min_amount_by_partition << ", " << surplus << endl;
+    logging::sbg_log << "PartitionStrategyGreedy::PartitionStrategyGreedy " << actual_total_of_nodes << ", " << min_amount_by_partition << ", " << surplus << endl;
     _expected_size_by_partition = min_amount_by_partition + surplus;
 
     for (unsigned i = 0; i < number_of_partitions; i++) {
@@ -73,7 +75,7 @@ vector<unsigned> sort_keys_by_value(const map<unsigned, unsigned>& current_size_
 void PartitionStrategyGreedy::operator() (const SetPiece& node)
 {
 #if DEBUG_PARTITION_STRATEGY_ENABLED
-    cout << "Adding node " << node << endl;
+    logging::sbg_log << "Adding node " << node << endl;
 #endif
     OrdSet node_to_be_added = node;
 
@@ -164,7 +166,7 @@ void add_surplus_sorting_by_value(const map<unsigned, unsigned>& current_size_by
 
     // Print the sorted value
     for (const auto& it : current_size_by_partition_vector) {
-        cout << "surplus " << it.first << ", " << size_by_partition[it.first] << endl;
+        logging::sbg_log << "surplus " << it.first << ", " << size_by_partition[it.first] << endl;
         size_by_partition[it.first]++;
         surplus--;
         if (surplus == 0) {
@@ -179,7 +181,7 @@ void add_surplus_sorting_by_value(const map<unsigned, unsigned>& current_size_by
 void PartitionStrategyDistributive::operator() (const SBG::LIB::SetPiece& node)
 {
 #if DEBUG_PARTITION_STRATEGY_ENABLED
-    cout << "Adding " << node << " distributively to partitions" << endl;
+    logging::sbg_log << "Adding " << node << " distributively to partitions" << endl;
 #endif
     auto s = get_node_size(node, NodeWeight());
     unsigned size_by_part = s / _number_of_partitions;
@@ -198,7 +200,7 @@ void PartitionStrategyDistributive::operator() (const SBG::LIB::SetPiece& node)
     OrdSet node_to_be_added = node;
     for (const auto [i, n] : size_by_partition) {
 #if DEBUG_PARTITION_STRATEGY_ENABLED
-        cout << "For partition " << i << " size: " << n << endl;
+        logging::sbg_log << "For partition " << i << " size: " << n << endl;
 #endif
         if (size_by_partition[i] == 0) {
             continue;
@@ -208,7 +210,7 @@ void PartitionStrategyDistributive::operator() (const SBG::LIB::SetPiece& node)
 
         tie(temp_node, node_to_be_added) = cut_interval_by_dimension(node_to_be_added, NodeWeight(), size_by_partition[i]);
 #if DEBUG_PARTITION_STRATEGY_ENABLED
-        cout << "About to add " << temp_node << " to " << i << ", remaining: " << node_to_be_added << endl;
+        logging::sbg_log << "About to add " << temp_node << " to " << i << ", remaining: " << node_to_be_added << endl;
 #endif
         for_each(temp_node.begin(), temp_node.end(), [&p](const SetPiece& s) { p.insert(s); });
         _current_size_by_partition[i] += get_node_size(temp_node, _node_weight);

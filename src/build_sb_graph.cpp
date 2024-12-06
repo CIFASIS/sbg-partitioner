@@ -31,6 +31,7 @@
 #include <util/logger.hpp>
 
 #include "build_sb_graph.hpp"
+#include "sbg_partitioner_log.hpp"
 #include "weighted_sb_graph.hpp"
 
 
@@ -91,7 +92,7 @@ struct Node {
 };
 
 
-std::ostream& operator<<(std::ostream& os, const Node& node)
+[[maybe_unused]] std::ostream& operator<<(std::ostream& os, const Node& node)
 {
   os << "id: \"" << node.id << "\" " << endl;
 
@@ -206,15 +207,15 @@ map<int, Node> create_node_objects_from_json(const Document& document)
   }
 
   for (const auto& [i, n]: nodes) {
-    cout << n << endl;
+    logging::sbg_log << n << endl;
   }
-  cout << endl;
+  logging::sbg_log << endl;
 
   return nodes;
 }
 
 
-/// Creates a set of nodes, taking into accout the offset of each one to avoid collisions.
+/// Creates a set of nodes, taking into aclogging::sbg_log the offset of each one to avoid collisions.
 tuple<OrdSet, NodeWeight> create_set_of_nodes(const map<int, Node>& nodes, map<int, int>& node_offsets, int& max_value)
 {
   // We start to build out set of intervals from 0
@@ -224,7 +225,7 @@ tuple<OrdSet, NodeWeight> create_set_of_nodes(const map<int, Node>& nodes, map<i
 
   for (const auto& [id, node] : nodes) {
 
-    cout << "Defining interval for node " << id << " ";
+    logging::sbg_log << "Defining interval for node " << id << " ";
 
     // Define the interval and add it to the node set taking into account the current offset
     // Create an offset for each equation node. We want that each equation has its
@@ -244,7 +245,7 @@ tuple<OrdSet, NodeWeight> create_set_of_nodes(const map<int, Node>& nodes, map<i
       Interval interval = Interval(interval_begin, 1, interval_end);
 
       array_of_nodes.emplaceBack(interval);
-      cout << interval << endl;
+      logging::sbg_log << interval << endl;
 
       // set this node offset, the difference between the interval and the original one
       node_offsets[id] =  interval_begin - node_interval.first;
@@ -306,7 +307,7 @@ CanonMap create_set_edge_map(const OrdSet& pre_image, const OrdSet& edge_domain,
   for (const auto& var_exp : var_exps.exps()) {
     // If the slope is 0, we just return the expression.
     if (var_exp.slope() == 0) {
-      cout << "Creating constant interval" << endl;
+      logging::sbg_log << "Creating constant interval" << endl;
       LExp map_exp = var_exp;
       INT offset = var_exp.offset().numerator();
       if (i == 0) {
@@ -339,13 +340,13 @@ CanonMap create_set_edge_map(const OrdSet& pre_image, const OrdSet& edge_domain,
 
     i++;
   }
-  cout << "created " << i << " maps out of " << var_exps << endl;
+  logging::sbg_log << "created " << i << " maps out of " << var_exps << endl;
 
   // And create the map
   map.set_exp(map_exps);
 
   // useful for debugging
-  // cout << "edge_domain " << edge_domain << ": " << image(map) << endl;
+  // logging::sbg_log << "edge_domain " << edge_domain << ": " << image(map) << endl;
 
   return map;
 }
@@ -370,7 +371,7 @@ Set get_node_domain(Node node)
 template<typename S, typename T>
 S get_edge_domain(SetPiece image_intersection_set, T& edge_set, int& max_value)
 {
-  cout << "get_edge_domain " << image_intersection_set << ", " << edge_set << endl;
+  logging::sbg_log << "get_edge_domain " << image_intersection_set << ", " << edge_set << endl;
   SetPiece edge_domain_set;
   for (size_t i = 0; i < image_intersection_set.size(); i++) {
     // Edge domain will be from the current max value and will have the quantity as the intersection
@@ -408,7 +409,7 @@ tuple<OrdSet, CanonPWMap, CanonPWMap, EdgeCost> create_graph_edges(
   EdgeCost costs; // Weight of edges
 
   for (const auto& [id, node] : nodes) {
-    cout << "Looking for connections with " << id << endl;
+    logging::sbg_log << "Looking for connections with " << id << endl;
 
     // Define the equation intervals (without offsets)
     OrdSet current_node_domain;
@@ -439,7 +440,7 @@ tuple<OrdSet, CanonPWMap, CanonPWMap, EdgeCost> create_graph_edges(
       // Definitions of this variable are on defs field. We want to check if
       // intersects with any node
       for (int i : right_var.defs) {
-        cout << "Is it connected to " << i << "?" << endl;
+        logging::sbg_log << "Is it connected to " << i << "?" << endl;
         auto node_candidate = nodes.at(i);
 
         // Domain of the node candidate
@@ -459,10 +460,10 @@ tuple<OrdSet, CanonPWMap, CanonPWMap, EdgeCost> create_graph_edges(
           // we want to see if the intersection of the images is not empty
           auto candidate_image_intersection = intersection(node_candidate_image, used_node_image);
           if (isEmpty(candidate_image_intersection)) {
-            cout << "No, it is not" << endl;
+            logging::sbg_log << "No, it is not" << endl;
             continue;
           }
-          cout << "Yes, it is: " << candidate_image_intersection << endl;
+          logging::sbg_log << "Yes, it is: " << candidate_image_intersection << endl;
 
           // Now we need to create both maps, let's create their domain.
           auto image_intersection_set = candidate_image_intersection[0];
@@ -472,29 +473,29 @@ tuple<OrdSet, CanonPWMap, CanonPWMap, EdgeCost> create_graph_edges(
 
           // we have to use the first map of candidate node
           if (node_candidate_exps.exps()[0].slope() == 0) {
-            cout << "This should be 1-N " << node_candidate_domain << endl;
+            logging::sbg_log << "This should be 1-N " << node_candidate_domain << endl;
             auto node_size = node_candidate_domain[0][0].end() - node_candidate_domain[0][0].begin();
             image_intersection_set[0] = Interval(image_intersection_set[0].begin(), 1, image_intersection_set[0].begin() + node_size);
 
             OrdSet edge_domain_set = get_edge_domain<OrdSet>(image_intersection_set, edge_set, max_value);
 
             int offset = node_candidate_domain[0][0].begin() + node_offsets.at(i) - edge_domain_set[0][0].begin();
-            cout << "node offset " << node_offsets.at(i) << ", " << edge_domain_set << " so offset is " << offset << endl;
+            logging::sbg_log << "node offset " << node_offsets.at(i) << ", " << edge_domain_set << " so offset is " << offset << endl;
             CanonMap to_node_candidate = CanonMap(edge_domain_set, LExp(1, RAT(offset, 1)));
-            cout << "to_node_candidate " << to_node_candidate << endl;
+            logging::sbg_log << "to_node_candidate " << to_node_candidate << endl;
 
-            cout << to_node_candidate << endl;
+            logging::sbg_log << to_node_candidate << endl;
 
             auto im = Interval(node_candidate_exps.exps()[0].offset().numerator(), 1, node_candidate_exps.exps()[0].offset().numerator());
             CanonMap to_current_node = create_set_edge_map(OrdSet(im), edge_domain_set, Exp(LExp(0, node_candidate_exps.exps()[0].offset())), node_offsets.at(id));
-            cout << "to_current_node " << to_current_node << endl;
+            logging::sbg_log << "to_current_node " << to_current_node << endl;
 
             lhs_maps.emplace(to_current_node);
             rhs_maps.emplace(to_node_candidate);
 
             continue;
           } else if (exp.exps()[0].slope() == 0) {
-            cout << "This should be N-1" << endl;
+            logging::sbg_log << "This should be N-1" << endl;
             auto node_size = current_node_domain[0][0].end() - current_node_domain[0][0].begin();
             image_intersection_set[0] = Interval(image_intersection_set[0].begin(), 1, image_intersection_set[0].begin() + node_size);
 
@@ -502,11 +503,11 @@ tuple<OrdSet, CanonPWMap, CanonPWMap, EdgeCost> create_graph_edges(
 
             int offset = current_node_domain[0][0].begin() + node_offsets.at(id) - edge_domain_set[0][0].begin();
             CanonMap to_current_node = CanonMap(edge_domain_set, LExp(1, RAT(offset, 1)));
-            cout << "to_current_node " << to_current_node << endl;
+            logging::sbg_log << "to_current_node " << to_current_node << endl;
 
             auto im = Interval(exp.exps()[0].offset().numerator(), 1, exp.exps()[0].offset().numerator());
             CanonMap to_node_candidate = create_set_edge_map(OrdSet(im), edge_domain_set, Exp(LExp(0, node_candidate_exps.exps()[0].offset())), node_offsets.at(i));
-            cout << "to_node_candidate " << to_node_candidate << endl;
+            logging::sbg_log << "to_node_candidate " << to_node_candidate << endl;
 
             lhs_maps.emplace(to_current_node);
             rhs_maps.emplace(to_node_candidate);
@@ -519,25 +520,25 @@ tuple<OrdSet, CanonPWMap, CanonPWMap, EdgeCost> create_graph_edges(
           // Create map to node candidate
           auto first_lhs_node_candidate = Exp(LExp(RAT(node_candidate.lhs[0].exps[0].first, 1), RAT(node_candidate.lhs[0].exps[0].second, 1)));
           auto pre_ima_candidate = preImage(node_candidate_CanonMap);
-          cout << "pre_ima_candidate " << pre_ima_candidate << " from " << node_candidate_CanonMap << endl;
+          logging::sbg_log << "pre_ima_candidate " << pre_ima_candidate << " from " << node_candidate_CanonMap << endl;
           auto node_candidate_map = create_set_edge_map(pre_ima_candidate, edge_domain_set, first_lhs_node_candidate, node_offsets.at(i));
           auto node_candidate_map_image = image(node_candidate_map);
-          cout << "map is " << node_candidate_map << endl;
-          cout << "image: " << node_candidate_map_image << endl;
+          logging::sbg_log << "map is " << node_candidate_map << endl;
+          logging::sbg_log << "image: " << node_candidate_map_image << endl;
 
           // Create map to current node
           auto pre_image_current_node = preImage(OrdSet(image_intersection_set), rhs_map);
           auto im = image(CanonMap(OrdSet(pre_image_current_node), exp));
           auto current_node_map = create_set_edge_map(im, edge_domain_set, exp, node_offsets.at(id));
           auto current_node_map_image = image(current_node_map);
-          cout << "map is " << current_node_map << endl;
-          cout << "image: " << current_node_map_image << endl;
+          logging::sbg_log << "map is " << current_node_map << endl;
+          logging::sbg_log << "image: " << current_node_map_image << endl;
 
           if (not (current_node_map_image == node_candidate_map_image)) {
               lhs_maps.emplace(current_node_map);
               rhs_maps.emplace(node_candidate_map);
           }
-          cout << "----" << endl;
+          logging::sbg_log << "----" << endl;
 
           costs.insert({edge_domain_set, var.cost});
         }
@@ -558,7 +559,7 @@ WeightedSBGraph create_sb_graph(const std::map<int, Node>& nodes)
 
   // Now, we create our set of nodes.
   auto [node_set, weights] = create_set_of_nodes(nodes, node_offsets, max_value);
-  cout << "node_set " << node_set << endl;
+  logging::sbg_log << "node_set " << node_set << endl;
 
   // Now, let's build a graph!
   WeightedSBGraph graph; // This will be our graph
@@ -628,7 +629,7 @@ Interval get_pre_image(const Interval& image_interval, const LExp& expression)
 
 WeightedSBGraph build_sb_graph(const string& filename)
 {
-  cout << "Reading " << filename << "..." << endl;
+  logging::sbg_log << "Reading " << filename << "..." << endl;
 
   // Parse json document
   Document document;
@@ -684,7 +685,7 @@ OrdSet get_adjacents(const CanonSBG& graph, const SetPiece& node)
 
 pair<OrdSet, OrdSet> cut_bidimensional_interval(const SetPiece &set_piece, size_t s)
 {
-    cout << "cutting interval " << set_piece << ", " << s << endl;
+    logging::sbg_log << "cutting interval " << set_piece << ", " << s << endl;
 
     auto size_node_2 = get_node_size(SetPiece(set_piece.intervals()[1]), NodeWeight());
 
@@ -692,7 +693,7 @@ pair<OrdSet, OrdSet> cut_bidimensional_interval(const SetPiece &set_piece, size_
 
     unsigned rest = s % size_node_2;
 
-    cout << "Ammount of rows " << ammount_of_rows << endl;
+    logging::sbg_log << "Ammount of rows " << ammount_of_rows << endl;
 
     OrdSet OrdSet_ret;
     SetPiece interval_2 = *set_piece.intervals().begin();
@@ -700,7 +701,7 @@ pair<OrdSet, OrdSet> cut_bidimensional_interval(const SetPiece &set_piece, size_
     if (ammount_of_rows > 0) {
         SetPiece interval_1;
         tie(interval_1, interval_2) = cut_interval(set_piece.intervals().front(), set_piece.intervals().front().begin() + ammount_of_rows - 1);
-        cout << "Interval cut in " << ammount_of_rows << ": " << interval_1 << ", " << interval_2 << endl;
+        logging::sbg_log << "Interval cut in " << ammount_of_rows << ": " << interval_1 << ", " << interval_2 << endl;
         if (interval_2.size() == 0 and rest > 0) {
             interval_2 = Interval(interval_1.intervals().front().end(), 1, interval_1.intervals().front().end());
         }
@@ -720,7 +721,7 @@ pair<OrdSet, OrdSet> cut_bidimensional_interval(const SetPiece &set_piece, size_
 
     OrdSet remaining = difference(OrdSet(set_piece), OrdSet_ret);
 
-    cout << "original " << OrdSet(set_piece) << ", " << OrdSet_ret << ", " << remaining << endl;
+    logging::sbg_log << "original " << OrdSet(set_piece) << ", " << OrdSet_ret << ", " << remaining << endl;
 
     return make_pair(OrdSet_ret, remaining);
 }
@@ -763,7 +764,7 @@ pair<OrdSet, OrdSet> cut_interval_by_dimension(OrdSet& set_piece, const NodeWeig
         return make_pair(cut_node, remaining_node);
     }
 
-    cout << "Unexpected dimension: " << set_piece.pieces().begin()->intervals().size() << endl;
+    logging::sbg_log << "Unexpected dimension: " << set_piece.pieces().begin()->intervals().size() << endl;
 
     throw 1;
 }
@@ -844,7 +845,7 @@ unsigned get_edge_set_cost(const SBG::LIB::OrdSet& node, const EdgeCost& edge_co
 void flatten_set(OrdSet &set, const CanonSBG& graph)
 {
     if (set.pieces().size() > 0 and set.pieces().begin()->intervals().size() > 1) {
-        cout << "flatten_set for sets with "
+        logging::sbg_log << "flatten_set for sets with "
              << set.pieces().size()
              << " is not implemented"
              << endl;

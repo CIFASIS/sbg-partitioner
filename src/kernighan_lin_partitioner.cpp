@@ -29,10 +29,11 @@
 
 #include "build_sb_graph.hpp"
 #include "kernighan_lin_partitioner.hpp"
+#include "sbg_partitioner_log.hpp"
 
 
-#define PARTITION_IMBALANCE_DEBUG 1
-#define PARTITION_IMBALANCE_PROFILE 1
+#define PARTITION_IMBALANCE_DEBUG 0
+#define PARTITION_IMBALANCE_PROFILE 0
 
 
 // This code is based on https://github.com/CIFASIS/sbg-partitioner/discussions/17
@@ -80,7 +81,7 @@ struct kl_sbg_partitioner_result
 };
 
 
-ostream& operator<<(ostream& os, const kl_sbg_partitioner_result& result)
+[[maybe_unused]]ostream& operator<<(ostream& os, const kl_sbg_partitioner_result& result)
 {
     os << "{ partition results: "
        << result.i
@@ -114,7 +115,7 @@ using GainObjectImbalanceComparator = GainObjectComparatorTemplate<GainObjectImb
 using CostMatrixImbalance = std::set<GainObjectImbalance, GainObjectImbalanceComparator>;
 
 
-ostream& operator<<(ostream& os, const KLBipartResult& result)
+[[maybe_unused]]ostream& operator<<(ostream& os, const KLBipartResult& result)
 {
     os << "{ gain: " << result.gain << ", A: " << result.A << ", B: " << result.B << "}";
 
@@ -140,7 +141,7 @@ ostream& operator<<(ostream& os, const GainObjectImbalance& gain)
 }
 
 
-ostream& operator<<(ostream& os, const CostMatrixImbalance& cost_matrix)
+[[maybe_unused]] ostream& operator<<(ostream& os, const CostMatrixImbalance& cost_matrix)
 {
     os << "{ ";
     for (const auto& o : cost_matrix) {
@@ -188,7 +189,7 @@ size_t get_c_ab(
 
     auto communication_edges = cup(intersection1, intersection2);
 
-    cout << "Comm between " << a << " and " << b << ": " << communication_edges << endl;
+    logging::sbg_log << "Comm between " << a << " and " << b << ": " << communication_edges << endl;
 
     size_t comm_size = get_edge_set_cost(communication_edges, costs);
 
@@ -222,7 +223,7 @@ ec_ic compute_EC_IC(
 
 unsigned get_imbalance_size(unsigned min_imbal_part, unsigned max_imbal_part, unsigned size_node_a, unsigned size_node_b, unsigned current_moved_size)
 {
-    cout << "nodes_imbal_part = " << max_imbal_part << ", " << size_node_a << endl;
+    logging::sbg_log << "nodes_imbal_part = " << max_imbal_part << ", " << size_node_a << endl;
     unsigned nodes_imbal_part = size_node_a > 0 ? floor(max_imbal_part / size_node_a) : 0;
 
     unsigned min_nodes_imbal_part = size_node_b > 0 ? floor(min_imbal_part / size_node_b) : 0;
@@ -232,7 +233,7 @@ unsigned get_imbalance_size(unsigned min_imbal_part, unsigned max_imbal_part, un
     }
 
     unsigned remaining_node_a = unsigned(size_node_a - current_moved_size);
-    cout << "min between " << remaining_node_a << " and " << current_moved_size << endl;
+    logging::sbg_log << "min between " << remaining_node_a << " and " << current_moved_size << endl;
     nodes_imbal_part = std::min(unsigned(current_moved_size), remaining_node_a);
     unsigned new_size_a = current_moved_size + nodes_imbal_part;
 
@@ -268,7 +269,7 @@ GainObjectImbalance get_gain(
     ec_nodes_a = cup(ec_nodes_a_1, ec_nodes_a_2);
     ic_nodes_a = cup(ic_nodes_a_1, ic_nodes_a_2);
 
-    cout << "Node " << idx_a << ", " << nodes_a << " ec: " << ec_nodes_a << " and ic: " << ic_nodes_a << endl;
+    logging::sbg_log << "Node " << idx_a << ", " << nodes_a << " ec: " << ec_nodes_a << " and ic: " << ic_nodes_a << endl;
 
     size_t ec_a = get_edge_set_cost(ec_nodes_a, graph.get_edge_costs());
     size_t ic_a = get_edge_set_cost(ic_nodes_a, graph.get_edge_costs());
@@ -285,7 +286,7 @@ GainObjectImbalance get_gain(
     ec_nodes_b = cup(ec_nodes_b_1, ec_nodes_b_2);
     ic_nodes_b = cup(ic_nodes_b_1, ic_nodes_b_2);
 
-    // cout << "Node: " << idx_b << ", " << nodes_b << " ec: " << ec_nodes_b << " and ic: " << ic_nodes_b << endl;
+    // logging::sbg_log << "Node: " << idx_b << ", " << nodes_b << " ec: " << ec_nodes_b << " and ic: " << ic_nodes_b << endl;
 
     size_t ec_b = get_edge_set_cost(ec_nodes_b, graph.get_edge_costs());
     size_t ic_b = get_edge_set_cost(ic_nodes_b, graph.get_edge_costs());
@@ -330,7 +331,7 @@ void compute_exchange(unsigned i, unsigned j, OrdSet& partition_a, unsigned curr
 
         GainObjectImbalance gain_obj_imbalance = get_gain(i, nodes_a, partition_a, new_size_a, j, nodes_b, partition_b, min_size, graph, node_weight);
 
-        cout << "is gain better? " << gain_obj << ", " << gain_obj_imbalance << endl;
+        logging::sbg_log << "is gain better? " << gain_obj << ", " << gain_obj_imbalance << endl;
 
         if (gain_obj_imbalance.gain > gain_obj.gain) {
             gain_obj = move(gain_obj_imbalance);
@@ -347,7 +348,7 @@ void compute_exchange(unsigned i, unsigned j, OrdSet& partition_a, unsigned curr
 
         GainObjectImbalance gain_obj_imbalance = get_gain(i, nodes_a, partition_a, min_size, j, nodes_b, partition_b, new_size_b, graph, node_weight);
 
-        cout << "is gain better? " << gain_obj << ", " << gain_obj_imbalance << endl;
+        logging::sbg_log << "is gain better? " << gain_obj << ", " << gain_obj_imbalance << endl;
 
         if (gain_obj_imbalance.gain > gain_obj.gain) {
             gain_obj = move(gain_obj_imbalance);
@@ -396,7 +397,7 @@ pair<pair<OrdSet, OrdSet>, pair<OrdSet, OrdSet>> update_sets(
     OrdSet rest_a;
     if (not node_a_is_fully_used) {
         tie(node_a, rest_a) = cut_interval_by_dimension(node_a, graph.get_node_weights(), gain_object.size_i);
-        cout << "cut_interval_by_dimension " << gain_object.size_i << ": " << node_a << rest_a << endl;
+        logging::sbg_log << "cut_interval_by_dimension " << gain_object.size_i << ": " << node_a << rest_a << endl;
     }
 
     auto node_b = OrdSet(partition_b[gain_object.j]);
@@ -405,14 +406,14 @@ pair<pair<OrdSet, OrdSet>, pair<OrdSet, OrdSet>> update_sets(
     OrdSet rest_b;
     if (not node_b_is_fully_used) {
         tie(node_b, rest_b) = cut_interval_by_dimension(node_b, graph.get_node_weights(), gain_object.size_j);
-        cout << "cut_interval_by_dimension " << gain_object.size_j << ": " << node_b << rest_b << endl;
+        logging::sbg_log << "cut_interval_by_dimension " << gain_object.size_j << ": " << node_b << rest_b << endl;
     }
-    cout << "we remove " << node_a << " from " << partition_a << " and we get: ";
+    logging::sbg_log << "we remove " << node_a << " from " << partition_a << " and we get: ";
     partition_a = difference(partition_a, node_a);
-    cout << partition_a << endl;
-    cout << "we remove " << node_b << " from " << partition_b << " and we get: ";
+    logging::sbg_log << partition_a << endl;
+    logging::sbg_log << "we remove " << node_b << " from " << partition_b << " and we get: ";
     partition_b = difference(partition_b, node_b);
-    cout << partition_b << endl;
+    logging::sbg_log << partition_b << endl;
 
     current_moved_partition_a = cup(current_moved_partition_a, node_a);
     current_moved_partition_b = cup(current_moved_partition_b, node_b);
@@ -435,8 +436,8 @@ void update_diff(
     unsigned LMin,
     unsigned LMax)
 {
-    cout << affected_node_a.first << ", " << affected_node_a.second << endl;
-    cout << affected_node_b.first << ", " << affected_node_b.second << endl;
+    logging::sbg_log << affected_node_a.first << ", " << affected_node_a.second << endl;
+    logging::sbg_log << affected_node_b.first << ", " << affected_node_b.second << endl;
 
     // Firstly, check if indexes need fixing. Three possible causes.
     size_t affected_node_a_size = get_node_size(affected_node_a.second, node_weight);
@@ -541,7 +542,7 @@ void update_diff(
     cost_matrix = new_cost_matrix;
 
 #if PARTITION_IMBALANCE_DEBUG
-    cout << remaining_partition_a << ", " << remaining_partition_b << ", " << gain_object << ", " << cost_matrix << endl;
+    logging::sbg_log << remaining_partition_a << ", " << remaining_partition_b << ", " << gain_object << ", " << cost_matrix << endl;
 #endif
 }
 
@@ -555,7 +556,7 @@ auto max_diff(M& cost_matrix, SBG::LIB::OrdSet& partition_a, SBG::LIB::OrdSet& p
 
     auto gain_object = *g;
 #if PARTITION_IMBALANCE_DEBUG
-    cout << "The best is " << *g << endl;
+    logging::sbg_log << "The best is " << *g << endl;
 #endif
 
     // remove it, we need to update those values that
@@ -589,7 +590,7 @@ int kl_sbg_imbalance(
     unsigned LMax)
 {
 #if PARTITION_IMBALANCE_DEBUG
-    cout << "Algorithm starts with " << partition_a << ", " << partition_b << endl;
+    logging::sbg_log << "Algorithm starts with " << partition_a << ", " << partition_b << endl;
 #endif
     auto a_c = partition_a;
     auto b_c = partition_b;
@@ -603,15 +604,15 @@ int kl_sbg_imbalance(
     CostMatrixImbalance gm = generate_gain_matrix(graph, node_weights, partition_a, partition_b, LMin, LMax);
 
 #if PARTITION_IMBALANCE_DEBUG
-        cout << LMin << ", "
+        logging::sbg_log << LMin << ", "
              << LMax
              << gm << endl;
 #endif
 
     while ((not isEmpty(a_c)) and (not isEmpty(b_c))) {
-        cout << "inside the while " << a_c << b_c << endl;
+        logging::sbg_log << "inside the while " << a_c << b_c << endl;
         GainObjectImbalance g = max_diff(gm, a_c, b_c, graph);
-        cout << g << endl;
+        logging::sbg_log << g << endl;
         pair<OrdSet, OrdSet> a_, b_;
         tie(a_, b_) = update_sets(a_c, b_c, a_v, b_v, g, graph);
         update_diff(gm, a_c, a_v, a_, b_c, b_v, b_, graph, node_weights, g, LMin, LMax);
@@ -628,7 +629,7 @@ int kl_sbg_imbalance(
     }
 
 #if PARTITION_IMBALANCE_DEBUG
-    cout << "so it ends with " << max_par_sum << ", " << partition_a << ", " << partition_b << endl;
+    logging::sbg_log << "so it ends with " << max_par_sum << ", " << partition_a << ", " << partition_b << endl;
 #endif
     return max_par_sum;
 }
@@ -640,7 +641,7 @@ KLBipartResult kl_sbg_bipart_imbalance(const WeightedSBGraph& graph, OrdSet& par
     int gain = kl_sbg_imbalance(graph, partition_a, partition_b, LMin, LMax);
 
 #if PARTITION_IMBALANCE_DEBUG
-    cout << "Final: " << partition_a << ", " << partition_b << endl;
+    logging::sbg_log << "Final: " << partition_a << ", " << partition_b << endl;
 #endif
 
     return KLBipartResult{partition_a, partition_b, gain};
@@ -662,7 +663,7 @@ kl_sbg_partitioner_result kl_sbg_partitioner_function(
         for (size_t j = i + 1; j < partitions.size(); j++) {
 
             if (isEmpty(intersection(adjacents[i], partitions[j]))) {
-                cout << "No connections between " << partitions[i] << " and " << partitions[j] << " is empty" << endl;
+                logging::sbg_log << "No connections between " << partitions[i] << " and " << partitions[j] << " is empty" << endl;
                 continue;
             }
 
@@ -672,7 +673,7 @@ kl_sbg_partitioner_result kl_sbg_partitioner_function(
 
             auto gain_it = find_if(gains.begin(), gains.end(), gain_comp);
             if (gain_it != gains.end()) {
-                cout << "Between " << i << " and " << j << " was already computed, " << *gain_it  << endl;
+                logging::sbg_log << "Between " << i << " and " << j << " was already computed, " << *gain_it  << endl;
                 continue;
             }
 
@@ -680,7 +681,7 @@ kl_sbg_partitioner_result kl_sbg_partitioner_function(
             auto p_2_copy = partitions[j];
             KLBipartResult current_gain = kl_sbg_bipart_imbalance(graph, p_1_copy, p_2_copy, LMin, LMax);
     #if PARTITION_IMBALANCE_DEBUG
-            cout << "current_gain " << current_gain << endl;
+            logging::sbg_log << "current_gain " << current_gain << endl;
     #endif
             gains.emplace_back(kl_sbg_partitioner_result{ i, j, current_gain.gain, current_gain.A, current_gain.B });
         }
@@ -712,7 +713,7 @@ kl_sbg_partitioner_result kl_sbg_partitioner_multithreading(
         for (size_t j = i + 1; j < partitions.size(); j++) {
 
             if (isEmpty(intersection(adjacents[i], partitions[j]))) {
-                cout << "No connections between " << partitions[i] << " and " << partitions[j] << " is empty" << endl;
+                logging::sbg_log << "No connections between " << partitions[i] << " and " << partitions[j] << " is empty" << endl;
                 continue;
             }
 
@@ -722,7 +723,7 @@ kl_sbg_partitioner_result kl_sbg_partitioner_multithreading(
 
             auto gain_it = find_if(gains.begin(), gains.end(), gain_comp);
             if (gain_it != gains.end()) {
-                cout << "Between " << i << " and " << j << " was already computed, " << *gain_it  << endl;
+                logging::sbg_log << "Between " << i << " and " << j << " was already computed, " << *gain_it  << endl;
                 continue;
             }
 
@@ -761,7 +762,7 @@ void kl_sbg_imbalance_partitioner(
 
     vector<kl_sbg_partitioner_result> gains;
     while (change) {
-        cout << "*****ITERATION NUMBER " << counter++ << endl;
+        logging::sbg_log << "*****ITERATION NUMBER " << counter++ << endl;
         change = false;
 
         kl_sbg_partitioner_result best_gain;
@@ -771,7 +772,7 @@ void kl_sbg_imbalance_partitioner(
             best_gain = kl_sbg_partitioner_function(graph, partitions, LMin, LMax, gains);
         }
 
-        cout << "Best gain results is: " << best_gain << endl;
+        logging::sbg_log << "Best gain results is: " << best_gain << endl;
 
         auto gain_comp = [&best_gain](const kl_sbg_partitioner_result& g) {
             return g.i == best_gain.i or g.j == best_gain.j
@@ -797,7 +798,7 @@ void kl_sbg_imbalance_partitioner(
 
             int it_counter = 0;
             while (not gains.empty() and best_gain.gain > 0) {
-                cout << "change number " << it_counter << " changing " << best_gain.i << ", " << best_gain.j << endl;
+                logging::sbg_log << "change number " << it_counter << " changing " << best_gain.i << ", " << best_gain.j << endl;
                 it_counter++;
                 change = true;
                 partitions[best_gain.i] = best_gain.A;
@@ -805,10 +806,12 @@ void kl_sbg_imbalance_partitioner(
 
                 gains.erase(std::remove_if(gains.begin(), gains.end(), gain_comp), gains.end());
 
-                cout << "best gain is " << best_gain << endl;
-                cout << "and vector is ";
-                for_each(gains.begin(), gains.end(), [](const kl_sbg_partitioner_result& g) { cout << g << " "; });
-                cout << endl;
+                logging::sbg_log << "best gain is " << best_gain << endl;
+                logging::sbg_log << "and vector is ";
+                #ifdef SBG_PARTITIONER_LOGGING
+                for_each(gains.begin(), gains.end(), [](const kl_sbg_partitioner_result& g) { logging::sbg_log << g << " "; });
+                #endif
+                logging::sbg_log << endl;
 
                 if (not gains.empty()){
                     auto max_gain_it = max_element(gains.begin(), gains.end(),
@@ -935,19 +938,12 @@ string partitionate_nodes(
 {
     auto sb_graph = build_sb_graph(filename.c_str());
 
-    cout << sb_graph << endl;
-    cout << "sb graph created!" << endl;
+    logging::sbg_log << sb_graph << endl;
+    logging::sbg_log << "sb graph created!" << endl;
 
     auto partitions = best_initial_partition(sb_graph, number_of_partitions);
 
     kl_sbg_imbalance_partitioner(sb_graph, partitions, epsilon);
-
-    // // just for debugging
-    cout << endl;
-    for (unsigned i = 0; i < partitions.size(); i++) {
-        cout << i << " " << partitions[i] << endl;
-    }
-    cout << endl;
 
     sanity_check(sb_graph, partitions, number_of_partitions);
 
@@ -969,8 +965,8 @@ pair<WeightedSBGraph, PartitionMap> partitionate_nodes_for_metrics(
     auto sb_graph = build_sb_graph(filename.c_str());
     // auto sb_graph = create_air_conditioners_graph();
 
-    cout << sb_graph << endl;
-    cout << "sb graph created!" << endl;
+    logging::sbg_log << sb_graph << endl;
+    logging::sbg_log << "sb graph created!" << endl;
 
     auto partitions = best_initial_partition(sb_graph, number_of_partitions);
 

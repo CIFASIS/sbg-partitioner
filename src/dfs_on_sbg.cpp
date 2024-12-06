@@ -20,6 +20,7 @@
 #include <iostream>
 
 #include "dfs_on_sbg.hpp"
+#include "sbg_partitioner_log.hpp"
 #include "weighted_sb_graph.hpp"
 
 using namespace std;
@@ -94,7 +95,7 @@ void DFS::initialize_adjacents()
         }
     }
 
-    cout << "Root node is " << _root_node_idx << endl;
+    logging::sbg_log << "Root node is " << _root_node_idx << endl;
 }
 
 

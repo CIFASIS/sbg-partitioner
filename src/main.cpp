@@ -24,6 +24,7 @@
 #include <string>
 
 #include "kernighan_lin_partitioner.hpp"
+#include "sbg_partitioner_log.hpp"
 
 
 using namespace std;
@@ -126,19 +127,19 @@ int main(int argc, char** argv)
     exit(1);
   }
 
-  cout << "filename is " << *filename << endl;
-  cout << "number of partitions is " << *number_of_partitions << endl;
+  logging::sbg_log << "filename is " << *filename << endl;
+  logging::sbg_log << "number of partitions is " << *number_of_partitions << endl;
 
   auto start = chrono::high_resolution_clock::now();
   auto partition_str = partitionate_nodes(*filename, *number_of_partitions, *epsilon, output_sb_graph);
   auto end = chrono::high_resolution_clock::now();
   auto duration = chrono::duration_cast<chrono::milliseconds>(end - start);
-  cout << "total time: " << duration.count() << endl;
+  logging::sbg_log << "total time: " << duration.count() << endl;
 
-  cout << "final results " << partition_str << endl;
+  logging::sbg_log << "final results " << partition_str << endl;
 
   if (output_sb_graph) {
-    cout << "output_sb_graph " << *output_sb_graph << endl;
+    logging::sbg_log << "output_sb_graph " << *output_sb_graph << endl;
   }
 
   return 0;
