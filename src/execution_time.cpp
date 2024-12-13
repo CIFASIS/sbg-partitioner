@@ -149,6 +149,8 @@ int main(int argc, char** argv)
     filesystem::path f_path = filesystem::path(*filename);
 
     auto output_file = filesystem::path(*filename).replace_extension(filesystem::path("")).string();
+    output_file += "_";
+    output_file += to_string(*number_of_partitions);
     output_file += "_exec_time.txt";
     ofstream output_stream;
     output_stream.open(output_file);

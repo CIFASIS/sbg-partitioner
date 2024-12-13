@@ -17,6 +17,7 @@
  ******************************************************************************/
 
 #include <filesystem>
+#include <fstream>
 #include <getopt.h>
 #include <iostream>
 #include <optional>
@@ -175,6 +176,17 @@ int main(int argc, char** argv)
 
     for (const auto& [f, m] : metrics) {
       cout << f << ": " << m << endl;
+    }
+
+    auto output_file = filesystem::path(*filename).replace_extension(filesystem::path("")).string();
+    output_file += "_";
+    output_file += to_string(*number_of_partitions);
+    output_file += "_metrics.txt";
+    ofstream output_stream;
+    output_stream.open(output_file);
+
+    for (const auto& [f, m] : metrics) {
+      output_stream << f << ": " << m << endl;
     }
 
     return 0;
