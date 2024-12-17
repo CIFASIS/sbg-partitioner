@@ -55,8 +55,14 @@ void usage()
 {
     cout << "Usage sbg-partitioner" << endl;
     cout << endl;
-    cout << "-h, --help      Display this information and exit" << endl;
-    cout << "-v, --version   Display version information and exit" << endl;
+    cout << "-h, --help       Display this information and exit" << endl;
+    cout << "-v, --version    Display version information and exit" << endl;
+    cout << "-f, --filename   Path to the input file, a json file that represents "
+            "the model we want to partitionate." << endl;
+    cout << "-p, --partitions Number of partitions." << endl;
+    cout << "-d,              path to a directory with txt files that indicate the "
+            "model partitioning using other algorithms." << endl;
+    cout << "-e               Imbalance epsilon, a value between 0 and 1." << endl;
     cout << endl;
     cout << "SBG Partitioner home page: https://github.com/CIFASIS/sbg-partitioner " << endl;
 }

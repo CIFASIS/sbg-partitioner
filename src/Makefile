@@ -111,7 +111,7 @@ sbg-partitioner-metrics-main: $(METRICS_OBJ)
 	$(CXX) $(INCLUDES) -c $(METRICS_SRC) -o $(METRICS_OBJ) $(CXXFLAGS)
 
 sbg-partitioner-metrics: sbg-partitioner-metrics-main sbg-partitioner-lib lib-boost lib-sbg | create-folders
-	$(CXX) $(METRICS_OBJ) -L$(LIB_DIR) -lsbg-partitioner -o $(TARGET_EXEC_TIME) $(CXXFLAGS) $(LIBS)
+	$(CXX) $(METRICS_OBJ) -L$(LIB_DIR) -lsbg-partitioner -o $(TARGET_METRICS) $(CXXFLAGS) $(LIBS)
 
 
 sbg-partitioner-exec-time-main: $(METRICS_OBJ)
