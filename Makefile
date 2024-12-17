@@ -31,10 +31,14 @@ sbg-partitioner-lib:
 	@cd src && $(MAKE) sbg-partitioner-lib MODE=$(MODE) build_sbg=$(build_sbg) && $(MAKE) clean
 	@echo Done
 
-
 sbg-partitioner-metrics:
 	@echo BUILDING SBG PARTITIONER METRICS
 	@cd src && $(MAKE) sbg-partitioner-metrics MODE=$(MODE) build_sbg=$(build_sbg) && $(MAKE) clean
+	@echo Done
+
+sbg-partitioner-exec-time:
+	@echo BUILDING SBG PARTITIONER TO MEASURE EXECUTION TIME
+	@cd src && $(MAKE) sbg-partitioner-exec-time MODE=$(MODE) build_sbg=$(build_sbg) && $(MAKE) clean
 	@echo Done
 
 test:
