@@ -138,19 +138,23 @@ int main(int argc, char** argv)
     }
 
     string partition_str;
-    long int total_time = 0;
+    long int total_time_building_graph = 0;
+    long int total_time_partitioning = 0;
     for (unsigned i = 0; i < iterations; i++) {
-        auto start = chrono::high_resolution_clock::now();
-        partition_str = partitionate_nodes(*filename, *number_of_partitions, *epsilon, output_sb_graph);
-        auto end = chrono::high_resolution_clock::now();
-        auto ellapsed_time = chrono::duration_cast<chrono::milliseconds>(end - start).count();
-        total_time += chrono::duration_cast<chrono::milliseconds>(end - start).count();
-        cout << "Execution time of iteration number " << i << ": " << ellapsed_time << endl;
+        long int time_building_graph;
+        long int time_partitioning;
+        partition_str = partitionate_nodes(*filename, *number_of_partitions, *epsilon, output_sb_graph, time_building_graph, time_partitioning);
+        cout << "Time to build sg graph " << time_building_graph << endl;
+        cout << "Time to partitionate " << time_partitioning << endl;
+        total_time_building_graph += time_building_graph;
+        total_time_partitioning += time_partitioning;
     }
 
-    long int avg_time = total_time / iterations;
+    long int avg_time_building_graph = total_time_building_graph / iterations;
+    long int avg_time_partitioning = total_time_partitioning / iterations;
 
-    cout << "Average time after " << iterations << " executions is: " << avg_time << " milliseconds" << endl;
+    cout << "Average time to build graph after " << iterations << " executions is: " << avg_time_building_graph << " milliseconds" << endl;
+    cout << "Average time to partitionate after " << iterations << " executions is: " << avg_time_partitioning << " milliseconds" << endl;
 
     cout << "Results: " << partition_str << endl;
 
@@ -162,7 +166,8 @@ int main(int argc, char** argv)
     output_file += "_exec_time.txt";
     ofstream output_stream;
     output_stream.open(output_file);
-    output_stream << "Average time after " << iterations << " executions is: " << avg_time << " milliseconds" << endl;
+    output_stream << "Average time to build graph after " << iterations << " executions is: " << avg_time_building_graph << " milliseconds" << endl;
+    output_stream << "Average time to partitionate after " << iterations << " executions is: " << avg_time_partitioning << " milliseconds" << endl;
     output_stream << "Results: " << partition_str << endl;
     output_stream.close();
 

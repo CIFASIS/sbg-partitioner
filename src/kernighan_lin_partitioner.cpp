@@ -930,20 +930,41 @@ string get_pretty_sb_graph(const SBG::LIB::CanonSBG& g)
 }
 
 
+std::string partitionate_nodes(
+    const std::string& filename,
+    const unsigned number_of_partitions,
+    const float epsilon,
+    std::optional<std::string>& graph_str)
+{
+    long int time_to_build_graph;
+    long int time_to_partitionate;
+    return partitionate_nodes(filename, number_of_partitions, epsilon, graph_str, time_to_build_graph, time_to_partitionate);
+}
+
 string partitionate_nodes(
     const std::string& filename,
     const unsigned number_of_partitions,
     const float epsilon,
-    optional<string>& graph_str)
+    optional<string>& graph_str,
+    long int& time_to_build_graph,
+    long int& time_to_partitionate)
 {
+    auto start_build_graph = chrono::high_resolution_clock::now();
     auto sb_graph = build_sb_graph(filename.c_str());
+    auto end_build_graph = chrono::high_resolution_clock::now();
+    time_to_build_graph = chrono::duration_cast<chrono::milliseconds>(end_build_graph - start_build_graph).count();
 
     logging::sbg_log << sb_graph << endl;
     logging::sbg_log << "sb graph created!" << endl;
 
+    auto start_partitionate = chrono::high_resolution_clock::now();
+
     auto partitions = best_initial_partition(sb_graph, number_of_partitions);
 
     kl_sbg_imbalance_partitioner(sb_graph, partitions, epsilon);
+
+    auto end_partitionate = chrono::high_resolution_clock::now();
+    time_to_partitionate = chrono::duration_cast<chrono::milliseconds>(end_partitionate - start_partitionate).count();
 
     sanity_check(sb_graph, partitions, number_of_partitions);
 
