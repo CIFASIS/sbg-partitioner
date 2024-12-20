@@ -762,7 +762,7 @@ void kl_sbg_imbalance_partitioner(
 
     vector<kl_sbg_partitioner_result> gains;
     while (change) {
-        logging::sbg_log << "*****ITERATION NUMBER " << counter++ << endl;
+        cout << "*****ITERATION NUMBER " << counter++ << endl;
         change = false;
 
         kl_sbg_partitioner_result best_gain;
