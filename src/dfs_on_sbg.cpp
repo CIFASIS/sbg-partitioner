@@ -77,11 +77,25 @@ void DFS::initialize_adjacents()
     for (node_identifier i = 0; i < _graph.V().size(); i++) {
         const auto incoming_node = _graph.V()[i];
 
-        for (node_identifier edge_counter = 0; edge_counter < _graph.E().size() - 1; edge_counter++) {
-            const auto edge = _graph.E()[edge_counter];
+        auto pre_im_1 = preImage(OrdSet(incoming_node), _graph.map1());
+        auto im_1 = image(pre_im_1, _graph.map2());
+        auto adjacent_nodes_1 = difference(im_1, incoming_node);
 
-            add_adjacent_nodes(i, _graph.map1(), edge);
-            add_adjacent_nodes(i, _graph.map2(), edge);
+        auto pre_im_2 = preImage(OrdSet(incoming_node), _graph.map2());
+        auto im_2 = image(pre_im_2, _graph.map1());
+        auto adjacent_nodes_2 = difference(im_2, incoming_node);
+
+        auto adjacent_nodes = cup(adjacent_nodes_1, adjacent_nodes_2);
+
+        for (node_identifier node_idx = 0; node_idx < _graph.V().size(); node_idx++) {
+            if (node_idx == i) {
+                continue;
+            }
+
+            const auto potential_arriving_node = _graph.V()[node_idx];
+            if (intersection(potential_arriving_node, adjacent_nodes) == potential_arriving_node) {
+                _adjacent[i].insert(node_idx);
+            }
         }
     }
 
@@ -99,7 +113,7 @@ void DFS::initialize_adjacents()
 }
 
 
-void DFS::add_adjacent_nodes(const node_identifier id, const CanonPWMap& map, const SetPiece& edge)
+void DFS::add_adjacent_nodes(const node_identifier id, const CanonPWMap& map, const OrdSet& edge)
 {
     const auto edge_map_intersection = intersection(edge, dom(map));
     if (not isEmpty(edge_map_intersection)) {
