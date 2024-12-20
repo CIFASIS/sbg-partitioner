@@ -54,13 +54,13 @@ OrdSet get_communication_edges(OrdSet partition, const CanonPWMap& map_1, const 
 }
 
 
-size_t get_partition_communication(WeightedSBGraph& graph, const PartitionMap& partitions)
+[[maybe_unused]]size_t get_partition_communication(WeightedSBGraph& graph, const PartitionMap& partitions)
 {
     SBG::LIB::OrdSet s;
     for (auto& [i, _] : partitions) {
         auto ss = get_connectivity_set(graph, partitions, i);
         s = SBG::LIB::cup(ss, s);
-        logging::sbg_log << "current connectivity set " << s << ", cardinality " << get_OrdSet_size(s) << endl;
+        logging::sbg_log << "current connectivity set " << s << ", cardinality " << get_OrdSet_size(s) << ", partition " << i << endl;
     }
 
     size_t size = get_OrdSet_size(s);
@@ -68,6 +68,7 @@ size_t get_partition_communication(WeightedSBGraph& graph, const PartitionMap& p
     return size;
 }
 
+constexpr bool using_many_initial_partitions = false;
 }
 
 vector<PartitionMap> make_initial_partitions(WeightedSBGraph& graph, unsigned number_of_partitions)
@@ -78,12 +79,14 @@ vector<PartitionMap> make_initial_partitions(WeightedSBGraph& graph, unsigned nu
     constexpr bool pre_order = true;
     auto s1 = PartitionStrategyDistributive(number_of_partitions, graph);
     add_strategy(s1, pre_order);
-    auto s2 = PartitionStrategyDistributive(number_of_partitions, graph);
-    add_strategy(s2, not pre_order);
-    auto s3 = PartitionStrategyGreedy(number_of_partitions, graph);
-    add_strategy(s3, pre_order);
-    auto s4 = PartitionStrategyGreedy(number_of_partitions, graph);
-    add_strategy(s4, not pre_order);
+    if (using_many_initial_partitions) {
+        auto s2 = PartitionStrategyDistributive(number_of_partitions, graph);
+        add_strategy(s2, not pre_order);
+        auto s3 = PartitionStrategyGreedy(number_of_partitions, graph);
+        add_strategy(s3, pre_order);
+        auto s4 = PartitionStrategyGreedy(number_of_partitions, graph);
+        add_strategy(s4, not pre_order);
+    }
 
     vector<map<unsigned, set<SetPiece>>> partitions = partitionate();
 
@@ -124,20 +127,22 @@ best_initial_partition(
     std::vector<sbg_partitioner::PartitionMap> partition_maps = make_initial_partitions(graph, number_of_partitions);
 
     auto& best_initial_partitions = partition_maps.front();
-    size_t best_communication_set_cardinality = get_partition_communication(graph, best_initial_partitions);
+    if (using_many_initial_partitions) {
+        size_t best_communication_set_cardinality = get_partition_communication(graph, best_initial_partitions);
 
-    for (size_t i = 1; i < partition_maps.size(); i++) {
+        for (size_t i = 1; i < partition_maps.size(); i++) {
 
-        auto temp_intial_partitions = partition_maps[i];
-        size_t temp_partition_comm_size = get_partition_communication(graph, temp_intial_partitions);
+            auto temp_intial_partitions = partition_maps[i];
+            size_t temp_partition_comm_size = get_partition_communication(graph, temp_intial_partitions);
 
-        if (temp_partition_comm_size < best_communication_set_cardinality) {
-            best_initial_partitions = std::move(temp_intial_partitions);
-            best_communication_set_cardinality = temp_partition_comm_size;
+            if (temp_partition_comm_size < best_communication_set_cardinality) {
+                best_initial_partitions = std::move(temp_intial_partitions);
+                best_communication_set_cardinality = temp_partition_comm_size;
+            }
         }
-    }
 
-    logging::sbg_log << "Best is " << best_initial_partitions << " with communication " << best_communication_set_cardinality << endl;
+        logging::sbg_log << "Best is " << best_initial_partitions << " with communication " << best_communication_set_cardinality << endl;
+    }
 
     return best_initial_partitions;
 }
