@@ -143,7 +143,9 @@ int main(int argc, char** argv)
         auto start = chrono::high_resolution_clock::now();
         partition_str = partitionate_nodes(*filename, *number_of_partitions, *epsilon, output_sb_graph);
         auto end = chrono::high_resolution_clock::now();
+        auto ellapsed_time = chrono::duration_cast<chrono::milliseconds>(end - start).count();
         total_time += chrono::duration_cast<chrono::milliseconds>(end - start).count();
+        cout << "Execution time of iteration number " << i << ": " << ellapsed_time << endl;
     }
 
     long int avg_time = total_time / iterations;
