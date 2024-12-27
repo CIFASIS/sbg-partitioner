@@ -1,0 +1,1 @@
+sbg-partitioner: communication metrics, edge cut: 750004, communication volume: 1500005, maximum communication volume: 749999, maximum imbalance: 1.33333e-06
