@@ -1,0 +1,1 @@
+sbg-partitioner: communication metrics, edge cut: 0, communication volume: 0, maximum communication volume: 0, maximum imbalance: 0
