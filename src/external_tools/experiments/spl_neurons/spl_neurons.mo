@@ -1,4 +1,4 @@
-model spl_neurons_test
+model spl_neurons
   import math;
   constant Integer N=2000,M=100, OFFSET =100, CONN = 10;
   Real v[N](each start=-60),gex[N],ginh[N];
@@ -65,8 +65,6 @@ model spl_neurons_test
         reinit(v[i],vrest);
         reinit(ginh[i],0);
         reinit(gex[i],0);
-        //for j in 1:10 loop
-         // exReinit[NNmap[j, i]] := 1;
          exReinit[i+100] := 1;
          exReinit[i+101] := 1;
          exReinit[i+102] := 1;
@@ -76,9 +74,7 @@ model spl_neurons_test
          exReinit[i+106] := 1;
          exReinit[i+107] := 1;
          exReinit[i+108] := 1;
-         exReinit[i+109] := 1;  
-
-        //end for;
+         exReinit[i+109] := 1;
         active[i]:=0;
         tfire[i]:=time;
       end when;
@@ -124,4 +120,4 @@ model spl_neurons_test
 		Tolerance={1e-3},
 		AbsTolerance={1e-3}
 	));
-end spl_neurons_test;
+end spl_neurons;
