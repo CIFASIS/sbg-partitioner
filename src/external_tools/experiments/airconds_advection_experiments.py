@@ -1,4 +1,4 @@
-# Airconds example to get partition results using classic partitioners.
+# Airconds and Advection examples to get partition results using classic partitioners.
 
 # General configuration to access qss-sover methods (the solver needs to be installed first). 
 # libconf is needded as an external dep, run: `pip install libconf` first.`
@@ -51,7 +51,12 @@ def run_experiments(path, model_name):
             solver_sim.execute_model(model_full_path)
 
             # Finally, get the partitioner stats into a dict. 
-            partitioner_log_file = model_name+'-'+str(s*4)+'-'+lps+'-partition-stats.log' 
+            # Full size of the advection model.
+            model_full_size = s
+            if model_name == 'airconds':
+                # Update full size for airconds model.
+                model_full_size = s*4
+            partitioner_log_file = model_name+'-'+str(model_full_size)+'-'+lps+'-partition-stats.log' 
             partition_log = solver_results.simulation_log(MMOC_OUTPUT+'/'+model_name+'/'+partitioner_log_file)
             print('Partition method: '+ p)
             print('Model size: ' + str(s))
@@ -64,7 +69,7 @@ def run_experiments(path, model_name):
 def main():
     parser = argparse.ArgumentParser(description='Run experiments for classic partitioners.')
     parser.add_argument('path', type=str, help='Full path to the folder where the airconds model .mo file is located.')
-    parser.add_argument('model_name', type=str, help='Model name whitout .mo extension.')
+    parser.add_argument('model_name', type=str, help='Model name whitout .mo extension. It should be one of \'advection\' or \'airconds\'')
 
     args = parser.parse_args()
 
