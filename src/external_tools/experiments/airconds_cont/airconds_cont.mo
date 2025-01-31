@@ -7,7 +7,7 @@ model airconds_cont
   end getSection;
 
   import math;
-  constant Integer N = 4000;
+  constant Integer N = 10000000;
   constant Integer SECTIONS = 4;
   parameter Real CAP[N], RES[N], POT[N], THA = 32,pmax=0,Kp=1,Ki=1,tref=20;
   parameter Integer sections[N];
@@ -112,23 +112,59 @@ model airconds_cont
       end when;
     end for;
 	annotation(
+    experiment(
+        MMO_Description = "Control of the power consumption of a large populaion of  air conditioners.",
+        MMO_Solver = QSS3,
+        MMO_Period = {3000/5000},
+        MMO_Parallel = true,
+        MMO_PartitionMethod = Metis,
+        MMO_LPS = 4,
+        MMO_DT_Synch = SD_DT_Fixed,
+        MMO_DT_Min = 10,
+        MMO_Output = {ptotals},
+        Jacobian = Dense,
+        MMO_BDF_PDepth = 1,
+        MMO_BDF_Max_Step = 0,
+        StartTime = 0,
+        StopTime = 3000,
+        Tolerance = {1e-4},
+        AbsTolerance = {1e-4}
+    )
+);
 
-	experiment(
-		MMO_Description="Control of the power consumption of a large populaion of  air conditioners.",
-		MMO_Solver=QSS3,
-		MMO_Period={3000/5000},
-		MMO_Parallel=true,
-		MMO_PartitionMethod=Scotch,
-		MMO_LPS=4,
-		MMO_DT_Synch=SD_DT_Fixed,
-		MMO_DT_Min=10,
-		MMO_Output={ptotals},
-		Jacobian=Dense,
-		MMO_BDF_PDepth=1,
-		MMO_BDF_Max_Step=0,
-		StartTime=0,
-		StopTime=3000,
-		Tolerance={1e-4},
-		AbsTolerance={1e-4}
-	));
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 end airconds_cont;

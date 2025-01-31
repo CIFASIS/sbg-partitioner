@@ -1,6 +1,9 @@
 model spl_neurons
   import math;
-  constant Integer N=2000,M=100, OFFSET =100, CONN = 10;
+  constant Integer N = 10000;
+  constant Integer M = 100;
+  constant Integer OFFSET = 100;
+  constant Integer CONN = 10;
   Real v[N](each start=-60),gex[N],ginh[N];
   parameter Real tau=20, vrest=-60, vthres=-50,Trefrac=5,Eex=0,Einh=-80,tauex=5,tauinh=10,dgex=0.4,dgin=1.6;
   discrete Real  active[N](each start=1),tfire[N](each start=10000);
@@ -100,24 +103,33 @@ model spl_neurons
       end when;
     end for;
 	annotation(
+    experiment(
+        MMO_Description = "",
+        MMO_Solver = QSS2,
+        MMO_SymDiff = false,
+        MMO_Period = {300/5000},
+        MMO_Parallel = true,
+        MMO_PartitionMethod = Scotch,
+        MMO_LPS = 2,
+        MMO_DT_Min = 0.5,
+        MMO_Output = {v[1:N/20:N]},
+        MMO_OutputType = CI_Sampled,
+        Jacobian = Dense,
+        MMO_BDF_PDepth = 1,
+        MMO_BDF_Max_Step = 0,
+        StartTime = 0.0,
+        StopTime = 300,
+        Tolerance = {1e-3},
+        AbsTolerance = {1e-3}
+    )
+);
 
-	experiment(
-		MMO_Description="",
-		MMO_Solver=QSS2,
-		MMO_SymDiff=false,
-		MMO_Period={300/5000},
-		MMO_Parallel=true,
-		MMO_PartitionMethod=Manual,
-		MMO_LPS=2,
-		MMO_DT_Min=0.5,
-		MMO_Output={v[1:N/20:N]},
-		MMO_OutputType=CI_Sampled,
-		Jacobian=Dense,
-		MMO_BDF_PDepth=1,
-		MMO_BDF_Max_Step=0,
-		StartTime=0.0,
-		StopTime=300,
-		Tolerance={1e-3},
-		AbsTolerance={1e-3}
-	));
+
+
+
+
+
+
+
+
 end spl_neurons;
