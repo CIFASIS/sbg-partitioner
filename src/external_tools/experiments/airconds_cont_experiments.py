@@ -5,10 +5,12 @@
 
 import argparse
 import os
+import shutil
 import sys
 
 MMOC_SRC = os.environ['MMOC_SRC']
 MMOC_OUTPUT = os.environ['MMOC_OUTPUT']
+MMOC_BUILD = os.environ['MMOC_BUILD']
 sys.path.append(MMOC_SRC+'/python')
 sys.path.append(MMOC_SRC+'/python/qss_solver')
 
@@ -28,11 +30,10 @@ def generate_section_file(path, size, sections):
 
 def run_experiments(path, model_name):
     # Model constants size.
-    model_size = [10000]
+    model_size = [1000, 10000, 100000, 1000000, 10000000]
 
     # Partitioners
-    model_partitioners = ['Metis', 'Scotch']
-    print(path)
+    model_partitioners = ['Metis']
 
     model_full_path = path+'/'+model_name+'.mo'
 
@@ -52,10 +53,18 @@ def run_experiments(path, model_name):
                 # Store the number of LPS (partitions) we are using.
                 lps = model_annotations['MMO_LPS']
                 solver_model.set_annotations(model_full_path, model_annotations)
-        
+
+                # Copy the generated sections C file to build folder.
+                sections_file = path + '/sections.c'
+                build_airconds_cont_folder = MMOC_BUILD + '/'+model_name
+                print(build_airconds_cont_folder)
+                if not os.path.exists(build_airconds_cont_folder):
+                    os.makedirs(build_airconds_cont_folder)
+                shutil.copy(sections_file, build_airconds_cont_folder)        
+
                 # Compile the model to generate the excecutabe ini file.
                 solver_sim.compile_model(model_full_path)
-        
+                
                 # Now update the ini file to set the 'partitionOnly' flag to avoid running the simulation. 
                 model_config = solver_model.config(model_name)
                 model_config['partitionOnly'] = 1
@@ -65,7 +74,7 @@ def run_experiments(path, model_name):
                 solver_sim.execute_model(model_full_path)
 
                 # Finally, get the partitioner stats into a dict. 
-                model_full_size = 3 * s + 5 + 2 * int(sections)
+                model_full_size = 3 * s + 5 + 2 * int(section)
                 partitioner_log_file = model_name+'-'+str(model_full_size)+'-'+lps+'-partition-stats.log' 
                 partition_log = solver_results.simulation_log(MMOC_OUTPUT+'/'+model_name+'/'+partitioner_log_file)
                 print('Partition method: '+ p)

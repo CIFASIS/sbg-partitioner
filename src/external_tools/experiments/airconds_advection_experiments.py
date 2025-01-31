@@ -32,6 +32,7 @@ def run_experiments(path, model_name):
             # The parameter should be the full path name if not stored in the solver default folders.
             model_constant = solver_model.constants(model_full_path)
             model_constant['N'] = s
+
             solver_model.set_constants(model_full_path, model_constant)
             model_annotations = solver_model.annotations(model_full_path)
             model_annotations['MMO_PartitionMethod'] = p
