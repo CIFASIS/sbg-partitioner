@@ -29,3 +29,6 @@ compile_commands.json
 
 # External tool generated files.
 src/external_tools/usr/*
+
+# Tests auto-generated files.
+src/external_tools/experiments/airconds_cont/sections.c
