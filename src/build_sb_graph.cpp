@@ -34,6 +34,8 @@
 #include "sbg_partitioner_log.hpp"
 #include "weighted_sb_graph.hpp"
 
+#define CHECK_1_N_REL 0
+
 
 using namespace rapidjson;
 using namespace std;
@@ -471,6 +473,7 @@ tuple<OrdSet, CanonPWMap, CanonPWMap, EdgeCost> create_graph_edges(
           // we need to create an edge for each left hand side variable, that means a couple of maps for each one
           const auto& [_, exp] = *this_node_exps.begin();
 
+#if CHECK_1_N_REL
           // we have to use the first map of candidate node
           if (node_candidate_exps.exps()[0].slope() == 0) {
             logging::sbg_log << "This should be 1-N " << node_candidate_domain << endl;
@@ -514,8 +517,11 @@ tuple<OrdSet, CanonPWMap, CanonPWMap, EdgeCost> create_graph_edges(
 
             continue;
           }
+#endif
 
-          OrdSet edge_domain_set = get_edge_domain<OrdSet>(image_intersection_set, edge_set, max_value);
+          auto edge_set_copy = edge_set;
+          int max_value_copy = max_value;
+          OrdSet edge_domain_set = get_edge_domain<OrdSet>(image_intersection_set, edge_set_copy, max_value_copy);
 
           // Create map to node candidate
           auto first_lhs_node_candidate = Exp(LExp(RAT(node_candidate.lhs[0].exps[0].first, 1), RAT(node_candidate.lhs[0].exps[0].second, 1)));
@@ -537,6 +543,10 @@ tuple<OrdSet, CanonPWMap, CanonPWMap, EdgeCost> create_graph_edges(
           if (not (current_node_map_image == node_candidate_map_image)) {
               lhs_maps.emplace(current_node_map);
               rhs_maps.emplace(node_candidate_map);
+              edge_set = edge_set_copy;
+              max_value = max_value_copy;
+          } else {
+            logging::sbg_log << "ignoring it since it's a reflexive conexion" << endl;
           }
           logging::sbg_log << "----" << endl;
 
