@@ -36,8 +36,8 @@ std::string partitionate_nodes(
     const unsigned number_of_partitions,
     const float epsilon,
     std::optional<std::string>& graph_str,
-    long int& time_to_build_graph,
-    long int& time_to_partitionate);
+    long double& time_to_build_graph,
+    long double& time_to_partitionate);
 
 
 std::pair<WeightedSBGraph, PartitionMap> partitionate_nodes_for_metrics(

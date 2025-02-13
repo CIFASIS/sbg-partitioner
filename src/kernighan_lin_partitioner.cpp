@@ -611,6 +611,7 @@ int kl_sbg_imbalance(
 
     while ((not isEmpty(a_c)) and (not isEmpty(b_c))) {
         logging::sbg_log << "inside the while " << a_c << b_c << endl;
+        logging::sbg_log << gm << endl;
         GainObjectImbalance g = max_diff(gm, a_c, b_c, graph);
         logging::sbg_log << g << endl;
         pair<OrdSet, OrdSet> a_, b_;
@@ -936,8 +937,8 @@ std::string partitionate_nodes(
     const float epsilon,
     std::optional<std::string>& graph_str)
 {
-    long int time_to_build_graph;
-    long int time_to_partitionate;
+    long double time_to_build_graph;
+    long double time_to_partitionate;
     return partitionate_nodes(filename, number_of_partitions, epsilon, graph_str, time_to_build_graph, time_to_partitionate);
 }
 
@@ -946,13 +947,13 @@ string partitionate_nodes(
     const unsigned number_of_partitions,
     const float epsilon,
     optional<string>& graph_str,
-    long int& time_to_build_graph,
-    long int& time_to_partitionate)
+    long double& time_to_build_graph,
+    long double& time_to_partitionate)
 {
     auto start_build_graph = chrono::high_resolution_clock::now();
     auto sb_graph = build_sb_graph(filename.c_str());
     auto end_build_graph = chrono::high_resolution_clock::now();
-    time_to_build_graph = chrono::duration_cast<chrono::milliseconds>(end_build_graph - start_build_graph).count();
+    time_to_build_graph = chrono::duration<double, std::milli>(end_build_graph - start_build_graph).count();
 
     logging::sbg_log << sb_graph << endl;
     logging::sbg_log << "sb graph created!" << endl;
@@ -964,7 +965,7 @@ string partitionate_nodes(
     kl_sbg_imbalance_partitioner(sb_graph, partitions, epsilon);
 
     auto end_partitionate = chrono::high_resolution_clock::now();
-    time_to_partitionate = chrono::duration_cast<chrono::milliseconds>(end_partitionate - start_partitionate).count();
+    time_to_partitionate = chrono::duration<double, std::milli>(end_partitionate - start_partitionate).count();
 
     sanity_check(sb_graph, partitions, number_of_partitions);
 

@@ -34,7 +34,7 @@ using namespace sbg_partitioner;
 
 
 typedef std::vector<std::string> stringvec;
- 
+
 struct path_leaf_string
 {
     std::string operator()(const std::filesystem::directory_entry& entry) const
@@ -138,11 +138,11 @@ int main(int argc, char** argv)
     }
 
     string partition_str;
-    long int total_time_building_graph = 0;
-    long int total_time_partitioning = 0;
+    long double total_time_building_graph = 0;
+    long double total_time_partitioning = 0;
     for (unsigned i = 0; i < iterations; i++) {
-        long int time_building_graph;
-        long int time_partitioning;
+        long double time_building_graph;
+        long double time_partitioning;
         partition_str = partitionate_nodes(*filename, *number_of_partitions, *epsilon, output_sb_graph, time_building_graph, time_partitioning);
         cout << "Time to build sg graph " << time_building_graph << endl;
         cout << "Time to partitionate " << time_partitioning << endl;
@@ -150,8 +150,8 @@ int main(int argc, char** argv)
         total_time_partitioning += time_partitioning;
     }
 
-    long int avg_time_building_graph = total_time_building_graph / iterations;
-    long int avg_time_partitioning = total_time_partitioning / iterations;
+    long double avg_time_building_graph = total_time_building_graph / double(iterations);
+    long double avg_time_partitioning = total_time_partitioning / double(iterations);
 
     cout << "Average time to build graph after " << iterations << " executions is: " << avg_time_building_graph << " milliseconds" << endl;
     cout << "Average time to partitionate after " << iterations << " executions is: " << avg_time_partitioning << " milliseconds" << endl;
