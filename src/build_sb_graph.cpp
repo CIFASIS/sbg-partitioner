@@ -34,7 +34,7 @@
 #include "sbg_partitioner_log.hpp"
 #include "weighted_sb_graph.hpp"
 
-#define CHECK_1_N_REL 0
+#define CHECK_1_N_REL 1
 
 
 using namespace rapidjson;
