@@ -18,6 +18,7 @@
  ******************************************************************************/
 
 #include <chrono>
+#include <fstream>
 #include <getopt.h>
 #include <iostream>
 #include <optional>
@@ -60,6 +61,7 @@ int main(int argc, char** argv)
   int opt;
   optional<string> filename = nullopt;
   optional<unsigned> number_of_partitions = nullopt;
+  optional<string> output_file;
   optional<string> output_sb_graph = nullopt;
   optional<float> epsilon = nullopt;
 
@@ -68,13 +70,14 @@ int main(int argc, char** argv)
     static struct option long_options[] = {
       {"filename", required_argument, 0, 'f'},
       {"partitions", required_argument, 0, 'p'},
-      // {"output", required_argument, 0, 'o'},
+      {"output-file", required_argument, 0, 'g'},
+      {"output-graph", required_argument, 0, 'o'},
       {"version", no_argument, 0, 'v'},
       {"help", no_argument, 0, 'h'}
     };
 
     int option_index = 0;
-    opt = getopt_long(argc, argv, "f:p:e:gvh:", long_options, &option_index);
+    opt = getopt_long(argc, argv, "f:p:e:o:g:vh:", long_options, &option_index);
     if (opt == EOF) break;
 
     switch (opt) {
@@ -90,9 +93,17 @@ int main(int argc, char** argv)
       }
       break;
 
+    case 'o':
+    if (optarg) {
+      output_sb_graph = string(optarg);
+    }
+    break;
+
     case 'g':
-      output_sb_graph = "";
-      break;
+    if (optarg){
+      output_file = string(optarg);
+    }
+    break;
 
     case 'e':
     if (optarg) {
@@ -136,7 +147,11 @@ int main(int argc, char** argv)
   logging::sbg_log << "number of partitions is " << *number_of_partitions << endl;
 
   auto start = chrono::high_resolution_clock::now();
-  auto partition_str = partitionate_nodes(*filename, *number_of_partitions, *epsilon, output_sb_graph);
+  optional<string> s;
+  if (output_sb_graph) {
+    s = "";
+  }
+  auto partition_str = partitionate_nodes(*filename, *number_of_partitions, *epsilon, s);
   auto end = chrono::high_resolution_clock::now();
   auto duration = chrono::duration_cast<chrono::milliseconds>(end - start);
   logging::sbg_log << "total time: " << duration.count() << endl;
@@ -144,7 +159,15 @@ int main(int argc, char** argv)
   logging::sbg_log << "final results " << partition_str << endl;
 
   if (output_sb_graph) {
-    logging::sbg_log << "output_sb_graph " << *output_sb_graph << endl;
+    ofstream output_sb_graph_file(*output_sb_graph);
+    logging::sbg_log << "output_sb_graph " << *s << endl;
+
+    output_sb_graph_file << *s;
+  }
+
+  if (output_file) {
+    ofstream output_file_stream(*output_file);
+    output_file_stream << partition_str << endl;
   }
 
   return 0;
