@@ -140,26 +140,6 @@ void write_node_by_partition(const PartitionMap& partitions, const WeightedSBGra
         };
 
         sort(nodes.begin(), nodes.end(), f_sort);
-
-        // expand it and write it
-        vector<unsigned> partition_by_node;
-        ofstream output_file("output.txt");
-        for (const auto& n : nodes) {
-            for (unsigned v_0 = n.intervals()[0].begin(); v_0 <= n.intervals()[0].end(); v_0++) {
-                for (unsigned v_1 = n.intervals()[1].begin(); v_1 <= n.intervals()[1].end(); v_1++) {
-                    SetPiece set_piece;
-                    set_piece.emplaceBack(Interval(v_0, n.intervals()[0].step(), v_0));
-                    set_piece.emplaceBack(Interval(v_1, n.intervals()[1].step(), v_1));
-                    for (const auto& [i, p] : partitions) {
-                        if (not isEmpty(intersection(set_piece, p))) {
-                            partition_by_node.push_back(i);
-                            output_file << to_string(i) << endl;
-                            break;
-                        }
-                    }
-                }
-            }
-        }
     }
 
     // SORT ONE-DIMENSIONAL:
@@ -169,6 +149,23 @@ void write_node_by_partition(const PartitionMap& partitions, const WeightedSBGra
         };
 
         sort(nodes.begin(), nodes.end(), f_sort);
+    }
+
+    // expand it and write it
+    vector<unsigned> partition_by_node;
+    ofstream output_file("output.txt");
+    for (const auto& n : nodes) {
+        for (unsigned v_0 = n.intervals()[0].begin(); v_0 <= n.intervals()[0].end(); v_0++) {
+            SetPiece set_piece;
+            set_piece.emplaceBack(Interval(v_0, n.intervals()[0].step(), v_0));
+            for (const auto& [i, p] : partitions) {
+                if (not isEmpty(intersection(set_piece, p))) {
+                    partition_by_node.push_back(i);
+                    output_file << to_string(i) << endl;
+                    break;
+                }
+            }
+        }
     }
 }
 
