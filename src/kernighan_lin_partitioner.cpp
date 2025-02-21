@@ -32,7 +32,7 @@
 #include "sbg_partitioner_log.hpp"
 
 
-#define PARTITION_IMBALANCE_DEBUG 0
+#define PARTITION_IMBALANCE_DEBUG 1
 #define PARTITION_IMBALANCE_PROFILE 0
 
 
@@ -125,15 +125,15 @@ using CostMatrixImbalance = std::set<GainObjectImbalance, GainObjectImbalanceCom
 
 ostream& operator<<(ostream& os, const GainObjectImbalance& gain)
 {
-    os << "< Node: ("
+    os << "< Node: "
        << gain.i
        << ", size: "
        << gain.size_i
-       << "), Node: ("
+       << " - Node: "
        << gain.j
        << ", size: "
        << gain.size_j
-       << "), gain: "
+       << ", gain: "
        << gain.gain
        << " >";
 
@@ -143,11 +143,11 @@ ostream& operator<<(ostream& os, const GainObjectImbalance& gain)
 
 [[maybe_unused]] ostream& operator<<(ostream& os, const CostMatrixImbalance& cost_matrix)
 {
-    os << "{ ";
+    os << "{\n";
     for (const auto& o : cost_matrix) {
-        os << o << " ";
+        os << "\t" << o << "\n";
     }
-    os << " }";
+    os << "}";
 
     return os;
 }
@@ -188,8 +188,6 @@ size_t get_c_ab(
     auto intersection2 = f(a, b, map_2, map_1);
 
     auto communication_edges = cup(intersection1, intersection2);
-
-    logging::sbg_log << "Comm between " << a << " and " << b << ": " << communication_edges << endl;
 
     size_t comm_size = get_edge_set_cost(communication_edges, costs);
 
