@@ -105,6 +105,17 @@ The output will be written in the file `output.json` in JSON format:
 where each `node` object is a set of intervals, that represents a set of nodes for
 each partition.
 
+## Third Party Libraries
+
+In the implementation of this project we used several third party libraries,
+all of them are open source.
+
+* [Set Based Graph Library](https://github.com/CIFASIS/sb-graph) to use set based graphs
+in the branch `sb-graph-dev`.
+* [boost](https://www.boost.org/), version 1.8.4, mainly as a sbg library dependency.
+* [RapidJSON](https://rapidjson.org/) to read and write JSON files.
+* [Google Test](https://google.github.io/googletest/) for test cases.
+
 ## How to get Metrics
 
 ### Metrics
