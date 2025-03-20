@@ -1,0 +1,519 @@
+\section{Marco Teórico}
+
+\begin{frame}{Simulación de Modelos Matemáticos}
+\frametitle{Modelos Matemáticos}
+
+\begin{block}{Definición de Modelo Matemático}
+Construcción matemática abstracta y simplificada relacionada con una parte
+de la realidad y creada para un para un propósito particular.
+\end{block}
+
+\pause
+
+\begin{block}{Definición de Modelo Matemático (más simple)}
+Más simple: Conjunto de expresiones matemáticas (ecuaciones, inecuaciones,
+ecuaciones diferenciales) que representan un sistema.
+\end{block}
+
+\pause
+
+\begin{block}{Definición de Modelo Matemático de Gran Escala}
+
+\end{block}
+
+\end{frame}
+
+\begin{frame}{Simulación de Modelos Matemáticos}
+\frametitle{Simulación de Modelos Matemáticos}
+
+\begin{block}{Simulación}
+La simulación de un modelo consiste en la ejecución del
+mismo a través del tiempo.
+\end{block}
+
+\end{frame}
+
+\begin{frame}{Simulación de Modelos Matemáticos}
+\frametitle{Simulación de Modelos Matemáticos}
+
+\begin{itemize}
+\item Modelos de Tiempo Discreto
+\pause
+\item Modelos de Tiempo Continuo
+%acá puedo saltar a otra presentación y mostrar el ejemplo de discontinuidad?
+\pause
+\item Modelos de Eventos Discretos
+\pause
+\begin{itemize}
+    \item Método de los Sistemas de Estados Cuantificados (QSS)
+\end{itemize}
+\end{itemize}
+
+\pause
+
+\centering
+
+\vspace{2em}
+
+\textbf{Problema: Modelos complejos acarrean alto costo computacional}
+
+\pause
+
+\vspace{2em}
+
+\textbf{Solución: Simulación en Paralelo}
+
+\end{frame}
+
+\begin{frame}{Simulación en Paralelo de Sistemas de Eventos Discretos}
+
+\only<1,2,3>{
+\begin{itemize}[<+->]
+\item Algoritmos conservadores
+\item Algoritmos optimistas
+\item Algoritmos totalmente desincronizados
+\end{itemize}
+}
+
+\only<4->{
+\begin{itemize}
+\uncover<3->{\item Algoritmos conservadores}
+\uncover<3->{\item \textbf{Algoritmos optimistas}}
+\uncover<3->{\item Algoritmos totalmente desincronizados}
+\end{itemize}
+}
+
+\end{frame}
+
+\begin{frame}{Simulación en Paralelo de Sistemas de Eventos Discretos}{Idea general}
+
+Particionar el modelo entre \textbf{P submodelos}, donde cada submodelo es simulado por un
+procesador lógico (LP) diferente.
+
+En cada paso de simulación, el LP chequa si la variable que cambió se debe informar a los demás LPs.
+
+La sincronización no estricta se logra calculando un tiempo virtual global $gvt$ (igual al tiempo lógico 
+mínimo de todos los LPs) y no permitiendo que los LPs avancen más allá de %$gvt + \Delta t$.
+
+\end{frame}
+
+% \begin{frame}{Simulación en Paralelo de Sistemas de Eventos Discretos}{Idea general}
+
+% % aca mencionar algo de la subseccion Algoritmo de simulación
+
+% \begin{figure}
+%     \centering
+%     \includegraphics[width=1\linewidth]{intro/parallel_qss_scheme.png}
+%     \caption{Esquema básico de interacciones}
+%     \label{fig:enter-label}
+% \end{figure}
+
+% \end{frame}
+
+
+\begin{frame}{Simulación en Paralelo de Sistemas de Eventos Discretos}{Sincronización entre Procesos}
+
+Antes de cada paso de simulación, los LPs calculan:
+
+\begin{equation}
+    gvt = \min_{1 \leq l \leq P} (t^l)
+\end{equation}
+
+como el tiempo lógico global mínimo de todos los LPs.
+
+El avance se limita al valor $gvt + \Delta t$.
+
+$\Delta t$ define qué tan estrica es la sincronización.
+    
+\end{frame}
+
+\begin{frame}{Simulación en Paralelo de Sistemas de Eventos Discretos}{Comunicación entre procesos}
+
+Es un proceso híbrido:
+
+\begin{itemize}
+    \item Los \textbf{cambios de estados} son asíncronamente informados usando una lista
+de cambios.
+    \item Los \textbf{cambios discretos} son informados usando una lista de cambios,
+pero de manera síncrona.% donde el LP que cominuca el nuevo valor debe
+%esperar que todos los LPs los procesen.
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}{Simulación en Paralelo de Sistemas de Eventos Discretos}{Partición del Modelo}
+
+Los algoritmos de simulación en paralelo requieren que:
+
+\begin{itemize}
+    \item El modelo original sea divido en P submodelos.
+    \item Cada submodelo sea simulado por un LP diferente.
+\end{itemize}
+
+Para obtener una paralelización efectiva:
+
+\begin{itemize}
+    \item La \textbf{partición} del modelo debe ser \textbf{balanceada}.
+    \item La \textbf{comunicación} entre LPs debe ser \textbf{minimizada}.
+\end{itemize}
+
+Llamamos a este proceso \textit{Balance de carga}.
+
+\end{frame}
+
+
+\begin{frame}{Balance de Carga para Simulación en Paralelo}
+
+Podemos distinguir tres tipos de problemas de balance de carga
+
+\only<1,2,3>{
+\begin{itemize}[<+->]
+    \item \textbf{Balance de carga estático}: la asignación a los procesadores se realiza al inicio de la simulación. % sin tener ninguna informacion sobre los resultados reales de la simulación.
+    \item \textbf{Balance de carga semi-estático}: la asignación a los procesadores
+ocurre al comienzo de la simulación, pero una conocimiento de dominio
+extra. %u otra información relacionada puede ser aprovechada para mejorar
+%la solución lacanzada.
+    \item \textbf{Balance de carga dinámico}: la asignación a los procesadores se hace
+dinámicamente en el transcurso de la simulación.
+\end{itemize}
+}
+
+\only<4->{
+\begin{itemize}
+    \item {\textbf{Balance de carga estático}}: la asignación a los procesadores se realiza al 
+    inicio de la simulación. % sin tener ninguna informacion sobre los resultados reales de 
+    % la simulación.
+    \item {\color{gray}{Balance de carga semi-estático}: la asignación a los 
+    procesadores ocurre al comienzo de la simulación, pero una conocimiento de dominio
+extra.} %u otra información relacionada puede ser aprovechada para mejorar
+%la solución lacanzada.
+    \item {\color{gray}{Balance de carga dinámico}: la asignación a los procesadores se 
+    hace dinámicamente en el transcurso de la simulación.}
+\end{itemize}
+}
+\end{frame}
+
+
+\begin{frame}{Balance de Carga como Problema de Particionamiento de Grafos}
+
+El problema de balance de carga se puede tratarse como un problema de 
+\textbf{particionamiento de grafos}.
+
+\pause
+
+Las unidades de cálculo y sus dependencias se pueden modelar de forma natural
+mediante un \textbf{grafo no dirigido}:
+
+Más especificamente, $\mathcal{G} = (\mathcal{V}, \mathcal{E}, l, 
+w)$, donde:
+
+\vspace{1em}
+
+$\mathcal{V} \hspace{2em} \text{el conjunto de nodos/las unidades de computación más pequeñas}$
+
+$\mathcal{E}: \mathcal{E} \subset \mathcal{V} \times \mathcal{V} 
+\hspace{2em} \text{el conjunto de aristas/dependencias entre unidades}$
+
+$l: \mathcal{V} \to \mathcal{R}^+ \hspace{2em} 
+\text{asigna un peso computacional a cada nodo}$
+
+$w: \mathcal{E} \to \mathcal{R}^+ \hspace{2em} 
+\text{asigna un peso comunicacional a cada arista} $
+
+\pause
+\vspace {2em}
+Necesitamos una forma de obtener dicho grafo computacional $\mathcal{G}$
+de un modelo implementado en \textbf{Modelica}.
+
+    
+\end{frame}
+
+
+\begin{frame}[fragile]{Modelo Advección-Difusión-Reacción}
+
+Lo siguiente es un fragmento de una implementación en Modelica de un modelo
+Advección-Difusión-Reacción (ADR):
+
+  \begin{center}
+    \begin{tabular}{c}
+    \lstset{
+        basicstyle=\scriptsize,
+        emph={u},
+        emphstyle=\color{red},
+        morekeywords={u},
+        keywordstyle=\bfseries,
+        escapeinside={(*@}{@*)}
+    }
+      \begin{lstlisting}
+          Real u[N];
+          ...
+          der(u[1])=-a*(u[1]-1)/dx+d*(-2*u[1]+1)/(dx^2)+r*(u[1]^2)*(1-u[1]);
+          for i in 2:N loop
+            der(u[i])=-a*(u[i]-u[i-1])/dx+ d*(-2*u[i]+u[i-1])/(dx^2)+ 
+            r*(u[i]^2)*(1-u[i]);
+          end for;
+      \end{lstlisting}
+    \end{tabular}
+  \end{center}
+
+  \pause
+
+  Queremos poder construir su grafo computacional a partir de su implementación.
+
+  \pause
+
+  Ejemplo para $N=10$.
+
+  \footnotesize
+  \begin{center}
+        \begin{tikzpicture}[main/.style = {draw, circle}] 
+            \node[main] (1) {$eq_{u[1]}$};
+            \node[main] (2) [below of=1, node distance=11mm] {$eq_{u[2]}$}; 
+            \node[main] (3) [right of=1, node distance=11mm] {$eq_{u[3]}$};
+            \node[main] (4) [below of=3, node distance=11mm] {$eq_{u[4]}$};
+            \node[main] (5) [right of=3, node distance=11mm] {$eq_{u[5]}$};
+            \node[main] (6) [below of=5, node distance=11mm] {$eq_{u[6]}$}; 
+            \node[main] (7) [right of=5, node distance=11mm] {$eq_{u[7]}$};
+            \node[main] (8) [below of=7, node distance=11mm] {$eq_{u[8]}$}; 
+            \node[main] (9) [right of=7, node distance=11mm] {$eq_{u[9]}$};
+            \node[main] (10) [below of=9, node distance=11mm] {$eq_{u[10]}$};
+        \pause
+            \draw (1) -- (2);
+        \pause
+            \draw (2) -- (3);
+        \pause
+            \draw (3) -- (4);
+            \draw (4) -- (5);
+            \draw (5) -- (6);
+            \draw (6) -- (7);
+            \draw (7) -- (8);
+            \draw (8) -- (9);
+            \draw (9) -- (10);
+    
+        \end{tikzpicture}       
+  \end{center}
+
+\end{frame}
+
+
+% \begin{frame}{Balance de Carga como Problema de Particionamiento de Grafos}
+
+% Necesitamos una forma de obtener dicho grafo computacional $\mathcal{G}$
+% de un modelo implementado en \textbf{Modelica}.
+
+% Los nodos de nuestro grafo pueden dividirse en:
+
+% \begin{itemize}
+%     \item \textit{Nodos continuos}, responsables de los cálculos para obtener variables
+%     de estado cuantificadas.
+
+%     \item \textit{Nodos discontinuos} que contienen funciones de cruce cero y sus
+%     correspondientes funciones manejadoras que actualizan las variables discretas necesarias.
+
+%     \item \textit{Nodos algebraicos} que contienen ecuaciones algebraicas y variables.
+% \end{itemize}
+
+% % vale la pena aclarara los distintos nodos del grafo? No dos continuos, discontinuos
+% % y algebraicos.
+
+% Las aristas del grafo denotan dependencia entre variables que son calculadas en un nodo
+% y necesarias en una expresión contenida en otro.
+
+% \end{frame}
+
+
+% \begin{frame}[fragile]{Introduction}
+
+% Un ejemplo ilustrativo de un grafo computacional:
+
+% \begin{figure}[H]
+% \centering
+% \begin{minipage}{.5\textwidth}
+
+%   \centering
+%       \begin{tabular}{c}
+%         \begin{lstlisting}[basicstyle=\tiny]
+%             equation
+%                 der(x1) = x1+x2-2*x3*d1;
+%                 der(x2) = 2*x1-3*x3-x4;
+%                 der(x3) = x1-x3 +(x4-x5)^2;
+%                 der(x4) = x3+x5;
+%                 der(x5) = 2*x3-d2;
+%             algorithm
+%                 when (x4-d2>1) then
+%                 d1:=0;
+%                 reinit(x2, 10);
+%                 end when;
+%                 when (x5>d1) then
+%                 d1:=1;
+%                 d2:=x5-x4;
+%             end when;
+%         \end{lstlisting}
+%     \end{tabular}
+% \caption{Ejemplo de un modelo en Modelica}
+% \end{minipage}%
+% \hfill
+% \begin{minipage}{.5\textwidth}
+%   \centering
+%   \begin{figure}
+%       \centering
+%       \includegraphics[width=1\linewidth]{intro/qss_example.png}
+%   \end{figure}
+  
+%   \caption{Grafo computacional correspondiente}
+% \end{minipage}
+% \end{figure}
+
+% \end{frame}
+
+
+\begin{frame}{Grafos Basados en Conjuntos}
+
+Un Grafo Basado en Conjuntos (SBG) no dirigido es un par 
+$\mathcal{G} = (\mathcal{V}, \mathcal{E}, map_1, map_2)$ donde:
+
+\begin{itemize}
+    \item $\mathcal{V} = \{V_1, \ldots, V_n \}$ es un conjunto de 
+    vértices-conjunto disjuntos.
+    \item $\mathcal{E} = \{E_1, \ldots, E_m \}$ es un conjunto de 
+    aristas-conjunto que une vértices-conjunto de $\mathcal{V}$.
+    \item $map_1 : \mathcal{E} \to \mathcal{V}$ tal que dado
+    $e \in \mathcal{E}$, $map_1(e)$ representa uno de los extremos
+    de la arista $e$.
+    \item $map_2 : \mathcal{E} \to \mathcal{V}$ tal que dado
+    $e \in \mathcal{E}$, $map_2(e)$ representa el otro de los
+    extremos de la arista $e$.
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{Grafos Basados en Conjuntos}
+
+Sea $G = (V,E)$ un grafo tradicional no dirigido donde:
+
+\scriptsize
+\begin{itemize}
+    \item \scriptsize $V = \{1, \ldots, 10\}$ \small son sus vértices-conjunto.
+    \item \scriptsize $E = \{ \{1,6\}, \{2,7\}, \{3,8\}, \{4,9\}, \{5,10\}, 
+    \{1,7\}, \{2,8\}, \{3,9\},\{4,10\}, \{5,6\}\}$ \small son sus aristas-conjunto.
+\end{itemize}
+
+\pause
+
+\small
+Una definición equivalente del mismo usando un SBG
+
+$\mathcal{G} = (\mathcal{V}, \mathcal{E}, map_1, map_2)$ donde:
+
+\begin{itemize}
+    \item \scriptsize $\mathcal{V} = \{[1:5], [6:10]\}$ \small son sus nodos.
+    \item \scriptsize $\mathcal{E} = \{ [1:5], [6:9], [10:10] \}$ \small son sus aristas.
+    \item Y sus mapas pueden defirse por medio de funciones por partes \scriptsize
+    \[
+        map_1(e)= \left \{ \begin {array} {ll}
+                           e & \text{si } e \in [1:5] \\
+                           e - 5 & \text{si } e \in [6:9] \\
+                           e - 5 & \text{si } e \in [10:10] \\
+                         \end {array} \right.
+    \]
+
+    \[
+        map_2(e)= \left \{ \begin {array} {ll}
+                           e + 5 & \text{si } e \in [1:5] \\
+                           e + 1 & \text{si } e \in [6:9] \\
+                           e & \text{si } e \in [10:10] \\
+                         \end {array} \right.
+    \]
+    
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{Grafos Basados en Conjuntos}
+
+\begin{columns}[T] % align columns
+\begin{column}{.48\textwidth}
+
+
+En la descripción gráfico del grafo $G$, o su equivalente $\mathcal{G}$, definido
+previamente:
+
+\begin{itemize}
+    \item las  aristas correspondientes al intervalo $[1:5]$ están en color negro.
+    \item las correspondientes al intervalo $[6:9]$ en rojo.
+    \item y las del intervalo $[10:10]$ en color naranja.
+\end{itemize}
+
+\end{column}%
+\hfill%
+\begin{column}{.5\textwidth}
+
+\begin{tikzpicture}[main/.style = {draw, circle}] 
+    \node[main] (1) {$1$};
+    \node[main] (2) [below of=1, node distance=8mm] {$2$}; 
+    \node[main] (3) [below of=2, node distance=8mm] {$3$};
+    \node[main] (4) [below of=3, node distance=8mm] {$4$};
+    \node[main] (5) [below of=4, node distance=8mm] {$5$};
+    \node[main] (6) [right of=1, node distance=40mm] {$6$}; 
+    \node[main] (7) [right of=2, node distance=40mm] {$7$};
+    \node[main] (8) [right of=3, node distance=40mm] {$8$}; 
+    \node[main] (9) [right of=4, node distance=40mm] {$9$};
+    \node[main] (10) [right of=5, node distance=40mm] {$10$};
+
+    \draw (1) -- (6) [color=black];
+    \draw (2) -- (7) [color=black];
+    \draw (3) -- (8) [color=black];
+    \draw (4) -- (9) [color=black];
+    \draw (5) -- (10) [color=black];
+    \draw (1) -- (7) [color=red];
+    \draw (2) -- (8) [color=red];
+    \draw (3) -- (9) [color=red];
+    \draw (4) -- (10) [color=red];
+    \draw (5) -- (6) [color=orange];
+
+\end{tikzpicture}
+
+\pause
+\vspace{1em}
+
+\footnotesize
+\begin{tikzpicture}[main/.style = {draw, circle}] 
+
+    \node[main] (1) {$[1:5]$};
+    \node[main] (2) [right of=1, node distance=42mm] {$[6:10]$};\pause
+
+    % Draw a loop edge for node 1
+    % \draw[loop above, color=black] (1) to node[above] {$1 \gets [1:1] \to 2$} (1);
+    % \draw[loop above, color=black] (1) to node[above] {$i \gets [2:5] \to i - 1$} (1);
+    % Draw the edge from node 1 to node 2
+    \draw (1) -- (2) node [midway, above] {$e \gets [1:5] \to e + 5$};\pause
+    \draw (1) -- (2) node [midway, below] {$e-5 \gets [6:9] \to e + 1$};\pause
+    \draw (1) -- (2) node [midway, below=10pt] {$e-5 \gets [10:10] \to e$};
+    % \draw (1) -- (2) {$e \gets [1:5] \to e + 5$};
+    
+\end{tikzpicture}
+
+
+\end{column}
+
+\end{columns}
+
+\end{frame}
+
+
+
+
+% node with loop!!
+% \begin{tikzpicture}[main/.style = {draw, circle}] 
+
+%     \node[main] (1) {$[1:5]$};
+%     \node[main] (2) [right of=1, node distance=20mm] {$6:10$}; 
+
+%     % Draw a loop edge for node 1
+%     \draw[loop above, color=black] (1) to node[above] {label} (1);
+    
+%     % Draw the edge from node 1 to node 2
+%     \draw (1) -- (2);
+    
+% \end{tikzpicture}

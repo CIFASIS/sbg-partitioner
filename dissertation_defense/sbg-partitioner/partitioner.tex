@@ -1,0 +1,813 @@
+\section{Balance de Carga Usando Grafos Basados en Conjuntos}
+
+
+\begin{frame}{Balance de Carga Usando Grafos Basados en Conjuntos}
+
+La presentación de nuestro algoritmo se puede explicar a partir de estas
+tres secciones:
+
+\begin{itemize}
+    \item Formato de Entrada.
+    \item Inicialización: Creación del grafo computacional.
+    \item Creación de particionamiento inicial y refinamiento
+\end{itemize}
+    
+\end{frame}
+
+
+\begin{frame}{Formato de Entrada}
+Si definimos la ocurrencia de una variable en una expresión dada como:
+
+\begin{small}
+    \begin{algorithm}[H]
+        \begin{algorithmic}\caption{Tipo Var} \label{alg:var-type}
+            \State \textbf{Var}: \{
+                \State $\text{id}: \text{string}$ 
+                \State $\text{cost}: \text{int}$
+                \State $\text{exp}: (a,b)$ donde $a, b \in N^0$ y estos representan constante y
+                pendiente en la expresión $a \times i + b$
+                \State $\text{def}: \{ n_1 , \ldots , n_k \}$ donde $n_i$ es el id de un conjunto
+                de nodos donde se calcula la variable. Es decir, aparece en el lado izquierdo
+                de la ecuación.
+            \State \} 
+        \end{algorithmic}
+    \end{algorithm}
+\end{small}
+\end{frame}
+
+
+\begin{frame}{Formato de Entrada}
+Un nodo individual que representa una unidad de cálculo en el modelo puede ser 
+definido así:
+
+\begin{small}
+    \begin{algorithm}[H]
+        \begin{algorithmic}\caption{Tipo Node}\label{alg:node-type}
+            \State \textbf{Node}: \{
+                \State $\text{id: string}$
+                \State $\text{weight: int}$
+                \State $\text{interval:} [1,\dots,M]$
+                \State $\text{lhs:}  \{ L_1, \dots, L_k \}$ donde $L_i$ tiene tipo \textbf{Var}
+                \State $\text{rhs} :  \{ R_1, \dots, R_g \}$ donde $R_i$ tiene tipo \textbf{Var}
+            \State \}
+        \end{algorithmic}
+    \end{algorithm}
+\end{small}
+
+Y finalmente podemos definir: $\text{Nodes} : \{ I_1, \dots, I_m\}$ con $I_j$
+del tipo $\text{Node}$ como entrada del algoritmo de particionado.
+\end{frame}
+
+
+\begin{frame}[fragile]{Modelo Advección-Difusión-Reacción}
+
+La siguiente es una implementación en Modelica de un modelo
+Advección-Difusión-Reacción (ADR):
+\vspace{-1.5em}
+  \begin{center}
+    \begin{tabular}{c}
+     \lstset{emph={u},emphstyle=\textbf}
+      \begin{lstlisting}[basicstyle=\small]
+        model adv_dif_reac
+          /* parameter initialization... */
+
+          Real u[N];
+        initial algorithm
+          /* state var initialization ...*/
+
+        equation
+          der(u[1])=-a*(u[1]-1)/dx+d*(-2*u[1]+1)/(dx^2)+r*(u[1]^2)*(1-u[1]);
+          for i in 2:N loop
+            der(u[i])=-a*(u[i]-u[i-1])/dx+ d*(-2*u[i]+u[i-1])/(dx^2)+ r*(u[i]^2)*(1-u[i]);
+          end for;
+        end adv_dif_reac;
+      \end{lstlisting}
+    \end{tabular}
+  \end{center}
+\end{frame}
+
+
+\begin{frame}[fragile]{Representación del Modelo ADR}
+
+\begin{columns}[T] % align columns
+\begin{column}{.4\textwidth}
+\vspace{2.5em}
+\begin{figure}
+  \begin{center}
+    \begin{tabular}{c}
+      \begin{lstlisting}[basicstyle=\tiny, firstnumber=7]
+        ...
+        equation
+          der(u[1])=-a*(u[1]-1)/dx+d*(-2*u[1]+1)/(dx^2)+r*(u[1]^2)*(1-u[1]);
+          for i in 2:N loop
+            der(u[i])=-a*(u[i]-u[i-1])/dx + 
+                d*(-2*u[i]+u[i-1])/(dx^2) +
+                r*(u[i]^2)*(1-u[i]);
+          end for;
+        end adv_dif_reac;
+      \end{lstlisting}
+    \end{tabular}
+  \end{center}
+  \caption{Bloque de ecuaciones del Modelo ADR.}
+\end{figure}
+\end{column}%
+\hfill%
+\begin{column}{.58\textwidth}
+\begin{figure}
+\small
+\begin{equation*}
+  \begin{split}
+  V_1 = \{ \\
+  & id = u \\
+  & cost = 1 \\
+  & exp = (0, 1) \rightarrow {\color{black}\text{para formar la expresión }} \\
+  & 0 \times + 1 {\color{black}\text{ que corresponde a }} u[1]\\
+  & defs = \{\} \\
+  \}
+    \end{split}
+\end{equation*}
+\caption{Lado izquierdo de la expresión de la línea 9}
+\end{figure}
+\end{column}
+\end{columns}
+
+\end{frame}
+
+
+\begin{frame}[fragile]{Representación del Modelo ADR}
+
+\begin{columns}[T] % align columns
+\begin{column}{.4\textwidth}
+\vspace{2.5em}
+\begin{figure}
+  \begin{center}
+    \begin{tabular}{c}
+      \begin{lstlisting}[basicstyle=\tiny, firstnumber=7]
+        ...
+        equation
+          der(u[1])=-a*(u[1]-1)/dx+d*(-2*u[1]+1)/(dx^2)+r*(u[1]^2)*(1-u[1]);
+          for i in 2:N loop
+            der(u[i])=-a*(u[i]-u[i-1])/dx + 
+                d*(-2*u[i]+u[i-1])/(dx^2) +
+                r*(u[i]^2)*(1-u[i]);
+          end for;
+        end adv_dif_reac;
+      \end{lstlisting}
+    \end{tabular}
+  \end{center}
+  \caption{Bloque de ecuaciones del Modelo ADR.}
+\end{figure}
+\end{column}%
+\hfill%
+\begin{column}{.58\textwidth}
+\begin{figure}
+\small
+\begin{equation*}
+  \label{page:advection-input-right-line-11}
+  \begin{split}
+    V_2 = \{ \\
+    & id:u \\
+    & cost = 1 \\
+    & exp = (0, 1) \rightarrow {\color{black}\text{para formar la expresión }} \\
+    & 0 \times + 1 {\color{black}\text{ que corresponde a }} u[1]\\
+    & defs = \{1, 2\} \\
+    \}
+  \end{split}
+\end{equation*}
+\caption{Lado derecho de la expresión en línea 9}
+\end{figure}
+\end{column}
+\end{columns}
+
+\end{frame}
+
+
+\begin{frame}[fragile]{Representación del Modelo ADR}
+
+\begin{columns}[T] % align columns
+\begin{column}{.4\textwidth}
+\begin{figure}
+\vspace{3em}
+  \begin{center}
+    \begin{tabular}{c}
+      \begin{lstlisting}[basicstyle=\tiny]
+        ...
+        equation
+          der(u[1])=-a*(u[1]-1)/dx+d*(-2*u[1]+1)/(dx^2)+r*(u[1]^2)*(1-u[1]);
+          for i in 2:N loop
+            der(u[i])=-a*(u[i]-u[i-1])/dx + 
+                d*(-2*u[i]+u[i-1])/(dx^2) +
+                r*(u[i]^2)*(1-u[i]);
+          end for;
+        end adv_dif_reac;
+      \end{lstlisting}
+    \end{tabular}
+  \end{center}
+  \caption{Bloque de ecuaciones del Modelo ADR.}
+\end{figure}
+\end{column}%
+\hfill%
+\begin{column}{.58\textwidth}
+\begin{figure}
+\small
+\begin{equation*}
+\begin{split}
+  V_3 = \{ \\
+  & id:u \\
+  & cost = 1 \\
+  & exp = (1, 0) \rightarrow {\color{black}\text{para formar la expresión }} \\
+  & 1 \times + 0 {\color{black}\text{ que corresponde a }} u[i]\\
+  & defs = \{\} \\
+  \}
+\end{split}
+\end{equation*}
+\caption{Lado izquierdo de la expresión en línea 11.}
+\end{figure}
+\end{column}
+\end{columns}
+
+\end{frame}
+
+
+\begin{frame}[fragile]{Representación del Modelo ADR}
+
+\begin{columns}[T] % align columns
+\begin{column}{.4\textwidth}
+\begin{figure}
+\vspace{3em}
+  \begin{center}
+    \begin{tabular}{c}
+      \begin{lstlisting}[basicstyle=\tiny]
+        ...
+        equation
+          der(u[1])=-a*(u[1]-1)/dx+d*(-2*u[1]+1)/(dx^2)+r*(u[1]^2)*(1-u[1]);
+          for i in 2:N loop
+            der(u[i])=-a*(u[i]-u[i-1])/dx + 
+                d*(-2*u[i]+u[i-1])/(dx^2) +
+                r*(u[i]^2)*(1-u[i]);
+          end for;
+        end adv_dif_reac;
+      \end{lstlisting}
+    \end{tabular}
+  \end{center}
+  \caption{Bloque de ecuaciones del Modelo ADR.}
+\end{figure}
+\end{column}%
+\hfill%
+\begin{column}{.58\textwidth}
+\vspace{-1em}
+\begin{figure}
+\tiny
+\begin{equation*}
+\begin{split}
+  V_4 = \{ \\
+  & id:u \\
+  & cost = 1 \\
+  & exp = (1, 0) \rightarrow {\color{black}\text{para formar la expresión }} \\
+  & 1 \times + 0 {\color{black}\text{ que corresponde a }} u[i]\\
+  & defs = \{1, 2\} \\
+  \} \\
+  V_5 = \{ \\
+  & id:u \\
+  & cost = 1 \\
+  & exp = (1, -1) \rightarrow {\color{black}\text{para formar la expresión }} \\
+  & 1 \times -1 {\color{black}\text{ que corresponde a }} u[i - 1]\\
+  & defs = \{1, 2\} \\
+  \}
+\end{split}
+\end{equation*}
+\caption{Lado derecho de la expresión en línea 18.}
+\end{figure}
+\end{column}
+\end{columns}
+    
+\end{frame}
+
+
+\begin{frame}[fragile]{Representación del Modelo ADR}
+Usando esas expresiones podemos definir estas expresiones del tipo \textbf{Node}.
+
+\begin{columns}[T] % align columns
+\begin{column}{.4\textwidth}
+\begin{figure}
+\vspace{3em}
+  \begin{center}
+    \begin{tabular}{c}
+      \begin{lstlisting}[basicstyle=\tiny]
+        ...
+        equation
+          der(u[1])=-a*(u[1]-1)/dx+d*(-2*u[1]+1)/(dx^2)+r*(u[1]^2)*(1-u[1]);
+          for i in 2:N loop
+            der(u[i])=-a*(u[i]-u[i-1])/dx + 
+                d*(-2*u[i]+u[i-1])/(dx^2) +
+                r*(u[i]^2)*(1-u[i]);
+          end for;
+        end adv_dif_reac;
+      \end{lstlisting}
+    \end{tabular}
+  \end{center}
+  \caption{Bloque de ecuaciones del Modelo ADR.}
+\end{figure}
+\end{column}%
+\hfill%
+\begin{column}{.58\textwidth}
+\begin{figure}
+\small
+\begin{equation*}
+  \begin{split}
+    N_1 = \{ \\
+    & id: 1 \\
+    & weight = 1 \\
+    & interval = [1, 1]\\
+    & lhs = \{ V_1 \} \\
+    & rhs = \{ V_2 \} \\
+    \}
+  \end{split}
+\end{equation*}
+
+\caption{Expresión de tipo Node correspondiente a la línea 9 del modelo}
+\end{figure}
+\end{column}
+\end{columns}
+
+\end{frame}
+
+
+\begin{frame}[fragile]{Representación del Modelo ADR}
+Usando esas expresiones podemos definir estas expresiones del tipo \textbf{Node}.
+\vspace{-1em}
+\begin{columns}[T] % align columns
+\begin{column}{.4\textwidth}
+\begin{figure}
+\vspace{3em}
+  \begin{center}
+    \begin{tabular}{c}
+      \begin{lstlisting}[basicstyle=\tiny]
+        ...
+        equation
+          der(u[1])=-a*(u[1]-1)/dx+d*(-2*u[1]+1)/(dx^2)+r*(u[1]^2)*(1-u[1]);
+          for i in 2:N loop
+            der(u[i])=-a*(u[i]-u[i-1])/dx + 
+                d*(-2*u[i]+u[i-1])/(dx^2) +
+                r*(u[i]^2)*(1-u[i]);
+          end for;
+        end adv_dif_reac;
+      \end{lstlisting}
+    \end{tabular}
+  \end{center}
+  \caption{Bloque de ecuaciones del Modelo ADR.}
+\end{figure}
+\end{column}%
+\hfill%
+\begin{column}{.58\textwidth}
+\begin{figure}
+\small
+\begin{equation*}
+  \begin{split}
+  N_2 = \{ \\
+  & id: 2 \\
+  & weight = 1 \\
+  & interval = [2, N]\\
+  & lhs = \{ V_3 \} \\
+  & rhs = \{ V_4, V_5 \} \\
+  \}
+\end{split}
+\end{equation*}
+
+\caption{Expresión de tipo Node correspondiente a la línea 11 del modelo}
+\end{figure}
+\end{column}
+\end{columns}
+
+El elemento del tipo $\verb|Nodes|$ quedaría definido $\text{N} : \verb|Nodes| =
+\{N_1, N_2\}$.
+
+\end{frame}
+
+
+\begin{frame}[fragile]{Creación del grafo computacional.}
+
+Con la estructura de datos presentada, el algoritmo construye las aristas del
+grafo computacional puede  definirse así:
+
+\begin{algorithm}[H]
+    \scriptsize
+    \begin{algorithmic}[1]\caption{Construir grafo computacional SBG} \label{alg:build-sbg}
+        \Function{build\_sbg\_graph}{$G, P = (A,B), C$}
+            \For{$I_j \in \text{Nodes}$}
+                \For{$R_i \in I.rhs_j$}
+                    \State $IM(R_i) \gets $ Construye el conjunto imagen para la expresión de $R_i$
+                    \For{$D_k \in R.defs_i$}
+                        \State $I_s \gets $ El Nodo con id $D_k$ en $Nodes$
+                        \State $L_w \gets $ la variable del lado izquierdo que coincide con $R_i$ en el conjunto LHS de entrada.
+                        \State $IM(L_w) \gets $ Calcula el conjunto imagen para la expresión de la variable $L_w$.
+                        \State $D \gets IM(R_i) \cap IM(L_w)$
+                        \If{$D \neq \emptyset$} Esto significa que el nodo
+                        $I_s$ computa a la variable (o parte de la variable)
+                        $L_w$ que se debería comunicar a $I_j$. En este caso:
+                            \State Armar una conjunto arista entre $(I_j, I_s)$ con cardinalidad $\#D$
+                        \EndIf
+                    \EndFor
+                \EndFor
+            \EndFor
+        \EndFunction
+    \end{algorithmic}
+\end{algorithm}
+
+\end{frame}
+
+
+\begin{frame}{Grafo Computacional del Modelo ADR}
+
+ \begin{figure}[ht]
+  \centering
+  \begin{subfigure}[t]{0.6\textwidth}
+      \includegraphics[width=1\linewidth]{advection-sbg.pdf}
+      \caption{Grafo computacional SBG para $N =10$}
+      \label{fig:advection-sbg}
+ \end{subfigure}
+ \begin{subfigure}[t]{0.3\textwidth}
+    \includegraphics[width=1\linewidth]{advection-expanded.pdf}
+    \caption{Grafo computacional expandido correspondiente}
+     \label{fig:fig:advection-expanded}
+     \end{subfigure} 
+ \end{figure}
+    
+\end{frame}
+
+
+\begin{frame}{Particionamiento Inicial}
+
+El nodo con más cantidad de aristas se elige como nodo raíz.
+
+Se recorre el grafo por anchura.
+
+Usamos dos estrategias para el armado de las particiones iniciales:
+
+\begin{itemize}
+    \item \textbf{Estrategia Greedy}, a medida que se recorre el grafo, se 
+    agregarán todos los elementos a una partición hasta que esté 
+    completa.
+
+    \item \textbf{Estrategia Distributiva}, cada intervalo se parte en $P$
+    partes iguales y se reparten una parte para cada partición.
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}[fragile]{Particionamiento Inicial del Modelo ADR}
+
+Particionado inicial para el grafo computacional basado en conjuntos del Modelo
+ADR.
+
+\begin{center}
+    \begin{tabular}{c}
+        \begin{lstlisting}[language=bash, numbers=none, basicstyle=\tiny]
+
+        // Distributiva preorden
+        0, {[0:0], [1:2]}
+        1, {[3:5]}
+        2, {[6:7]}
+        3, {[8:9]}
+
+        // Distributiva postorden
+        0, {[0:0]}
+        1, {[1:4]}
+        2, {[5:8]}
+        3, {[9:9]}
+
+        // Greedy preorden
+        0, {[0:0], [1:2]}
+        1, {[3:5]}
+        2, {[6:7]}
+        3, {[8:9]}
+
+        // Greedy postorden
+        0, {[0:0]}
+        1, {[1:4]}
+        2, {[5:8]}
+        3, {[9:9]}
+        \end{lstlisting}
+    \end{tabular}
+\end{center}
+\end{frame}
+
+
+\begin{frame}{Refinamiento}
+
+Una vez obtenidas las particiones iniciales, entramos en la etapa de
+refinamiento, etapa en la cual buscamos disminuir la comunicación entre
+las mismas, sin desbalancear.
+
+Buscamos disminuir el $edgeCut$.
+
+Dada una partición $\mathcal{C}$ en $P$ particiones disjuntas
+$\mathcal{V} = (\mathcal{C}_1 \cup \ldots \cup \mathcal{C}_p)$,
+
+\begin{equation*}
+\begin{aligned}
+    cost(\mathcal{C}) = edgeCut(\mathcal{C}) =  \sum_{\mathcal{C}_i
+    , \mathcal{C}_j} \{ w(u, v) | u \in \mathcal{C}_i, v \in 
+    \mathcal{C}_j, i \neq j \}\text{{\color{black},}}
+\end{aligned}
+\end{equation*}
+
+\begin{equation*}
+\begin{aligned}
+    & \underset{\text{todo } \mathcal{C}}{\text{minimizar }} edgeCut(\mathcal{C})\\
+    & \text{{\color{black}sujeto a} } \sum_{u \in \mathcal{C}_i} l(u) = \frac{\sum_{v \in \mathcal{V}}}
+    {P}, \forall i\text{{\color{black}.}}
+\end{aligned}
+\end{equation*}
+    
+\end{frame}
+
+
+\begin{frame}{Kernighan-Lin}
+
+Sea $S$ un conjunto de $2n$ puntos, con una matriz de costo asociada 
+$C = (c_{ij})$, $i, \text{ } j = 1, \ldots, 2n$.
+
+Queremos partir $S$ en dos conjuntos $A$ y $B$, cada una con $n$ puntos,
+tales que el ``costo externo'' $T = \sum_{A \times B} c_{ab}$ se minimice.
+
+Definamos para cada $a \in A$, un \textit{costo externo} (EC) $E_a$
+
+\begin{equation*}
+    E_a = \sum_{y \in B} c_{ay}
+\end{equation*}
+
+y un \textit{costo interno} (IC) $I_a$
+
+\begin{equation*}
+    I_a = \sum_{x \in A} c_{ax}
+\end{equation*}
+
+Análogamente, definimos 
+$E_b$, $I_b$ para cada $b \in B$. 
+\end{frame}
+
+
+\begin{frame}{Kernighan-Lin}
+
+Sea
+
+\begin{equation*}
+D_x = E_x - I_x \text{ para todo } x \in S; 
+\end{equation*}
+
+$D_x$ es la diferencia entre costo externo e interno.
+
+Considerando cualquier $a \in A$, $b \in B$. Si $a$ y $b$ son intercambiados, la \textit{ganancia}
+(esto es, la reducción del costo) es precisamente.
+\begin{equation*}
+D_a + D_b - 2c_{ab}    
+\end{equation*}
+
+Este proceso se repite y se acumulan las ganancias parciales.
+Una vez culminado, se elige el intercambio con ganancia máxima.
+
+\end{frame}
+
+
+\begin{frame}{Kernighan-Lin}
+
+\begin{figure}
+\centering
+\begin{tikzpicture}[main/.style = {draw, circle}, minimum height=5mm] 
+    \node[main] (A) [minimum height=15mm, label=below:$\color{black}A$] {};
+    \node[main] (X) [below of=A, node distance=2.5mm] {$\color{black}X$}; 
+
+    \node[main] (B) [right of=A, node distance=20mm, minimum height=15mm, label=below:$\color{black}B$] {};
+    \node[main] (Y) [below of=B, node distance=2.5mm] {$\color{black}Y$}; 
+
+
+    \node[main] (A1) [right of=B, node distance= 30mm, minimum height=15mm, label=below:$\color{black}A^*$] {};
+    \node[main] (Y1) [below of=A1, node distance=2.5mm] {$\color{black}Y$};
+
+    \node[main] (B1) [right of=A1, node distance=20mm, minimum height=15mm, label=below:$\color{black}B^*$] {};
+    \node[main] (X1) [below of=B1, node distance=2.5mm] {$\color{black}X$}; 
+
+    \draw [-latex,thick,shorten >=8pt,shorten <=8pt] (B) edge (A1);
+\end{tikzpicture}
+
+$\color{black} A^* = A - X + Y$
+
+$\color{black}B^* = B - Y + X$
+\caption{Descripción gráfica de la fase de optimización.}
+\end{figure}
+    
+\end{frame}
+
+
+\begin{frame}{Particionador SBG}
+
+Optimización de Particiones:
+
+\begin{small}
+
+    \begin{algorithm}[H]
+        \caption{Algoritmo de optimización Kernighan-Lin para SBG}
+        \begin{algorithmic}[1]
+            \Function{KL-SBG}{$G, P = (A,B), C$}
+                \State{$A_c = A$} \Comment{\tiny Hacer una copia de las particiones originales}\small
+                \State{$B_c = B$} 
+                \Statex{$\ldots$} \Comment{\tiny{Inicializar variables}}\small
+                % \State{$max\_par\_sum = 0$} \Comment{Inicializar variables}
+                % \State{$max\_par\_sum\_set = \emptyset$}
+                % \State{$par\_sum = 0$}
+                % \State{$A_v = \emptyset$}
+                % \State{$B_v = \emptyset$} 
+                \State{$GM = \mathbf{compute\_diff}(A_c, B_c, G, C)$} \Comment{\tiny Computar matriz de ganancia} \small
+                \While{$A_c \neq \emptyset \wedge B_c \neq \emptyset$}  \Comment{\tiny Mientras queden elementos en ambas particiones, seguir iterando} \small
+                    \State{$< i, j, g, s > = \mathbf{max\_diff}(GM)$} \Comment{\tiny Obtener intercambio con mayor ganancia} \small
+                    \State{$(A', B')=\mathbf{update\_sets} (A_c, B_c, A_v, B_v, i, j, s)$} \Comment{\tiny Actualizar conjuntos} \small
+                    \State{$\mathbf{update\_sum} (par\_sum, g, max\_par\_sum, max\_par\_sum\_set, A', B')$} 
+                    \Statex{} \Comment{\tiny Actualizar suma parcial} \small
+                    \State{$\mathbf{update\_diff} (A_c, B_c, i, j, s, GM, G)$} \Comment{\tiny Actualizar las copias $A_c$ y $B_c$} \small
+                \EndWhile
+                \Statex $\ldots$
+                \algstore{bkbreak}
+        \end{algorithmic}
+    \end{algorithm}
+\end{small}
+
+\end{frame}
+
+
+\begin{frame}{Particionador SBG}
+
+\begin{small}
+
+    \begin{algorithm}[H]
+        \caption{Algoritmo de optimización Kernighan-Lin para SBG}
+        \begin{algorithmic}[1]
+            \algrestore{bkbreak}
+%             \Function{KL-SBG}{$G, P = (A,B), C$}
+            \Statex $\ldots$
+                    \If{$max\_par\_sum\_set \neq \emptyset$} \Comment{\tiny Si existió alguna ganancia positiva, efectuar el cambio}\small
+                    \State{$(A^{\star}, B^{\star}) = max\_par\_sum\_set$}
+                    \State{$A = (A/A^{\star}) \cup B^{\star}$}
+                    \State{$B = (B/B^{\star}) \cup A^{\star}$}
+                \EndIf  
+                \State{\Return}  
+            \EndFunction
+
+        \end{algorithmic}
+    \end{algorithm}
+\end{small}
+\end{frame}
+
+
+\begin{frame}{Particionador SBG}
+
+Cálculo de Costo Externo y Costo Interno.
+
+Los argumentos de esta función son:
+
+\begin{itemize}
+    \item $S$, intervalo o conjunto sobre el cual calcular EC e IC.
+    \item $P$ que es la partición a la cual pertenece $S$.
+    \item $map_1$ y $map_2$ son los mapas del grafo.
+\end{itemize}
+
+% \begin{small}
+%   \begin{algorithm}[H]
+%     \caption{Compute EC and IC}
+%     \begin{algorithmic}[1]
+%     \Function{compute\_EC\_IC}{S, P, map\_1, map\_2}
+%         \State $D \gets \text{map\_1.preImage}(S)$
+%         \State $I \gets \text{map\_2.image}(D)$
+%         \State $IC' \gets (P \cap I) / S$
+%         \State $IC \gets \text{map\_2.preImage}(IC') \cap D$
+%         \State $EC' \gets I / IC'$
+%         \State $EC \gets \text{map\_2.preImage}(EC') \cap D$
+%         \State \Return $(EC, IC)$
+%     \EndFunction
+%     \end{algorithmic}
+%     \end{algorithm}
+% \end{small}
+
+\end{frame}
+
+
+\begin{frame}{Particionador SBG}
+
+$compute\_EC\_IC$ tiene un problema.
+\pause
+Si queremos particionar más de dos particiones, tomando de a dos,
+incluiríamos en la EC de $S$ nodos fuera de $Q$.
+\pause
+Por eso implementamos la segunda versión.
+
+Los argumentos son los mismos que la implementación anterior, sólo
+se agrega $Q$, que es la otra partición que estamos refinando.
+
+\begin{small}
+% \begin{algorithm}[H]
+% \begin{algorithmic}[1]\caption{Compute EC \& IC}
+% \Function{compute\_EC\_IC}{$S, P, Q, map_1, map_2$}
+% %     \State{$D = map_1.preImage(S)$}
+% %     \State{$I = map_2.image(D)$}
+% %     \State{$IC' = (P \cap I) / S$}
+% %     \State{$IC = map_2.preImage(IC') \cap D$}
+% %     \State{$EC' = (I / IC') \cap Q$}
+% %     \State{$EC = map_2.preImage(EC') \cap D$}
+% %     \State{\Return $(EC,IC)$}
+% \EndFunction
+% \end{algorithmic}
+% \end{algorithm}
+\end{small}
+
+\end{frame}
+
+
+\begin{frame}{Ejemplo de Optimización de Particiones}
+  \begin{columns}[T] % align columns
+    \begin{column}{.48\textwidth}
+
+      % \begin{tikzpicture}[main/.style = {draw, circle}]
+      %     \node[main] (A) [minimum height=15mm] {$\{[1:1], [2:3]\}$};
+      %     \node[main] (B) [below of=A, minimum height=15mm, node distance=40mm] {$\{[4:6]\}$}; 
+      %     \scriptsize
+      %     \path
+      %     (A) edge node [fill=white,midway] {$i - 1 \gets \{[4:4]\} \to i$} (B)
+      %         edge [loop right] node [near start, above] {$1 \gets \{[1:1]\} \to 2$} (A)
+      %         edge [loop left] node[near end, above] {$i \gets \{[2:3]\} \to i - 1$} (A)
+      %     (B) edge [loop left] node[near end, above] {$i \gets \{[5:7]\} \to i - 1$} (B);
+      % \end{tikzpicture}
+  \end{column}
+
+  \hfill
+
+  \begin{column}{0.48\textwidth}
+    \vspace{75pt}
+    \pause
+    Veamos la ganancia de intercambiar $[1:1]$ con $[4:6]$.
+    \pause
+    \footnotesize
+    \begin{tabular}{ | c | c | c | c |}
+      \hline
+      Node & EC & IC \\
+      \hline \hline
+      $[1:1]$ & $\emptyset$ & $\{\ [1:1] \}$\\
+      \hline
+      $[4:6]$ & \{[4:4]\} & \{[5:7]\}\\
+      \hline
+    \end{tabular}
+
+    \vspace{2em}
+    \pause
+    $D_{[1:1]} = \# EC_{[1:1]} - \#IC_{[1:1]} = 0 - 1 = -1$
+    \pause
+    $D_{[4:6]} = \# EC_{[4:6]} - \#IC_{[4:6]} = 1 - 1 = 0$
+    \pause
+    $Gain = D_{[1:1]} + D_{[4:6]} - 2 * C_{[1:1],[4:6]} = -1$
+  \end{column}
+
+\end{columns}
+
+\end{frame}
+
+
+\begin{frame}{KL-SBG para dos particiones}
+
+Esta etapa del algoritmo toma dos particiones y las mejora hasta la obtención
+de un mínimo local, es decir, hasta que la ganancia no sea mayor a cero.
+
+
+%   \begin{small}
+%     \begin{algorithm}[H]
+%         \begin{algorithmic}[1]\caption{KL-SBG para dos particiones}
+%         \label{alg:kl-sbg-bipart}
+%             \Function{KL-SBG-BIPART}{$G, P = (A,B), C$}
+%                 \State{$A' = A$}
+%                 \State{$B' = B$}
+%                 \State{$\mathbf{KL-SBG}(G, (A,B), C)$}
+%                 \While{$A' \neq A \wedge B' \neq B$}
+%                     \State{$A' = A$}
+%                     \State{$B' = B$}
+%                     \State{$\mathbf{KL-SBG}(G, (A,B), C)$}  
+%                 \EndWhile
+%                 \State{\Return}
+%             \EndFunction
+%         \end{algorithmic}
+%     \end{algorithm}
+% \end{small}
+
+\end{frame}
+
+
+\begin{frame}{KL-SBG para múltiples particiones}
+  \begin{itemize}
+    \item KL-SBG-BIPART se aplica combinando de a dos particiones.
+    \item A las que devuelvan mayor ganancia, se les aplica el intercambio.
+    \item El proceso de repite hasta que no haya más ganancia positiva.
+  \end{itemize}
+
+\end{frame}
+
+\begin{frame}{Mejoras a KL-SBG para múltiples particiones}
+
+\end{frame}
