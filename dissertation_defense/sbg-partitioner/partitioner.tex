@@ -1,26 +1,41 @@
 \section{Balance de Carga Usando Grafos Basados en Conjuntos}
 
 
-\begin{frame}{Balance de Carga Usando Grafos Basados en Conjuntos}
+\begin{frame}{Motivación}
+  Los métodos de particionamiento actuales son sensibles al tamaño del grafo.\pause
 
-La presentación de nuestro algoritmo se puede explicar a partir de estas
-tres secciones:
+  Modelos complejos $\to$ grafos computacionales de gran tamaño.\pause
 
-\begin{itemize}
-    \item Formato de Entrada.
-    \item Inicialización: Creación del grafo computacional.
-    \item Creación de particionamiento inicial y refinamiento
-\end{itemize}
-    
+  Queremos representar el grafo computacional en forma compacta y particionarlo
+  sin necesidad de expandir.\pause
+
+  La implementación del modelo tiene una estructura compacta, ¿podemos aprovecharla?\pause
+
+  Presentamos un algoritmo de Balance de Carga usando Grafos Basados en Conjuntos.
 \end{frame}
 
 
+% \begin{frame}{Balance de Carga Usando Grafos Basados en Conjuntos}
+
+% La presentación de nuestro algoritmo se puede explicar a partir de estas
+% tres secciones:
+
+% \begin{itemize}
+%     \item Formato de Entrada.
+%     \item Inicialización: Creación del grafo computacional.
+%     \item Creación de particionamiento inicial y refinamiento
+% \end{itemize}
+    
+% \end{frame}
+
+
 \begin{frame}{Formato de Entrada}
-Si definimos la ocurrencia de una variable en una expresión dada como:
+\pause
+Si definimos la ocurrencia de una variable en una expresión dada como:\pause
 
 \begin{small}
     \begin{algorithm}[H]
-        \begin{algorithmic}\caption{Tipo Var} \label{alg:var-type}
+        \begin{algorithmic}\caption{Tipo Var}
             \State \textbf{Var}: \{
                 \State $\text{id}: \text{string}$ 
                 \State $\text{cost}: \text{int}$
@@ -37,12 +52,14 @@ Si definimos la ocurrencia de una variable en una expresión dada como:
 
 
 \begin{frame}{Formato de Entrada}
-Un nodo individual que representa una unidad de cálculo en el modelo puede ser 
+\pause
+  Un nodo individual que representa una unidad de cálculo en el modelo puede ser 
 definido así:
+\pause
 
 \begin{small}
     \begin{algorithm}[H]
-        \begin{algorithmic}\caption{Tipo Node}\label{alg:node-type}
+        \begin{algorithmic}\caption{Tipo Node}
             \State \textbf{Node}: \{
                 \State $\text{id: string}$
                 \State $\text{weight: int}$
@@ -61,29 +78,158 @@ del tipo $\text{Node}$ como entrada del algoritmo de particionado.
 
 \begin{frame}[fragile]{Modelo Advección-Difusión-Reacción}
 
-La siguiente es una implementación en Modelica de un modelo
-Advección-Difusión-Reacción (ADR):
-\vspace{-1.5em}
-  \begin{center}
-    \begin{tabular}{c}
-     \lstset{emph={u},emphstyle=\textbf}
-      \begin{lstlisting}[basicstyle=\small]
-        model adv_dif_reac
-          /* parameter initialization... */
+Recordemos la implementación del Modelo ADR:
 
+\begin{center}
+  \begin{tabular}{c}
+  \lstset{
+      basicstyle=\scriptsize,
+      emph={u},
+      emphstyle=\color{red},
+      morekeywords={u},
+      keywordstyle=\bfseries,
+      escapeinside={(*@}{@*)}
+  }
+    \begin{lstlisting}
+        Real u[N];
+        ...
+        der(u[1])=-a*(u[1]-1)/dx+d*(-2*u[1]+1)/(dx^2)+r*(u[1]^2)*(1-u[1]);
+        for i in 2:N loop
+          der(u[i])=-a*(u[i]-u[i-1])/dx+ d*(-2*u[i]+u[i-1])/(dx^2)+ 
+          r*(u[i]^2)*(1-u[i]);
+        end for;
+    \end{lstlisting}
+  \end{tabular}
+
+  \pause
+
+  \vspace{2em}
+
+  ¿Cómo podríamos representar este modelo usando el tipo $\verb|Nodes|$?
+\end{center}
+
+\end{frame}
+
+
+\begin{frame}[fragile]{Representación del Modelo ADR}
+
+  \begin{tabular}{c}
+    \lstset{
+        basicstyle=\scriptsize,
+        emph={u},
+        emphstyle=\color{red},
+        morekeywords={u},
+        keywordstyle=\bfseries,
+        escapeinside={(*@}{@*)}
+    }
+      \begin{lstlisting}
           Real u[N];
-        initial algorithm
-          /* state var initialization ...*/
-
-        equation
+          ...
           der(u[1])=-a*(u[1]-1)/dx+d*(-2*u[1]+1)/(dx^2)+r*(u[1]^2)*(1-u[1]);
           for i in 2:N loop
-            der(u[i])=-a*(u[i]-u[i-1])/dx+ d*(-2*u[i]+u[i-1])/(dx^2)+ r*(u[i]^2)*(1-u[i]);
+            der(u[i])=-a*(u[i]-u[i-1])/dx+ d*(-2*u[i]+u[i-1])/(dx^2)+ 
+            r*(u[i]^2)*(1-u[i]);
           end for;
-        end adv_dif_reac;
       \end{lstlisting}
     \end{tabular}
-  \end{center}
+
+\pause
+
+Nos centraremos en la línea 5.
+
+\pause
+
+\only<3>{
+
+\scriptsize
+
+\begin{figure}
+  \begin{equation*}
+  \begin{split}
+    V_3 = \{ \\
+    & id:u \\
+    & cost = 1 \\
+    & exp = (1, 0) \rightarrow {\color{black}\text{para formar la expresión }} \\
+    & 1 \times + 0 {\color{black}\text{ que corresponde a }} u[i]\\
+    & defs = \{\} \\
+    \}
+  \end{split}
+  \end{equation*}
+  \captionsetup{font=scriptsize}
+  \caption{Lado izquierdo de la expresión en línea 5.}
+  \end{figure}
+
+}
+
+\pause
+
+\only<4,5>{
+\begin{columns}[T] % align columns
+  \scriptsize
+  \begin{column}{.4\textwidth}
+    \begin{figure}
+      \captionsetup[figure]{font=scriptsize}
+      \begin{equation*}
+      \begin{split}
+        V_4 = \{ \\
+        & id:u \\
+        & cost = 1 \\
+        & exp = (1, 0) \rightarrow {\color{black}\text{para formar la expresión }} \\
+        & 1 \times + 0 {\color{black}\text{ que corresponde a }} u[i]\\
+        & defs = \{1, 2\} \\
+        \}
+      \end{split}
+      \end{equation*}
+      \captionsetup{font=scriptsize}
+      \caption{Lado derecho de la expresión en línea 5.}
+    \end{figure}
+  \end{column}
+
+  \hfill
+  \pause
+
+  \begin{column}{.4\textwidth}
+    \begin{figure}[ht]
+      \captionsetup[figure]{font=footnotesize}
+      \begin{equation*}
+      \begin{split}
+        V_5 = \{ \\
+        & id:u \\
+        & cost = 1 \\
+        & exp = (1, -1) \rightarrow {\color{black}\text{para formar la expresión }} \\
+        & 1 \times -1 {\color{black}\text{ que corresponde a }} u[i - 1]\\
+        & defs = \{1, 2\} \\
+        \}
+      \end{split}
+      \end{equation*}
+      \captionsetup{font=scriptsize}
+      \caption{Lado derecho de la expresión en línea 5.}
+    \end{figure}
+  \end{column}
+\end{columns}
+}
+
+\pause
+
+\only<6> {
+  \begin{figure}
+    \scriptsize
+    \begin{equation*}
+      \begin{split}
+      N_2 = \{ \\
+      & id: 2 \\
+      & weight = 1 \\
+      & interval = [2, N]\\
+      & lhs = \{ V_3 \} \\
+      & rhs = \{ V_4, V_5 \} \\
+      \}
+    \end{split}
+  \end{equation*}
+  \captionsetup{font=scriptsize}
+  \caption{Expresión en línea 5.}
+\end{figure}
+}
+
 \end{frame}
 
 
@@ -163,7 +309,6 @@ Advección-Difusión-Reacción (ADR):
 \begin{figure}
 \small
 \begin{equation*}
-  \label{page:advection-input-right-line-11}
   \begin{split}
     V_2 = \{ \\
     & id:u \\
@@ -392,7 +537,7 @@ grafo computacional puede  definirse así:
 
 \begin{algorithm}[H]
     \scriptsize
-    \begin{algorithmic}[1]\caption{Construir grafo computacional SBG} \label{alg:build-sbg}
+    \begin{algorithmic}[1]\caption{Construir grafo computacional SBG}
         \Function{build\_sbg\_graph}{$G, P = (A,B), C$}
             \For{$I_j \in \text{Nodes}$}
                 \For{$R_i \in I.rhs_j$}
@@ -424,12 +569,10 @@ grafo computacional puede  definirse así:
   \begin{subfigure}[t]{0.6\textwidth}
       \includegraphics[width=1\linewidth]{advection-sbg.pdf}
       \caption{Grafo computacional SBG para $N =10$}
-      \label{fig:advection-sbg}
  \end{subfigure}
  \begin{subfigure}[t]{0.3\textwidth}
     \includegraphics[width=1\linewidth]{advection-expanded.pdf}
     \caption{Grafo computacional expandido correspondiente}
-     \label{fig:fig:advection-expanded}
      \end{subfigure} 
  \end{figure}
     

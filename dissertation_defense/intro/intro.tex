@@ -31,66 +31,102 @@ La simulación de un modelo consiste en la ejecución del
 mismo a través del tiempo.
 \end{block}
 
-\end{frame}
+\pause
 
-\begin{frame}{Simulación de Modelos Matemáticos}
-\frametitle{Simulación de Modelos Matemáticos}
+Los modelos pueden clasificarse según la forma en que las variables
+evolucionan en el tiempo:
+
+\pause
 
 \begin{itemize}
-\item Modelos de Tiempo Discreto
-\pause
-\item Modelos de Tiempo Continuo
-%acá puedo saltar a otra presentación y mostrar el ejemplo de discontinuidad?
-\pause
-\item Modelos de Eventos Discretos
-\pause
-\begin{itemize}
-    \item Método de los Sistemas de Estados Cuantificados (QSS)
-\end{itemize}
+    \item Modelos de Tiempo Discreto
+    \pause
+    \item Modelos de Tiempo Continuo
+    %acá puedo saltar a otra presentación y mostrar el ejemplo de discontinuidad?
+    \pause
+    \item Modelos de Eventos Discretos
+    \pause
+    \begin{itemize}
+        \item Método de los Sistemas de Estados Cuantificados (QSS)
+    \end{itemize}
 \end{itemize}
 
 \pause
 
 \centering
 
-\vspace{2em}
+\vspace{1em}
 
 \textbf{Problema: Modelos complejos acarrean alto costo computacional}
 
 \pause
 
-\vspace{2em}
+\vspace{1em}
 
 \textbf{Solución: Simulación en Paralelo}
 
 \end{frame}
 
-\begin{frame}{Simulación en Paralelo de Sistemas de Eventos Discretos}
 
-\only<1,2,3>{
+\begin{frame}{Simulación en Paralelo de Sist. de Eventos Discretos}
+
+\only<1,2,3,4,5,6,7,8,9>{
 \begin{itemize}[<+->]
-\item Algoritmos conservadores
-\item Algoritmos optimistas
-\item Algoritmos totalmente desincronizados
+\item Algoritmos conservadores.
+    \begin{itemize}
+        \item Fuerza a cada LP a esperar. Se asegura que no recibirá mensajes pasados.
+        \item Pequeñas mejoras de tiempo. Posibles bloqueos mutuos.
+    \end{itemize}
+\item Algoritmos optimistas.
+    \begin{itemize}
+        \item Avanza tanto como puede. Retrocede si hay una inconsistencia.
+        \item Más paralelismo. Guarda estructuras internas y el retroceso es costoso.
+    \end{itemize}
+\item Algoritmos totalmente desincronizados.
+    \begin{itemize}
+        \item Evita la sincronización por completo.
+        \item Grandes mejoras de tiempo. Introduce errores.
+    \end{itemize}
 \end{itemize}
 }
 
-\only<4->{
+\only<10->{
 \begin{itemize}
-\uncover<3->{\item Algoritmos conservadores}
-\uncover<3->{\item \textbf{Algoritmos optimistas}}
-\uncover<3->{\item Algoritmos totalmente desincronizados}
+\color{gray}
+\item Algoritmos conservadores.
+    \begin{itemize}
+        \color{gray}
+        \item Fuerza a cada LP a esperar. Se asegura que no recibirá mensajes pasados.
+        \item Pequeñas mejoras de tiempo. Posibles bloqueos mutuos.
+    \end{itemize}
+\color{black}
+\item \textbf{Algoritmos optimistas}.
+    \begin{itemize}
+        \item Avanza tanto como puede. Retrocede si hay una inconsistencia.
+        \item Más paralelismo. Guarda estructuras internas y el retroceso es costoso.
+    \end{itemize}
+\color{gray}
+\item Algoritmos totalmente desincronizados.
+    \begin{itemize}
+        \color{gray}
+        \item Evita la sincronización por completo.
+        \item Grandes mejoras de tiempo. Introduce errores.
+    \end{itemize}
 \end{itemize}
 }
 
 \end{frame}
 
-\begin{frame}{Simulación en Paralelo de Sistemas de Eventos Discretos}{Idea general}
+\begin{frame}{Simulación en Paralelo de Sist. de Eventos Discretos}
+
+Idea general:\pause
+
+\vspace{1em}
 
 Particionar el modelo entre \textbf{P submodelos}, donde cada submodelo es simulado por un
-procesador lógico (LP) diferente.
+procesador lógico (LP) diferente.\pause
 
-En cada paso de simulación, el LP chequa si la variable que cambió se debe informar a los demás LPs.
+En cada paso de simulación, el LP chequa si la variable que cambió se debe informar a los demás LPs.\pause
 
 La sincronización no estricta se logra calculando un tiempo virtual global $gvt$ (igual al tiempo lógico 
 mínimo de todos los LPs) y no permitiendo que los LPs avancen más allá de %$gvt + \Delta t$.
@@ -127,13 +163,14 @@ $\Delta t$ define qué tan estrica es la sincronización.
     
 \end{frame}
 
-\begin{frame}{Simulación en Paralelo de Sistemas de Eventos Discretos}{Comunicación entre procesos}
+\begin{frame}{Simulación en Paralelo de Sistemas de Eventos Discretos}
 
-Es un proceso híbrido:
+
+La comunicación entre procesos es un proceso híbrido:\pause
 
 \begin{itemize}
     \item Los \textbf{cambios de estados} son asíncronamente informados usando una lista
-de cambios.
+de cambios.\pause
     \item Los \textbf{cambios discretos} son informados usando una lista de cambios,
 pero de manera síncrona.% donde el LP que cominuca el nuevo valor debe
 %esperar que todos los LPs los procesen.
@@ -142,7 +179,7 @@ pero de manera síncrona.% donde el LP que cominuca el nuevo valor debe
 \end{frame}
 
 
-\begin{frame}{Simulación en Paralelo de Sistemas de Eventos Discretos}{Partición del Modelo}
+\begin{frame}{Simulación en Paralelo de Sistemas de Eventos Discretos}
 
 Los algoritmos de simulación en paralelo requieren que:
 
@@ -158,6 +195,7 @@ Para obtener una paralelización efectiva:
     \item La \textbf{comunicación} entre LPs debe ser \textbf{minimizada}.
 \end{itemize}
 
+Requieren que \textbf{particionemos el modelo}. \pause
 Llamamos a este proceso \textit{Balance de carga}.
 
 \end{frame}
@@ -165,7 +203,7 @@ Llamamos a este proceso \textit{Balance de carga}.
 
 \begin{frame}{Balance de Carga para Simulación en Paralelo}
 
-Podemos distinguir tres tipos de problemas de balance de carga
+Podemos distinguir tres tipos de problemas de balance de carga: \pause
 
 \only<1,2,3>{
 \begin{itemize}[<+->]
@@ -296,6 +334,18 @@ Advección-Difusión-Reacción (ADR):
 
 \end{frame}
 
+
+\begin{frame}{Métodos de Particionado de Grafos Estático}
+
+    Existen distintos métodos de particionado de grafos: \pause
+
+    \begin{itemize}[<+->]
+        \item Métodos geométricos.
+        \item Métodos combinatorios.
+        \item Métodos espectrales.
+        \item Métodos multinivel.
+    \end{itemize}
+\end{frame}
 
 % \begin{frame}{Balance de Carga como Problema de Particionamiento de Grafos}
 
