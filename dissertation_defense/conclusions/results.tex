@@ -1,9 +1,148 @@
 \section{Resultados y Trabajo Futuro}
 
-\begin{frame}{Resultados}
-    
+\begin{frame}{Métricas de particionado}
+
+Métricas de calidad de particionado:
+\pause
+
+\begin{itemize}
+    \item \textbf{Edge-Cut}: la suma del peso de las aristas que conectan nodos entre particiones.
+    \pause
+
+    \item \textbf{Volumen de comunicación total}: la cantidad de comunicación entre particiones.
+    \pause
+
+    \item \textbf{Volumen de comunicación máximo}: calcula el volumen de comunicación máximo entre particiones.
+    \pause
+
+    \item \textbf{Desbalance máximo}: calcula el desbalance máximo entre particiones.
+\end{itemize}
+
 \end{frame}
 
+
+\begin{frame}{Métricas de particionado}
+Métricas de rendimiento:
+\pause
+
+\begin{itemize}
+    \item{\textbf{Tiempo de Inicialización:}} es el tiempo que le toma al particionador en leer la entrada y
+    construir el grafo de conexiones.
+    \pause
+
+    \item{\textbf{Tiempo de Particionado:}} Es el tiempo que le toma al
+    algoritmo generar las particiones iniciales y optimizarlas.
+    \pause
+\end{itemize}
+
+\vspace{1em}
+
+METIS implementa de métodos multinivel y será utilizado para comparar los resultados obtenidos.
+\end{frame}
+
+
+\begin{frame}{Resultados Modelo ADR}
+
+    Dado que las variables que comunican datos entre las distintas particiones son $u[i]$ con $u[i-1]$ para
+    un determinado rango. El $edgeCut$ es igual a 3, pues es la arista
+    que comunica los dos nodos adyacentes entre particiones independientemente del tamaño.
+
+
+    \begin{table}[H]
+        \centering
+        \resizebox{\textwidth}{!}{\begin{tabular}{*{7}{c}}
+        \toprule
+        \multicolumn{1}{c}{\textbf{Particionador}} & \multicolumn{1}{c}{\textbf{Inicialización}} & \multicolumn{1}{c}{\textbf{Particionado}} & \multicolumn{1}{c}{\textbf{Edge}} & \multicolumn{1}{c}{\textbf{Communication}} & \multicolumn{1}{c}{\textbf{Maximum}} & \multicolumn{1}{c}{\textbf{Maximum}} \\
+
+        \multicolumn{1}{c}{\textbf{ }} & \multicolumn{1}{c}{\textbf{(ms)}} & \multicolumn{1}{c}{\textbf{(ms)}} & \multicolumn{1}{c}{\textbf{cut}} & \multicolumn{1}{c}{\textbf{volume}} & \multicolumn{1}{c}{\textbf{volume}} & \multicolumn{1}{c}{\textbf{imbalance}} \\
+
+        \midrule
+        SBG-Partitioner & $0,4$ & $5,31$ & $3$ & $6$ & $2$ & $0$ \\
+        METIS & $2,9$ & $1,2$ & $3$ & $6$ & $2$ & $1,28\mathrm{e}{2}$ \\
+        % Scotch & $3$ & $2$ & $3$ & $6$ & $2$ & $9,2\mathrm{e}{-3}$ \\
+        \bottomrule
+        \end{tabular}}
+        \caption{Modelo con tamaño 10000}
+    \end{table}
+
+    \begin{table}[H]
+        \centering
+
+        \resizebox{\textwidth}{!}{
+        \begin{tabular}{*{7}{c}}
+        \toprule
+        \multicolumn{1}{c}{\textbf{Particionador}} & \multicolumn{1}{c}{\textbf{Inicialización}} & \multicolumn{1}{c}{\textbf{Particionado}} & \multicolumn{1}{c}{\textbf{Edge}} & \multicolumn{1}{c}{\textbf{Communication}} & \multicolumn{1}{c}{\textbf{Maximum}} & \multicolumn{1}{c}{\textbf{Maximum}} \\
+
+        \multicolumn{1}{c}{\textbf{ }} & \multicolumn{1}{c}{\textbf{(ms)}} & \multicolumn{1}{c}{\textbf{(ms)}} & \multicolumn{1}{c}{\textbf{cut}} & \multicolumn{1}{c}{\textbf{volume}} & \multicolumn{1}{c}{\textbf{volume}} & \multicolumn{1}{c}{\textbf{imbalance}} \\
+
+        \midrule
+        SBG-Partitioner & $0,5$ & $5,51$ & $3$ & $6$ & $2$ & $0$ \\
+        METIS & $26$ & $12$ & $3$ & $6$ & $2$ & $1,76\mathrm{e}{-2}$ \\
+        % Scotch & $26$ & $10$ & $3$ & $6$ & $2$ & $1,8\mathrm{e}{-3}$\\
+        \bottomrule
+        \end{tabular}}
+        \caption{Modelo con tamaño 100000}
+    \end{table}
+
+\end{frame}
+
+
+\begin{frame}{Resultados Modelo Aires Acondicionados con Controlador}
+
+Este modelo representa una población de aires acondicionados, divida por secciones,
+cada sección conectada a un controlador parcial, y estos conectados a un controlador
+centralizado.
+
+\begin{table}[H]
+    \centering
+    \resizebox{\textwidth}{!}{\begin{tabular}{*{7}{c}}
+    \toprule
+    \multicolumn{1}{c}{\textbf{Particionador}} & \multicolumn{1}{c}{\textbf{Inicialización}} & \multicolumn{1}{c}{\textbf{Particionado}} & \multicolumn{1}{c}{\textbf{Edge}} & \multicolumn{1}{c}{\textbf{Communication}} & \multicolumn{1}{c}{\textbf{Maximum}} & \multicolumn{1}{c}{\textbf{Maximum}} \\
+
+    \multicolumn{1}{c}{\textbf{ }} & \multicolumn{1}{c}{\textbf{(ms)}} & \multicolumn{1}{c}{\textbf{(ms)}} & \multicolumn{1}{c}{\textbf{cut}} & \multicolumn{1}{c}{\textbf{volume}} & \multicolumn{1}{c}{\textbf{volume}} & \multicolumn{1}{c}{\textbf{imbalance}} \\
+
+    \midrule
+    SBG-Partitioner & $2$ & $7275$ & $75004$ & $150005$ & $74999$ & $1,3\mathrm{e}{-5}$ \\
+    METIS & $182$ & $105$ & $149925$ & $149927$ & $75004$ & $1,3\mathrm{e}\mathrm{-5}$ \\
+    \bottomrule
+    \end{tabular}}
+    \caption{Modelo con tamaño 100000}
+\end{table}
+
+\begin{table}[H]
+    \centering
+    \resizebox{\textwidth}{!}{\begin{tabular}{*{7}{c}}
+    \toprule
+    \multicolumn{1}{c}{\textbf{Particionador}} & \multicolumn{1}{c}{\textbf{Inicialización}} & \multicolumn{1}{c}{\textbf{Particionado}} & \multicolumn{1}{c}{\textbf{Edge}} & \multicolumn{1}{c}{\textbf{Communication}} & \multicolumn{1}{c}{\textbf{Maximum}} & \multicolumn{1}{c}{\textbf{Maximum}} \\
+
+    \multicolumn{1}{c}{\textbf{ }} & \multicolumn{1}{c}{\textbf{(ms)}} & \multicolumn{1}{c}{\textbf{(ms)}} & \multicolumn{1}{c}{\textbf{cut}} & \multicolumn{1}{c}{\textbf{volume}} & \multicolumn{1}{c}{\textbf{volume}} & \multicolumn{1}{c}{\textbf{imbalance}} \\
+
+    \midrule
+    SBG-Partitioner & $3$ & $7360$ & $750004$ & $1500005$ & $749999$ & $1.3\mathrm{e}{-6}$ \\
+    METIS & $14741$ & $1501$ & $1500003$ & $1500004$ & $749973$ & $6,5\mathrm{e}\mathrm{-5}$ \\
+    \bottomrule
+    \end{tabular}}
+    \caption{Modelo con tamaño 1000000}
+\end{table}
+
+\end{frame}
+
+
 \begin{frame}{Trabajo Futuro}
-    
+
+\begin{itemize}[<+->]
+    \item Implementación:
+
+    \begin{itemize}[<+->]
+        \item Actualizar librería SBG a su última versión.
+        \item Evitar recomputar conexiones innecesariamente (estado global).
+        \item Posibilitar el desbalance de particiones.
+    \end{itemize}
+
+    \item Calcular componentes conexas del grafo, no sólo aristas individuales.
+
+    \item Implementar algoritmos de particionamiento semi-estático y dinámico
+    usando SBG.
+\end{itemize}
+
 \end{frame}
