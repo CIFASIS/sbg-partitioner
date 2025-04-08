@@ -30,7 +30,7 @@
 #include "sbg_partitioner_log.hpp"
 
 
-#define TRY_MULTIPLE_SRATEGIES 0
+#define TRY_MULTIPLE_STRATEGIES 0
 
 using namespace std;
 
