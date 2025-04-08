@@ -2,12 +2,12 @@
 
 
 \begin{frame}{Motivación}
-  Los métodos de particionamiento actuales son sensibles al tamaño del grafo.\pause
+  Los métodos de particionamiento actuales son sensibles al tamaño del grafo.
 
-  Modelos de gran escala $\to$ grafos computacionales de gran tamaño.\pause
+  Modelos de gran escala $\to$ grafos computacionales de gran tamaño.
 
   Queremos representar el grafo computacional en forma compacta y particionarlo
-  sin necesidad de expandir.\pause
+  sin necesidad de expandir.
 
   La implementación del modelo tiene una estructura compacta, ¿podemos aprovecharla?\pause
 
@@ -17,7 +17,7 @@
 
 \begin{frame}{Formato de Entrada}
 
- Si definimos la ocurrencia de una variable en una expresión dada como:\pause
+ Si definimos la ocurrencia de una variable en una expresión dada como:
 
 \begin{small}
     \begin{algorithm}[H]
@@ -41,7 +41,6 @@
 
   Un nodo individual que representa una unidad de cálculo en el modelo puede ser 
 definido así:
-\pause
 
 \begin{small}
     \begin{algorithm}[H]
@@ -87,8 +86,6 @@ Recordemos la implementación del Modelo ADR:
     \end{lstlisting}
   \end{tabular}
 
-  \pause
-
   \vspace{2em}
 
   ¿Cómo podríamos representar este modelo usando el tipo $\verb|Nodes|$?
@@ -119,13 +116,9 @@ Recordemos la implementación del Modelo ADR:
       \end{lstlisting}
     \end{tabular}
 
-\pause
-
 Nos centraremos en la línea 5.
 
-\pause
-
-\only<3>{
+\only<1>{
 
 \scriptsize
 
@@ -136,7 +129,7 @@ Nos centraremos en la línea 5.
     & id:u \\
     & cost = 1 \\
     & exp = (1, 0) \rightarrow {\color{black}\text{para formar la expresión }} \\
-    & 1 \times + 0 {\color{black}\text{ que corresponde a }} u[i]\\
+    & 1 \times i + 0 {\color{black}\text{ que corresponde a }} u[i]\\
     & defs = \{\} \\
     \}
   \end{split}
@@ -149,7 +142,7 @@ Nos centraremos en la línea 5.
 
 \pause
 
-\only<4,5>{
+\only<2>{
 \begin{columns}[T] % align columns
   \scriptsize
   \begin{column}{.4\textwidth}
@@ -161,7 +154,7 @@ Nos centraremos en la línea 5.
         & id:u \\
         & cost = 1 \\
         & exp = (1, 0) \rightarrow {\color{black}\text{para formar la expresión }} \\
-        & 1 \times + 0 {\color{black}\text{ que corresponde a }} u[i]\\
+        & 1 \times i + 0 {\color{black}\text{ que corresponde a }} u[i]\\
         & defs = \{1, 2\} \\
         \}
       \end{split}
@@ -172,9 +165,8 @@ Nos centraremos en la línea 5.
   \end{column}
 
   \hfill
-  \pause
 
-  \begin{column}{.4\textwidth}
+  \begin{column}{.45\textwidth}
     \begin{figure}[ht]
       \captionsetup[figure]{font=footnotesize}
       \begin{equation*}
@@ -183,7 +175,7 @@ Nos centraremos en la línea 5.
         & id:u \\
         & cost = 1 \\
         & exp = (1, -1) \rightarrow {\color{black}\text{para formar la expresión }} \\
-        & 1 \times -1 {\color{black}\text{ que corresponde a }} u[i - 1]\\
+        & 1 \times i - 1 {\color{black}\text{ que corresponde a }} u[i - 1]\\
         & defs = \{1, 2\} \\
         \}
       \end{split}
@@ -197,7 +189,7 @@ Nos centraremos en la línea 5.
 
 \pause
 
-\only<6> {
+\only<3> {
   \begin{figure}
     \scriptsize
     \begin{equation*}
@@ -221,7 +213,7 @@ Nos centraremos en la línea 5.
 
 \begin{frame}[fragile]{Representación del Modelo ADR}
 
-La línea 3 puede representarse de la siguiente manera:\pause
+La línea 3 puede representarse de la siguiente manera:
 
 \begin{columns}
   \begin{column}{.48\textwidth}
@@ -233,7 +225,7 @@ La línea 3 puede representarse de la siguiente manera:\pause
         & id = u \\
         & cost = 1 \\
         & exp = (0, 1) \rightarrow {\color{black}\text{para formar la expresión }} \\
-        & 0 \times + 1 {\color{black}\text{ que corresponde a }} u[1]\\
+        & 0 \times i + 1 {\color{black}\text{ que corresponde a }} u[1]\\
         & defs = \{\} \\
         \}
           \end{split}
@@ -252,7 +244,7 @@ La línea 3 puede representarse de la siguiente manera:\pause
           & id:u \\
           & cost = 1 \\
           & exp = (0, 1) \rightarrow {\color{black}\text{para formar la expresión }} \\
-          & 0 \times + 1 {\color{black}\text{ que corresponde a }} u[1]\\
+          & 0 \times i + 1 {\color{black}\text{ que corresponde a }} u[1]\\
           & defs = \{1, 2\} \\
           \}
         \end{split}
@@ -285,7 +277,6 @@ La línea 3 puede representarse de la siguiente manera:
   \captionsetup{font=footnotesize}
   \caption{Expresión de tipo Node correspondiente a la línea 3 del modelo}
 \end{figure}
-\pause
 
 Finalmente, el Modelo ADR quería representado por la expresión
 $I : \verb|Nodes| = [I_1, I_2]$.
@@ -296,10 +287,8 @@ $I : \verb|Nodes| = [I_1, I_2]$.
 \begin{frame}[fragile]{Creación del grafo computacional}
 
   Los nodos del grafo se obtienen de la siguiente manera, sea $I \in \verb|Nodes|$:
-  \pause
 
-  $\mathcal{V} = \{ \forall n \in N: n.interval \}$
-  \pause
+  $\mathcal{V} = \{ \forall n \in I: n.interval \}$
 
   Nuestro grafo computacional $\mathcal{G}$ para el modelo ADR hasta el momento
   se ve así:
@@ -327,37 +316,38 @@ Necesitamos construir las aristas de $\mathcal{G}$.
 \end{frame}
 
 
-\begin{frame}{Creación del grafo computacional}
+% removing this at least for now
+% \begin{frame}{Creación del grafo computacional}
 
-  \footnotesize
+%   \footnotesize
 
-  \begin{center}
-    \begin{tikzpicture}[main/.style = {draw, circle}] 
+%   \begin{center}
+%     \begin{tikzpicture}[main/.style = {draw, circle}] 
 
-        \node[main, thick] (1) [minimum height=12mm] {$[1:1]$};
-        \node[main] (2) [minimum height=12mm, right of=1, node distance=42mm] {$[2:N]$};
+%         \node[main, thick] (1) [minimum height=12mm] {$[1:1]$};
+%         \node[main] (2) [minimum height=12mm, right of=1, node distance=42mm] {$[2:N]$};
 
-        % \draw[color=red] (1) -- (2) node [midway, above] {$1 \gets [1:1] \to 2$};\pause
-        % \draw[loop above, color=black] (2) to node[near start, above] {$e + 1 \gets [2:9] \to e$} (2);
+%         % \draw[color=red] (1) -- (2) node [midway, above] {$1 \gets [1:1] \to 2$};\pause
+%         % \draw[loop above, color=black] (2) to node[near start, above] {$e + 1 \gets [2:9] \to e$} (2);
 
-    \end{tikzpicture}
-  \end{center}
-  \pause
+%     \end{tikzpicture}
+%   \end{center}
+%   \pause
 
-  Sea $R_1 = I_1.rhs = \{V_2\}$.\pause
+%   Sea $R_1 = I_1.rhs = \{V_2\}$.\pause
 
-  $V_2$ está definida en $I_1$ y $I_2$.\pause
+%   $V_2$ está definida en $I_1$ y $I_2$.\pause
 
-  La conexión con $I_1$ es reflexiva, la ignoramos.\pause
+%   La conexión con $I_1$ es reflexiva, la ignoramos.\pause
 
-  Veamos para el caso $I_2$:\pause
+%   Veamos para el caso $I_2$:\pause
 
-  Sea $D = Im(\{[1:1]\}, u_{I_1}) \cap Im(\{[2:N]\}, u_{I_2})$. Si $D \neq \emptyset$, debemos construir una arista
-  entre $I_1$ y $I_2$.\\ \pause
-  $D = \{[1:1]\} \cap \{[2:N]\}$ (asumimos $N > 2$)\\ \pause
-  $D = \emptyset$\\ \pause
-  $\therefore$ no hay conexión entre las variables del lado derecho $I_1$ y el lado izquierdo de $I_2$.
-\end{frame}
+%   Sea $D = Im(\{[1:1]\}, u_{I_1}) \cap Im(\{[2:N]\}, u_{I_2})$. Si $D \neq \emptyset$, debemos construir una arista
+%   entre $I_1$ y $I_2$.\\ \pause
+%   $D = \{[1:1]\} \cap \{[2:N]\}$ (asumimos $N > 2$)\\ \pause
+%   $D = \emptyset$\\ \pause
+%   $\therefore$ no hay conexión entre las variables del lado derecho $I_1$ y el lado izquierdo de $I_2$.
+% \end{frame}
 
 
 \begin{frame}{Creación del grafo computacional}
@@ -372,19 +362,18 @@ Necesitamos construir las aristas de $\mathcal{G}$.
 
     \end{tikzpicture}
   \end{center}
-  \pause
 
-  Sea $R_2 = I_2.rhs = \{V_4, V_5\}$.\pause
+  Sea $R_2 = I_2.rhs = \{V_4, V_5\}$.
 
-  $V_5$ está definida en $I_1$ y $I_2$.\pause
+  $V_5$ está definida en $I_1$ y $I_2$.
 
-  Veamos para el caso $I_1$:\pause
+  Veamos para el caso $I_1$:
 
-  Sea $D = Im(\{[2:N]\}, u_{I_2}) \cap Im(\{[1:1]\}, u_{I_1})$. Si $D \neq \emptyset$, debemos construir una arista
-  entre $I_2$ y $I_1$.\\ \pause
-  $D = \{[1:N-1]\} \cap \{[1:1]\}$ (asumimos $N>2$) \\ \pause
-  $D = \{[1:1]\}$\\ \pause
-  $\therefore$ hay conexión, debemos construir una arista-conjunto de cardinalidad $\#D$ entre $I_2$ y $I_1$. \pause
+  Sea $D = Im(\{[2:N]\}, i - 1) \cap Im(\{[1:1]\}, 1)$. Si $D \neq \emptyset$, debemos construir una arista
+  entre $I_2$ y $I_1$.\\
+  $D = \{[1:N-1]\} \cap \{[1:1]\}$ (asumimos $N>2$) \\
+  $D = \{[1:1]\}$\\
+  $\therefore$ hay conexión, debemos construir una arista-conjunto de cardinalidad $\#D$ entre $I_2$ y $I_1$.
 
 \end{frame}
 
@@ -392,71 +381,86 @@ Necesitamos construir las aristas de $\mathcal{G}$.
 \begin{frame}[t]{Creación del grafo computacional}
 
   Debemos definir una parte de las funciones $map_1$ y $map_2$, las que conecten los nodos
-  de $I_2$ y $I_1$:\pause
-
-  Veamos la definición para $map_{1_1}$:\pause
+  de $I_2$ y $I_1$:
 
   \vspace{1em}
 
   La expresión de $V_1.lhs$ es constante, por lo tanto la función es:
-  $map_{1_1}(e) = 1$ para $ e \in \{[1:1]\}$.
+
+  $map_{1}(e) = 1$ para $ e \in \{[1:1]\}$.
+
+  \vspace{1em}
+
+  La expresión de $V_5$ es $(1,-1)$. Para estos casos el mapa lineal lo obtenemos a partir de
+  $var.exp - D_{offset} + V_{offset}$:
+
+  $map_{2}(e) = e - 1 + 2 = e + 1$ para $e \in \{[1:1]\}$
 
 \end{frame}
 
 
-\begin{frame}{Creación del grafo computacional}
-  Debemos definir una parte de las funciones $map_1$ y $map_2$, las que conecten los nodos:\pause
+% \begin{frame}{Creación del grafo computacional}
+%   Debemos definir una parte de las funciones $map_1$ y $map_2$, las que conecten los nodos:\pause
 
-  Veamos la definición para $map_{2_1}$:\pause
+%   Veamos la definición para $map_{2}$:\pause
 
-  La expresión de $V_5$ es $(1,-1)$. Para estos casos el mapa lineal lo obtenemos así:
-  \pause
+%   La expresión de $V_5$ es $(1,-1)$. Para estos casos el mapa lineal lo obtenemos así:
+%   \pause
 
-  $var.exp - D_{offset} + V_{offset}$.
+%   $var.exp - D_{offset} + V_{offset}$.
 
-  Donde $var.exp$ es la expresión del lado izquierdo (en este caso $I_2.lhs$),
-  $D_{offset}$ el mínimo del conjunto $\mathcal{E}$ y $V_{offset}$ se obtiene de la siguiente manera:
+%   Donde $var.exp$ es la expresión del lado izquierdo (en este caso $I_2.lhs$),
+%   $D_{offset}$ el mínimo del conjunto $\mathcal{E}$ y $V_{offset}$ se obtiene de la siguiente manera:
 
-  \pause
+%   \pause
 
-  \begin{itemize}
-    \item Preimagen de la intersección para las aristas a través de la expresión
-    del lado derecho.
-    \item Imagen del lado izquierdo de la expresión usando como dominio el
-    conjunto obtenido en el paso anterior.
-    \item Mínimo de la imagen del conjunto dominio computado.
-  \end{itemize}
+%   % \begin{itemize}
+%   %   \item Preimagen de la intersección para las aristas a través de la expresión
+%   %   del lado derecho.
+%   %   \item Imagen del lado izquierdo de la expresión usando como dominio el
+%   %   conjunto obtenido en el paso anterior.
+%   %   \item Mínimo de la imagen del conjunto dominio computado.
+%   % \end{itemize}
 
-\end{frame}
+%   \begin{enumerate} %por que conectabamos lado izquierdo con lado izquierdo?
+%     \item $preIm(\{[1:1]\}, V_5.rhs) = \{[2:2]\}$.\pause
+%     \item $Im(\{[2:2]\}, V_5.lhs) = \{[2:2]\}$.\pause
+%     \item $min(\{[2:2]\}) = 2$.\pause
+%   \end{enumerate}
+
+%   $\therefore map_{2}(e) = e - 1 + 2 = e + 1$ para $e \in \{[1:1]\}$.
+
+% \end{frame}
 
 
-\begin{frame}{Creación del grafo computacional}
+% escondo esto, muy largo
+% \begin{frame}{Creación del grafo computacional}
 
-  Obteniendo $V_{offset}$ para $V_5$. \pause
+%   Obteniendo $V_{offset}$ para $V_5$. \pause
 
-  \begin{itemize}
-    \item Preimagen de la intersección para las aristas a través de la expresión
-    del lado derecho.
-    \item Imagen del lado izquierdo de la expresión usando como dominio el
-    conjunto obtenido en el paso anterior.
-    \item Mínimo de la imagen del conjunto dominio computado.
-  \end{itemize}
-  \pause
+%   \begin{itemize}
+%     \item Preimagen de la intersección para las aristas a través de la expresión
+%     del lado derecho.
+%     \item Imagen del lado izquierdo de la expresión usando como dominio el
+%     conjunto obtenido en el paso anterior.
+%     \item Mínimo de la imagen del conjunto dominio computado.
+%   \end{itemize}
+%   \pause
 
-  \begin{enumerate} %por que conectabamos lado izquierdo con lado izquierdo?
-    \item $preIm(\{[1:1]\}, V_5.rhs) = \{[2:2]\}$.\pause
-    \item $Im(\{[2:2]\}, V_5.lhs) = \{[2:2]\}$.\pause
-    \item $min(\{[2:2]\}) = 2$.\pause
-  \end{enumerate}
+%   \begin{enumerate} %por que conectabamos lado izquierdo con lado izquierdo?
+%     \item $preIm(\{[1:1]\}, V_5.rhs) = \{[2:2]\}$.\pause
+%     \item $Im(\{[2:2]\}, V_5.lhs) = \{[2:2]\}$.\pause
+%     \item $min(\{[2:2]\}) = 2$.\pause
+%   \end{enumerate}
 
-  $\therefore map_{2_1}(e) = e - 1 + 2 = e + 1$ para $e \in \{[1:1]\}$.
+%   $\therefore map_{2}(e) = e - 1 + 2 = e + 1$ para $e \in \{[1:1]\}$.
 
-\end{frame}
+% \end{frame}
 
 
 \begin{frame}[t]{Creación del grafo computacional}
 
-  Hasta el momento el Grafo Computacional Basado en Conjuntos se ve así:\pause
+  Hasta el momento el Grafo Computacional Basado en Conjuntos se ve así:
 
   \begin{center}
     \footnotesize
@@ -470,9 +474,9 @@ Necesitamos construir las aristas de $\mathcal{G}$.
     \end{tikzpicture}
   \end{center}
 
-  Al completar la búsqueda de conexiones para $R_2 = \{V_4, V_5\}$ el grafo se ve así:
-
   \pause
+
+  Al completar la búsqueda de conexiones para $R_2 = \{V_4, V_5\}$ el grafo se ve así:
 
   \begin{center}
     \footnotesize
@@ -539,19 +543,18 @@ Necesitamos construir las aristas de $\mathcal{G}$.
 
 \begin{frame}{Particionamiento Inicial}
 
-Debemos hacer un particionamiento inicial, para luego mejorarlo y obtener un
-particionamiento de calidad.\pause
+Debemos hacer un \textbf{particionamiento inicial}
 
-El nodo con más cantidad de aristas se elige como nodo raíz.\pause
+Se elige un \textbf{nodo raíz}.
 
-Se recorre el grafo por anchura.\pause
+Se recorre el grafo por anchura.
 
-Usamos dos estrategias para el armado de las particiones iniciales:\pause
+Usamos dos estrategias para el armado de las particiones iniciales.
 
 \begin{itemize}
     \item \textbf{Estrategia Greedy}, a medida que se recorre el grafo, se 
     agregarán todos los elementos a una partición hasta que esté 
-    completa.\pause
+    completa.
 
     \item \textbf{Estrategia Distributiva}, cada intervalo se parte en $P$
     partes iguales y se reparten una parte para cada partición.
@@ -564,7 +567,6 @@ Usamos dos estrategias para el armado de las particiones iniciales:\pause
 
 Ejemplos de particionado inicial para el grafo computacional basado en conjuntos del Modelo
 ADR.
-\pause
 
 \vspace{1em}
 
@@ -581,8 +583,6 @@ Usando la estrategia distributiva con recorrido en pre orden:
   
   \end{tikzpicture}
 \end{center}
-
-\pause
 
 \vspace{1em}
 
@@ -616,7 +616,6 @@ Buscamos disminuir el $edgeCut$.
 
 Dada una partición $\mathcal{C}$ en $P$ particiones disjuntas
 $\mathcal{V} = (\mathcal{C}_1 \cup \ldots \cup \mathcal{C}_p)$,
-\pause
 
 \begin{equation*}
 \begin{aligned}
@@ -625,15 +624,15 @@ $\mathcal{V} = (\mathcal{C}_1 \cup \ldots \cup \mathcal{C}_p)$,
     \mathcal{C}_j, i \neq j \}\text{{\color{black},}}
 \end{aligned}
 \end{equation*}
-\pause
+% \pause
 
-\begin{equation*}
-\begin{aligned}
-    & \underset{\text{todo } \mathcal{C}}{\text{minimizar }} edgeCut(\mathcal{C})\\
-    & \text{{\color{black}sujeto a} } \sum_{u \in \mathcal{C}_i} l(u) = \frac{\sum_{v \in \mathcal{V}}}
-    {P}, \forall i\text{{\color{black}.}}
-\end{aligned}
-\end{equation*}
+% \begin{equation*}
+% \begin{aligned}
+%     & \underset{\text{todo } \mathcal{C}}{\text{minimizar }} edgeCut(\mathcal{C})\\
+%     & \text{{\color{black}sujeto a} } \sum_{u \in \mathcal{C}_i} l(u) = \frac{\sum_{v \in \mathcal{V}}}
+%     {P}, \forall i\text{{\color{black}.}}
+% \end{aligned}
+% \end{equation*}
 
 \end{frame}
 
@@ -642,25 +641,21 @@ $\mathcal{V} = (\mathcal{C}_1 \cup \ldots \cup \mathcal{C}_p)$,
 
 Sea $S$ un conjunto de $2n$ puntos, con una matriz de costo asociada 
 $C = (c_{ij})$, $i, \text{ } j = 1, \ldots, 2n$.
-\pause
 
 Queremos partir $S$ en dos conjuntos $A$ y $B$, cada una con $n$ puntos,
 tales que el ``costo externo'' $T = \sum_{A \times B} c_{ab}$ se minimice.
-\pause
 
 Definamos para cada $a \in A$, un \textit{costo externo} (EC) $E_a$
 
 \begin{equation*}
     E_a = \sum_{y \in B} c_{ay}
 \end{equation*}
-\pause
 
 y un \textit{costo interno} (IC) $I_a$
 
 \begin{equation*}
     I_a = \sum_{x \in A} c_{ax}
 \end{equation*}
-\pause
 
 Análogamente, definimos 
 $E_b$, $I_b$ para cada $b \in B$.
@@ -677,14 +672,12 @@ D_x = E_x - I_x \text{ para todo } x \in S;
 \end{equation*}
 
 $D_x$ es la diferencia entre costo externo e interno.
-\pause
 
-Considerando cualquier $a \in A$, $b \in B$. Si $a$ y $b$ son intercambiados, la \textit{ganancia}
+Considerando cualquier $a \in A$, $b \in B$. Si $a$ y $b$ son intercambiados, la \textbf{ganancia}
 (esto es, la reducción del costo) es precisamente.
 \begin{equation*}
 D_a + D_b - 2c_{ab}    
 \end{equation*}
-\pause
 
 Este proceso se repite y se acumulan las ganancias parciales.
 Una vez culminado, se elige el intercambio con ganancia máxima.
@@ -695,34 +688,26 @@ Una vez culminado, se elige el intercambio con ganancia máxima.
 \begin{frame}{Kernighan-Lin}
 
   Fase de optimización para dos particiones:
-  \pause
 
   \begin{itemize}
     \item Computar $D$ para todos los elementos de $S$.
-    \pause
 
     \item Elegir $a_i \in A$, $b_j \in B$ tal que:
           $g_1 = D_{ai} + D_{bj} - 2c_{c_{a_ib_j}}$ es máxima.
-    \pause
 
-    \item Recalcular $D$ para los elementos de $A - \{a_i\}$ y $B - \{b+j\}$
-    \pause
+    \item Recalcular $D$ para los elementos de $A - \{a_i\}$ y $B - \{b_j\}$
 
     \item Repetir el paso dos, eligiendo un par $a'_2$, $b'_2$ tal que:
           $g_2 = D_{a'_2} + D_{b'_2} - 2c_{a'_2b'_2}$ es máxima.
-    \pause
 
     \item Repetir el proceso hasta que se hayan agostado todos los nodos.
   \end{itemize}
-  \pause
 
   Si $X = a'_1, a'_2, \cdots, a'_k$, $Y = b'_1, b'_2, \ldots, b'_k$, entonces
   la disminución en costo al intercambiar $X$ e $Y$ es precisamiente
   $g_1 + g_2 + \cdots + g_k$.
-  \pause
 
   Elegir $k$ que maximice la suma parcial $\sum_{i=1}^k g_i = G$.
-  \pause
 
   Si $G > 0$, habrá una reducción al intercambiar $X$ e $Y$.
 \end{frame}
@@ -758,6 +743,89 @@ $\color{black}B^* = B - Y + X$
 \end{frame}
 
 
+\begin{frame}{Cálculo de EC e IC en el Particionador SBG}
+
+  \begin{itemize}
+      \item $S$, intervalo o conjunto sobre el cual calcular EC e IC.
+      \item $P$ que es la partición a la cual pertenece $S$.
+      \item $Q$, que es la otra partición que estamos refinando.
+      \item $map_1$ y $map_2$ son los mapas del grafo.
+  \end{itemize}
+
+  \begin{small}
+    \begin{algorithm}[H]
+      \begin{algorithmic}[1]\caption{Compute EC \& IC}
+      \Function{compute\_EC\_IC}{$S, P, Q, map_1, map_2$}
+          \State{$D = map_1.preImage(S)$}
+          \State{$I = map_2.image(D)$}
+          \State{$IC' = (P \cap I) / S$}
+          \State{$IC = map_2.preImage(IC') \cap D$}
+          \State{$EC' = (I / IC') \cap Q$}
+          \State{$EC = map_2.preImage(EC') \cap D$}
+          \State \Return $(EC,IC)$
+      \EndFunction
+      \end{algorithmic}
+    \end{algorithm}
+  \end{small}
+
+\end{frame}
+
+
+\begin{frame}{Ejemplo de Optimización de Particiones}
+  \begin{columns}[T] % align columns
+    \begin{column}{.44\textwidth}
+      \scriptsize
+      \center
+      \begin{tikzpicture}[main/.style = {draw, circle}]
+          \node[main] (A) [minimum height=15mm] {$\{[1:1], [2:3]\}$};
+          \node[main] (B) [below of=A, minimum height=15mm, node distance=40mm] {$\{[4:6]\}$};
+          \path
+          (A) edge node [fill=white,midway] {$i + 1 \gets \{[3:3]\} \to i$} (B)
+              edge [loop right] node [near start, above] {$1 \gets \{[1:1]\} \to i + 1$} (A)
+              edge [loop left] node[near end, above] {$i \gets \{[2:2]\} \to i + 1$} (A)
+          (B) edge [loop left] node[near end, above] {$i \gets \{[4:5]\} \to i + 1$} (B);
+      \end{tikzpicture}
+  \end{column}
+
+  \hfill
+
+  \begin{column}{0.52\textwidth}
+    \vspace{50pt}
+
+    Veamos la ganancia de intercambiar $[1:1]$ con $[4:6]$.
+
+    \vspace{1em}
+    \footnotesize
+    \begin{tabular}{ | c | c | c | c |}
+      \hline
+      Node & EC & IC \\
+      \hline \hline
+      $\{[1:1]\}$ & $\emptyset$ & $\{\ [1:1] \}$\\
+      \hline
+      $\{[4:6]$\} & \{[3:3]\} & $\emptyset$ \\
+      \hline
+    \end{tabular}
+
+    $D_{[1:1]} = \# EC_{[1:1]} - \#IC_{[1:1]} = 0 - 1 = -1$
+
+    \vspace{0.5em}
+
+    $D_{[4:6]} = \# EC_{[4:6]} - \#IC_{[4:6]} = 1 - 0 = 1$
+
+    \vspace{0.5em}
+
+    $Gain = D_{[1:1]} + D_{[4:6]} - 2 * C_{[1:1],[4:6]}$
+
+    \vspace{0.5em}
+
+    $Gain = -1 + 1 - 2 * 0 = 0$
+  \end{column}
+
+\end{columns}
+
+\end{frame}
+
+
 \begin{frame}{Particionador SBG}
 
 Presentamos nuestro algoritmo de optimización de particiones:
@@ -776,195 +844,132 @@ Presentamos nuestro algoritmo de optimización de particiones:
                 % \State{$par\_sum = 0$}
                 % \State{$A_v = \emptyset$}
                 % \State{$B_v = \emptyset$} 
-                \State{$GM = \mathbf{compute\_diff}(A_c, B_c, G, C)$} \Comment{\tiny Computar matriz de ganancia} \small
+                \State{$GM = \mathbf{compute\_gain\_matrix}(A_c, B_c, G, C)$} \Comment{\tiny Computar matriz de ganancia} \small
                 \While{$A_c \neq \emptyset \wedge B_c \neq \emptyset$}  \Comment{\tiny Mientras queden elementos en ambas particiones, seguir iterando} \small
                     \State{$< i, j, g, s > = \mathbf{max\_diff}(GM)$} \Comment{\tiny Obtener intercambio con mayor ganancia} \small
                     \State{$(A', B')=\mathbf{update\_sets} (A_c, B_c, A_v, B_v, i, j, s)$} \Comment{\tiny Actualizar conjuntos} \small
                     \State{$\mathbf{update\_sum} (par\_sum, g, max\_par\_sum, max\_par\_sum\_set, A', B')$} 
                     \Statex{} \Comment{\tiny Actualizar suma parcial} \small
-                    \State{$\mathbf{update\_diff} (A_c, B_c, i, j, s, GM, G)$} \Comment{\tiny Actualizar las copias $A_c$ y $B_c$} \small
+                    \State{$\mathbf{update\_gain\_matrix} (A_c, B_c, i, j, s, GM, G)$} \Comment{\tiny Actualizar las copias $A_c$ y $B_c$} \small
                 \EndWhile
                 \Statex $\ldots$
-                \algstore{bkbreak}
-        \end{algorithmic}
-    \end{algorithm}
-\end{small}
-
-\end{frame}
-
-
-\begin{frame}{Particionador SBG}
-
-\begin{small}
-
-    \begin{algorithm}[H]
-        \caption{Algoritmo de optimización Kernighan-Lin para SBG}
-        \begin{algorithmic}[1]
-            \algrestore{bkbreak}
-%             \Function{KL-SBG}{$G, P = (A,B), C$}
-            \Statex $\ldots$
-                    \If{$max\_par\_sum\_set \neq \emptyset$} \Comment{\tiny Si existió alguna ganancia positiva, efectuar el cambio}\small
-                    \State{$(A^{\star}, B^{\star}) = max\_par\_sum\_set$}
-                    \State{$A = (A/A^{\star}) \cup B^{\star}$}
-                    \State{$B = (B/B^{\star}) \cup A^{\star}$}
-                \EndIf  
-                \State{\Return}  
+                % \algstore{bkbreak}
             \EndFunction
-
         \end{algorithmic}
     \end{algorithm}
 \end{small}
-\end{frame}
-
-
-\begin{frame}[fragile]{Particionador SBG}
-
-Cálculo de Costo Externo y Costo Interno.
-\pause
-
-Los argumentos de esta función son:
-\pause
-
-\begin{itemize}
-    \item $S$, intervalo o conjunto sobre el cual calcular EC e IC.
-    \pause
-
-    \item $P$ que es la partición a la cual pertenece $S$.
-    \pause
-
-    \item $map_1$ y $map_2$ son los mapas del grafo.
-\end{itemize}
-\pause
-
-\begin{small}
-  \begin{algorithm}[H]
-    \caption{Compute EC and IC}
-    \begin{algorithmic}[1]
-    \Function{compute\_EC\_IC}{S, P, map\_1, map\_2}
-        \State $D \gets \text{map\_1.preImage}(S)$
-        \State $I \gets \text{map\_2.image}(D)$
-        \State $IC' \gets (P \cap I) / S$
-        \State $IC \gets \text{map\_2.preImage}(IC') \cap D$
-        \State $EC' \gets I / IC'$
-        \State $EC \gets \text{map\_2.preImage}(EC') \cap D$
-        \State \Return $(EC, IC)$
-    \EndFunction
-    \end{algorithmic}
-    \end{algorithm}
-\end{small}
 
 \end{frame}
 
 
-\begin{frame}{Particionador SBG}
+% \begin{frame}{Particionador SBG}
 
-$compute\_EC\_IC$ tiene un problema.
-\pause
-Si queremos particionar más de dos particiones, tomando de a dos,
-incluiríamos en la EC de $S$ nodos fuera de $Q$.
-\pause
-Por eso implementamos la segunda versión.
+% \begin{small}
 
-Los argumentos son los mismos que la implementación anterior, sólo
-se agrega $Q$, que es la otra partición que estamos refinando.
+%     \begin{algorithm}[H]
+%         \caption{Algoritmo de optimización Kernighan-Lin para SBG}
+%         \begin{algorithmic}[1]
+%             \algrestore{bkbreak}
+% %             \Function{KL-SBG}{$G, P = (A,B), C$}
+%             \Statex $\ldots$
+%                     \If{$max\_par\_sum\_set \neq \emptyset$} \Comment{\tiny Si existió alguna ganancia positiva, efectuar el cambio}\small
+%                     \State{$(A^{\star}, B^{\star}) = max\_par\_sum\_set$}
+%                     \State{$A = (A/A^{\star}) \cup B^{\star}$}
+%                     \State{$B = (B/B^{\star}) \cup A^{\star}$}
+%                 \EndIf  
+%                 \State{\Return}  
+%             \EndFunction
 
-\begin{small}
-  \begin{algorithm}[H]
-    \begin{algorithmic}[1]\caption{Compute EC \& IC}
-    \Function{compute\_EC\_IC}{$S, P, Q, map_1, map_2$}
-        \State{$D = map_1.preImage(S)$}
-        \State{$I = map_2.image(D)$}
-        \State{$IC' = (P \cap I) / S$}
-        \State{$IC = map_2.preImage(IC') \cap D$}
-        \State{$EC' = (I / IC') \cap Q$}
-        \State{$EC = map_2.preImage(EC') \cap D$}
-        \State \Return $(EC,IC)$
-    \EndFunction
-    \end{algorithmic}
-  \end{algorithm}
-\end{small}
-
-\end{frame}
+%         \end{algorithmic}
+%     \end{algorithm}
+% \end{small}
+% \end{frame}
 
 
-\begin{frame}{Ejemplo de Optimización de Particiones}
-  \begin{columns}[T] % align columns
-    \begin{column}{.44\textwidth}
-      \scriptsize
-      \center
-      \begin{tikzpicture}[main/.style = {draw, circle}]
-          \node[main] (A) [minimum height=15mm] {$\{[1:1], [2:3]\}$};
-          \node[main] (B) [below of=A, minimum height=15mm, node distance=40mm] {$\{[4:6]\}$}; 
-          \path
-          (A) edge node [fill=white,midway] {$i - 1 \gets \{[4:4]\} \to i$} (B)
-              edge [loop right] node [near start, above] {$1 \gets \{[1:1]\} \to e+ 1$} (A)
-              edge [loop left] node[near end, above] {$i \gets \{[2:3]\} \to i - 1$} (A)
-          (B) edge [loop left] node[near end, above] {$i \gets \{[5:7]\} \to i - 1$} (B);
-      \end{tikzpicture}
-  \end{column}
 
-  \hfill
 
-  \begin{column}{0.52\textwidth}
-    \vspace{50pt}
-    \pause
-    Veamos la ganancia de intercambiar $[1:1]$ con $[4:6]$.
-    \pause
-    \vspace{1em}
-    \footnotesize
-    \begin{tabular}{ | c | c | c | c |}
-      \hline
-      Node & EC & IC \\
-      \hline \hline
-      $\{[1:1]\}$ & $\emptyset$ & $\{\ [1:1] \}$\\
-      \hline
-      $\{[4:6]$\} & \{[4:4]\} & $\emptyset$ \\
-      \hline
-    \end{tabular}
+% \begin{frame}[fragile]{Particionador SBG}
 
-    \pause
+% Cálculo de Costo Externo y Costo Interno.
+% \pause
 
-    $D_{[1:1]} = \# EC_{[1:1]} - \#IC_{[1:1]} = 0 - 1 = -1$
+% Los argumentos de esta función son:
+% \pause
 
-    \pause
+% \begin{itemize}
+%     \item $S$, intervalo o conjunto sobre el cual calcular EC e IC.
+%     \pause
 
-    \vspace{0.5em}
+%     \item $P$ que es la partición a la cual pertenece $S$.
+%     \pause
 
-    $D_{[4:6]} = \# EC_{[4:6]} - \#IC_{[4:6]} = 1 - 0 = 1$
+%     \item $map_1$ y $map_2$ son los mapas del grafo.
+% \end{itemize}
+% \pause
 
-    \pause
+% \begin{small}
+%   \begin{algorithm}[H]
+%     \caption{Compute EC and IC}
+%     \begin{algorithmic}[1]
+%     \Function{compute\_EC\_IC}{S, P, map\_1, map\_2}
+%         \State $D \gets \text{map\_1.preImage}(S)$
+%         \State $I \gets \text{map\_2.image}(D)$
+%         \State $IC' \gets (P \cap I) / S$
+%         \State $IC \gets \text{map\_2.preImage}(IC') \cap D$
+%         \State $EC' \gets I / IC'$
+%         \State $EC \gets \text{map\_2.preImage}(EC') \cap D$
+%         \State \Return $(EC, IC)$
+%     \EndFunction
+%     \end{algorithmic}
+%     \end{algorithm}
+% \end{small}
 
-    \vspace{0.5em}
+% \end{frame}
 
-    $Gain = D_{[1:1]} + D_{[4:6]} - 2 * C_{[1:1],[4:6]}$
 
-    \pause
+% \begin{frame}{Particionador SBG}
 
-    \vspace{0.5em}
+% $compute\_EC\_IC$ tiene un problema.
+% \pause
+% Si queremos particionar más de dos particiones, tomando de a dos,
+% incluiríamos en la EC de $S$ nodos fuera de $Q$.
+% \pause
+% Por eso implementamos la segunda versión.
 
-    $Gain = -1 + 1 - 2 * 0 = 0$
-  \end{column}
+% Los argumentos son los mismos que la implementación anterior, sólo
+% se agrega $Q$, que es la otra partición que estamos refinando.
 
-\end{columns}
+% \begin{small}
+%   \begin{algorithm}[H]
+%     \begin{algorithmic}[1]\caption{Compute EC \& IC}
+%     \Function{compute\_EC\_IC}{$S, P, Q, map_1, map_2$}
+%         \State{$D = map_1.preImage(S)$}
+%         \State{$I = map_2.image(D)$}
+%         \State{$IC' = (P \cap I) / S$}
+%         \State{$IC = map_2.preImage(IC') \cap D$}
+%         \State{$EC' = (I / IC') \cap Q$}
+%         \State{$EC = map_2.preImage(EC') \cap D$}
+%         \State \Return $(EC,IC)$
+%     \EndFunction
+%     \end{algorithmic}
+%   \end{algorithm}
+% \end{small}
 
-\end{frame}
+% \end{frame}
 
 
 \begin{frame}{KL-SBG para múltiples particiones}
 
   Sea $P = \{P_1, \ldots, P_n\}$ la partición inicial de nuestro grafo,
   queremos comprobar si podemos mejorarla.
-  \pause
 
   \begin{itemize}
     \item Calular las posibles ganancias:
     $\forall i \in \{1, \ldots, n\} \forall j \in \{i+1, \ldots, n\}
           G_{ij} = KL-SBG(P_i, P_j)$
-    \pause
 
     \item Tomamos la ganancia máxima $G_{ij}$. Si $G_{ij} > 0$, efectuamos el
     intercambio.
-    \pause
 
     \begin{itemize}
       \item Sean $X \subset P_i$, $Y \subset P_j$ los conjuntos cuyo intercambio
@@ -972,7 +977,6 @@ se agrega $Q$, que es la otra partición que estamos refinando.
         $P'_i = P_i \setminus X \cup Y$\\
         $P'_j = P_j \setminus Y \cup X$.
     \end{itemize}
-    \pause
 
     \item Repetir desde el primer paso con las particiones $i$ y $j$ actualizadas
     hasta que no haya ganancias positivas.
@@ -984,31 +988,24 @@ se agrega $Q$, que es la otra partición que estamos refinando.
 \begin{frame}{KL-SBG para múltiples particiones}
 
   Algunas mejoras:
-  \pause
 
   \begin{itemize}
     \item Aplicar más de un intercambio cuando sea posible sigiuendo la siguiente regla:
-    \pause
 
     \begin{itemize}
       \item Sea $G = \{G_{xy}, \ldots\}$ el conjunto de ganancias positivas luego de
       aplicar $KL-SBG$ a las particiones.
-      \pause
 
       \item Sea $G_{ij}$ la ganancia máxima, realizar los intercambios para $P_i$ y $P_j$.
-      \pause
 
       \item Descartar todas las ganancias que involucren a $P_i$ y $P_j$,
       $G' = G \setminus G_{xy}$ tal que $x \in \{i, j\} \lor y \in \{i,j\}$.
-      \pause
 
       \item Repetir hasta que $G' = \emptyset$.
-      \pause
     \end{itemize}
 
   \item Aplicar $KL-SBG$ entre dos particiones $P_i$, $P_j$ si existe comunicación
   entre las mismas, es decir, si $edgeCut(P_i, P_j) > 0$.
-  \pause
 
   \item Las ejecuciones de $KL-SBG$ se ejecutan en paralelo.
   \end{itemize}

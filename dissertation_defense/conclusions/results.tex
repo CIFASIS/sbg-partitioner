@@ -1,19 +1,16 @@
 \section{Resultados y Trabajo Futuro}
+\graphicspath{ {./conclusions/} }
 
 \begin{frame}{Métricas de particionado}
 
 Métricas de calidad de particionado:
-\pause
 
 \begin{itemize}
     \item \textbf{Edge-Cut}: la suma del peso de las aristas que conectan nodos entre particiones.
-    \pause
 
     \item \textbf{Volumen de comunicación total}: la cantidad de comunicación entre particiones.
-    \pause
 
     \item \textbf{Volumen de comunicación máximo}: calcula el volumen de comunicación máximo entre particiones.
-    \pause
 
     \item \textbf{Desbalance máximo}: calcula el desbalance máximo entre particiones.
 \end{itemize}
@@ -23,16 +20,13 @@ Métricas de calidad de particionado:
 
 \begin{frame}{Métricas de particionado}
 Métricas de rendimiento:
-\pause
 
 \begin{itemize}
     \item{\textbf{Tiempo de Inicialización:}} es el tiempo que le toma al particionador en leer la entrada y
     construir el grafo de conexiones.
-    \pause
 
     \item{\textbf{Tiempo de Particionado:}} Es el tiempo que le toma al
     algoritmo generar las particiones iniciales y optimizarlas.
-    \pause
 \end{itemize}
 
 \vspace{1em}
@@ -41,7 +35,7 @@ METIS implementa de métodos multinivel y será utilizado para comparar los resu
 \end{frame}
 
 
-\begin{frame}{Resultados Modelo ADR}
+\begin{frame}{Modelo ADR}
 
     Dado que las variables que comunican datos entre las distintas particiones son $u[i]$ con $u[i-1]$ para
     un determinado rango. El $edgeCut$ es igual a 3, pues es la arista
@@ -87,7 +81,7 @@ METIS implementa de métodos multinivel y será utilizado para comparar los resu
 \end{frame}
 
 
-\begin{frame}{Resultados Modelo Aires Acondicionados con Controlador}
+\begin{frame}{Modelo Aires Acondicionados con Controlador}
 
 Este modelo representa una población de aires acondicionados, divida por secciones,
 cada sección conectada a un controlador parcial, y estos conectados a un controlador
@@ -130,19 +124,26 @@ centralizado.
 
 \begin{frame}{Trabajo Futuro}
 
-\begin{itemize}[<+->]
+\begin{itemize}
     \item Implementación:
 
-    \begin{itemize}[<+->]
+    \begin{itemize}
         \item Actualizar librería SBG a su última versión.
         \item Evitar recomputar conexiones innecesariamente (estado global).
         \item Posibilitar el desbalance de particiones.
     \end{itemize}
 
-    \item Calcular componentes conexas del grafo, no sólo aristas individuales.
+    \item Mejorar $KL-SBG$ para $N$ particiones usando las componentes conexas
+    del grafo, no sólo aristas individuales.
 
-    \item Implementar algoritmos de particionamiento semi-estático y dinámico
+    \item Implementar algoritmos de balance de carga semi-estático y dinámico
     usando SBG.
 \end{itemize}
 
+\end{frame}
+
+
+\begin{frame}
+    \centering
+    \includegraphics[width=0.85\textwidth]{question.jpg}
 \end{frame}

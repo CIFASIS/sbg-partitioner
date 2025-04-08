@@ -1,56 +1,28 @@
 \section{Marco Teórico}
+\graphicspath{ {./intro/} }
 
 \begin{frame}{Simulación de Modelos Matemáticos}
 \frametitle{Modelos Matemáticos}
 
+% \begin{block}{Definición de Modelo Matemático}
+% Construcción matemática abstracta y simplificada relacionada con una parte
+% de la realidad y creada para un propósito particular.
+% \end{block}
+
 \begin{block}{Definición de Modelo Matemático}
-Construcción matemática abstracta y simplificada relacionada con una parte
-de la realidad y creada para un para un propósito particular.
-\end{block}
-
-\pause
-
-\begin{block}{Definición de Modelo Matemático (más simple)}
-Más simple: Conjunto de expresiones matemáticas (ecuaciones, inecuaciones,
+Conjunto de expresiones matemáticas (ecuaciones, inecuaciones,
 ecuaciones diferenciales) que representan un sistema.
 \end{block}
 
-\end{frame}
-
-
-\begin{frame}{Simulación de Modelos Matemáticos}
-\frametitle{Simulación de Modelos Matemáticos}
-
 \begin{block}{Simulación}
-La simulación de un modelo consiste en la ejecución del
-mismo a través del tiempo.
+    La simulación de un modelo consiste en la ejecución del
+    mismo a través del tiempo.
 \end{block}
 
-\pause
-
-Los modelos pueden clasificarse según la forma en que las variables
-evolucionan en el tiempo:
-
-\pause
-
-\begin{itemize}
-    \item Modelos de Tiempo Discreto
-    \pause
-    \item Modelos de Tiempo Continuo
-    %acá puedo saltar a otra presentación y mostrar el ejemplo de discontinuidad?
-    \pause
-    \item Modelos de Eventos Discretos
-    \pause
-    \begin{itemize}
-        \item Método de los Sistemas de Estados Cuantificados (QSS)
-    \end{itemize}
-\end{itemize}
-
-\pause
+\vspace{1em}
 
 \centering
-
-\vspace{1em}
+\pause
 
 \textbf{Problema: Modelos complejos acarrean alto costo computacional}
 
@@ -63,71 +35,107 @@ evolucionan en el tiempo:
 \end{frame}
 
 
-\begin{frame}{Simulación en Paralelo}
+% \begin{frame}{Simulación de Modelos Matemáticos}
+% \frametitle{Simulación de Modelos Matemáticos}
 
-Enfoques para la simulación en paralelo:
-\pause
+% Los modelos pueden clasificarse según la forma en que las variables
+% evolucionan en el tiempo:
 
-\begin{itemize}[<+->]
-\item Algoritmos conservadores:
-    \begin{itemize}
-        \item Fuerza a cada submodelo a esperar. Se asegura que no recibirá mensajes pasados.
-        \item Pequeñas mejoras de tiempo. Posibles bloqueos mutuos.
-    \end{itemize}
-\item Algoritmos optimistas:
-    \begin{itemize}
-        \item Avanza tanto como puede. Retrocede si hay una inconsistencia.
-        \item Más paralelismo. Guarda estructuras internas y el retroceso es costoso.
-    \end{itemize}
-\item Algoritmos totalmente desincronizados:
-    \begin{itemize}
-        \item Evita la sincronización por completo.
-        \item Grandes mejoras de tiempo. Introduce errores.
-    \end{itemize}
-\end{itemize}
+% \begin{itemize}
+%     \item Modelos de Tiempo Discreto
 
-\end{frame}
+%     \item Modelos de Tiempo Continuo
+%     %acá puedo saltar a otra presentación y mostrar el ejemplo de discontinuidad?
 
-\begin{frame}{Simulación en Paralelo}
+%     \item Modelos de Eventos Discretos
 
-Idea general:\pause
+%     \begin{itemize}
+%         \item Método de los Sistemas de Estados Cuantificados (QSS)
+%     \end{itemize}
+% \end{itemize}
 
-\vspace{1em}
+% \pause
 
-Particionar el modelo entre \textbf{P submodelos}, donde cada submodelo se simula en un hilo 
-de ejecución diferente.\pause
+% \centering
 
-En cada paso de simulación, cada submodelo chequa si la variable que cambió se debe informar a los demás.\pause
+% \vspace{1em}
 
-Por ejemplo: para modelos QSS se usa sincronización no estricta, se calcula un tiempo virtual global y ningún submodelo
-avanza más allá de ese tiempo mínimo y un valor proveído por el usuario.
+% \textbf{Problema: Modelos complejos acarrean alto costo computacional}
 
-\end{frame}
+% \pause
+
+% \vspace{1em}
+
+% \textbf{Solución: Simulación en Paralelo}
+
+% \end{frame}
+
+
+% \begin{frame}{Simulación en Paralelo}
+
+% Enfoques para la simulación en paralelo:
+
+% \begin{itemize}
+% \item \textbf{Algoritmos conservadores:}
+%     \begin{itemize}
+%         \item Fuerza a cada submodelo a esperar. Se asegura que no recibirá mensajes pasados.
+%         \item Pequeñas mejoras de tiempo. Posibles bloqueos mutuos.
+%     \end{itemize}
+% \item \textbf{Algoritmos optimistas:}
+%     \begin{itemize}
+%         \item Avanza tanto como puede. Retrocede si hay una inconsistencia.
+%         \item Más paralelismo. Guarda estructuras internas y el retroceso es costoso.
+%     \end{itemize}
+% \item \textbf{Algoritmos totalmente desincronizados:}
+%     \begin{itemize}
+%         \item Evita la sincronización por completo.
+%         \item Grandes mejoras de tiempo. Introduce errores.
+%     \end{itemize}
+% \end{itemize}
+
+% \end{frame}
+
+% \begin{frame}{Simulación en Paralelo}
+
+% Idea general:\pause
+
+% \vspace{1em}
+
+% Particionar el modelo entre \textbf{P submodelos}, donde cada submodelo se simula en un hilo 
+% de ejecución diferente.\pause
+
+% En cada paso de simulación, cada submodelo chequa si la variable que cambió se debe informar a los demás.\pause
+
+% % Por ejemplo: para modelos QSS se usa sincronización no estricta, se calcula un tiempo virtual global y ningún submodelo
+% % avanza más allá de ese tiempo mínimo y un valor proveído por el usuario.
+
+% \end{frame}
 
 
 \begin{frame}{Simulación en Paralelo}
 
 Los algoritmos de simulación en paralelo requieren que:
 
-\pause
 
 \begin{itemize}
-    \item El modelo original sea divido en P submodelos.
-    \pause
+    \item El modelo original sea divido en $P$ submodelos.
+
     \item Cada submodelo sea simulado por un hilo diferente.
-    \pause
+
 \end{itemize}
 
-Para obtener una paralelización efectiva:
 \pause
+
+Para obtener una paralelización efectiva:
 
 \begin{itemize}
     \item La \textbf{partición} del modelo debe ser \textbf{balanceada}.
-    \pause
-    \item La \textbf{comunicación} entre LPs debe ser \textbf{minimizada}.
-    \pause
+
+    \item La \textbf{comunicación} entre los submodelos debe ser \textbf{minimizada}.
+
 \end{itemize}
 
+\pause
 Requieren que \textbf{particionemos el modelo}. \pause
 Llamamos a este proceso \textit{Balance de carga}.
 
@@ -137,10 +145,9 @@ Llamamos a este proceso \textit{Balance de carga}.
 \begin{frame}{Balance de Carga para Simulación en Paralelo}
 
 Podemos distinguir tres tipos de problemas de balance de carga:
-\pause
 
-\only<1,2,3,4>{
-\begin{itemize}[<+->]
+\only<1>{
+\begin{itemize}
     \item \textbf{Balance de carga estático}: la asignación a los procesadores se realiza al inicio de la simulación. % sin tener ninguna informacion sobre los resultados reales de la simulación.
     \item \textbf{Balance de carga semi-estático}: la asignación a los procesadores
 ocurre al comienzo de la simulación, pero una conocimiento de dominio
@@ -149,9 +156,10 @@ extra. %u otra información relacionada puede ser aprovechada para mejorar
     \item \textbf{Balance de carga dinámico}: la asignación a los procesadores se hace
 dinámicamente en el transcurso de la simulación.
 \end{itemize}
+\vspace{2em}
 }
 
-\only<5->{
+\only<2>{
 \begin{itemize}
     \item {\textbf{Balance de carga estático}}: la asignación a los procesadores se realiza al 
     inicio de la simulación. % sin tener ninguna informacion sobre los resultados reales de 
@@ -163,10 +171,22 @@ extra.} %u otra información relacionada puede ser aprovechada para mejorar
     \item {\color{gray}{Balance de carga dinámico}: la asignación a los procesadores se 
     hace dinámicamente en el transcurso de la simulación.}
 \end{itemize}
-
+\vspace{2em}
 }
 
-\only<6->{
+\only<3->{
+\begin{itemize}
+    \item {\textbf{Balance de carga estático}}: la asignación a los procesadores se realiza al 
+    inicio de la simulación. % sin tener ninguna informacion sobre los resultados reales de 
+    % la simulación.
+    \item {\color{gray}{Balance de carga semi-estático}: la asignación a los 
+    procesadores ocurre al comienzo de la simulación, pero una conocimiento de dominio
+extra.} %u otra información relacionada puede ser aprovechada para mejorar
+%la solución lacanzada.
+    \item {\color{gray}{Balance de carga dinámico}: la asignación a los procesadores se 
+    hace dinámicamente en el transcurso de la simulación.}
+\end{itemize}
+\pause
 El problema de balance de carga se puede tratarse como un problema de
 \textbf{particionamiento de grafos}.
 }
@@ -176,39 +196,52 @@ El problema de balance de carga se puede tratarse como un problema de
 
 \begin{frame}{Métodos de Particionamiento de Grafos}
 
-\begin{itemize}[<+->]
-    \item Métodos geométricos.
+\begin{itemize}
+    \item \textbf{Métodos geométricos.}
+
     \begin{itemize}
         \footnotesize
         \item Agrupan por coordenadas geométricas.
+
         \item Son rápidos y fáciles de implementar.
+
         \item Inducen costos altos de comunicación.
     \end{itemize}
 
-    \item Métodos combinatorios.
+    \item \textbf{Métodos combinatorios.}
+
     \begin{itemize}
         \footnotesize
         \item Agrupan según la adyacencia del grafo.
+
         \item Particiones de mejor calidad.
+
         \item Más demandantes computacionalmente.
+
     \end{itemize}
 
-    \item Métodos espectrales.
+    \item \textbf{Métodos espectrales.}
     \begin{itemize}
         \footnotesize
         \item Calculan una distancia basada en conectividad y dividen balanceadamente.
+
         \item Produce particionamientos de alta calidad.
+
         \item Escalan ineficientemente cuando el tamaño del grafo crece.
     \end{itemize}
 
-    \item Métodos multinivel.
+    \item \textbf{Métodos multinivel.}
+
     \begin{itemize}
         \footnotesize
-        \item Cada etapa compacta, refina y expande el grafo.
+        \item Arma el grafo, compacta, refina y expande el grafo.
+
         \item Son lo más utilizados en esta área. Producen particiones de alta calidad.
+
         \item La compactación y expansión del grafo es más costosa cuando el grafo crece.
     \end{itemize}
 \end{itemize}
+\pause
 \centering
 \textbf{¿Cómo construímos dicho grafo?}
 
@@ -219,29 +252,32 @@ El problema de balance de carga se puede tratarse como un problema de
 
 
 Las unidades de cálculo y sus dependencias se pueden modelar de forma natural
-mediante un \textbf{grafo no dirigido}.\pause
+mediante un \textbf{grafo no dirigido}.
 
 Más especificamente, $\mathcal{G} = (\mathcal{V}, \mathcal{E}, l, 
-w)$, donde:\pause
+w)$, donde:
 
 \vspace{1em}
 
 $\mathcal{V} \hspace{2em} \text{el conjunto de nodos/las unidades de computación más pequeñas}$
-\pause
 
 $\mathcal{E}: \mathcal{E} \subset \mathcal{V} \times \mathcal{V} 
 \hspace{2em} \text{el conjunto de aristas/dependencias entre unidades}$
-\pause
 
 $l: \mathcal{V} \to \mathcal{R}^+ \hspace{2em} 
 \text{asigna un peso computacional a cada nodo}$
-\pause
 
 $w: \mathcal{E} \to \mathcal{R}^+ \hspace{2em} 
 \text{asigna un peso comunicacional a cada arista} $
 
+\vspace {1em}
+
+Este grafo se conoce como \textbf{Grafo Computacional}.
+
 \pause
-\vspace {2em}
+
+\vspace {1em}
+
 Necesitamos una forma de obtener dicho grafo computacional $\mathcal{G}$
 de un modelo implementado en \textbf{Modelica}.
 
@@ -274,8 +310,6 @@ Advección-Difusión-Reacción (ADR):
       \end{lstlisting}
     \end{tabular}
   \end{center}
-
-  \pause
 
   Queremos poder construir su grafo computacional a partir de su implementación.
 
@@ -316,12 +350,12 @@ Advección-Difusión-Reacción (ADR):
 
 
 \begin{frame}{Mejoras en el Balance de Carga}
-    
-    Los algoritmos multinivel compactan, mejoran las particiones iniciales
-    y expanden el grafo nuevamente.\pause
 
-    Nuestro objetivo es evitar dicha compactación y posterior expansión,
-    buscamos aprovechar la naturaleza cíclica de \textbf{Modelica}.\pause
+    Los algoritmos \textbf{multinivel} crean el graho, compactan, mejoran las
+    particiones iniciales y expanden el grafo nuevamente.
+
+    Queremos evitar dicha compactación y posterior expansión,
+    buscamos aprovechar la naturaleza cíclica de \textbf{Modelica}.
 
     Veamos una estructura de datos que nos permite representar grafos en forma compacta.
 
@@ -332,19 +366,18 @@ Advección-Difusión-Reacción (ADR):
 
 Un Grafo Basado en Conjuntos (SBG) no dirigido es una tupla
 $\mathcal{G} = (\mathcal{V}, \mathcal{E}, map_1, map_2)$ donde:
-\pause
 
 \begin{itemize}
     \item $\mathcal{V} = \{V_1, \ldots, V_n \}$ es un conjunto de 
     vértices-conjunto disjuntos.
-    \pause
+
     \item $\mathcal{E} = \{E_1, \ldots, E_m \}$ es un conjunto de 
     aristas-conjunto que une vértices-conjunto de $\mathcal{V}$.
-    \pause
+
     \item $map_1 : \mathcal{E} \to \mathcal{V}$ tal que dado
     $e \in \mathcal{E}$, $map_1(e)$ representa uno de los extremos
     de la arista $e$.
-    \pause
+
     \item $map_2 : \mathcal{E} \to \mathcal{V}$ tal que dado
     $e \in \mathcal{E}$, $map_2(e)$ representa el otro de los
     extremos de la arista $e$.
@@ -363,7 +396,6 @@ Sea $G = (V,E)$ un grafo tradicional no dirigido donde:
     \{6,7\}, \{7,8\}, \{8,9\},\{9,10\} \}$ \small son sus aristas-conjunto.
 \end{itemize}
 
-\pause
 
 \small
 Una definición equivalente del mismo usando un SBG
@@ -430,23 +462,24 @@ previamente:
 
 \end{tikzpicture}
 
-\pause
-
 \footnotesize
 \begin{tikzpicture}[main/.style = {draw, circle}] 
 
     \node[main] (1) {$[1:1]$};
-    \node[main] (2) [right of=1, node distance=42mm] {$[2:10]$};\pause
+    \node[main] (2) [right of=1, node distance=42mm] {$[2:10]$};
 
-    \draw[color=red] (1) -- (2) node [midway, above] {$1 \gets [1:1] \to e + 1$};\pause
+    \draw[color=red] (1) -- (2) node [midway, above] {$1 \gets [1:1] \to e + 1$};
     \draw[loop above, color=black] (2) to node[near start, above] {$e + 1 \gets [2:9] \to e$} (2);
-    
+
 \end{tikzpicture}
 
 \end{frame}
 
 
 \begin{frame}{Grafos Basados en Conjuntos y Modelica}
+    \centering
+    \includegraphics[width=0.5\textwidth]{simpsons.jpg}
+
     ¿Cómo podríamos construir un grafo computacional basado en conjuntos
-    a partir de un modelo en Modelica?
+    a partir de un modelo implementado en Modelica?
 \end{frame}
