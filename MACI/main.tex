@@ -1,0 +1,61 @@
+\documentclass[10pt,pdflatex]{beamer}
+
+\mode<presentation>
+{
+  \usetheme{Warsaw}
+}
+
+
+\usepackage[spanish]{babel}
+
+\usepackage{listings}
+\usepackage{times}
+\usepackage{multicol}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usepackage{algorithmicx}
+\usepackage{amsmath}
+\usepackage{algorithm, algpseudocode}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{listings}
+\usepackage{verbatim}
+\usepackage{subcaption}
+\usepackage{xcolor}
+\usepackage{lstautogobble} % Provides autogobble, which is useful to remove indentation based on first line
+\usepackage{ragged2e}
+    \justifying
+
+
+\lstset{ %
+  language=C,
+  numbers=left,
+  numberstyle=\tiny,
+  stepnumber=1,
+  numbersep=5pt,
+  breaklines=true,
+  autogobble=true, % Removes indentation based on first line
+}
+\input{listings-modelica.cfg}
+
+\setbeamertemplate{caption}[numbered]
+
+\everydisplay\expandafter{\the\everydisplay \color{blue}}
+\everymath{\color{blue}}
+
+\title[Partición de Modelos de Gran Escala]{Partición de Modelos de Gran Escala para Simulación en Paralelo por Eventos Discretos}
+\author{Franco Sansone, Joaquín Fernández, Ernesto Kofman }
+\institute[UNR] 
+{\inst{} Facultad de Ciencias Exactas, Ingeniería y Agrimensura - Universidad Nacional de Rosario.}
+\date{Mayo 2025}
+\subject{Talks}
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\input{content/content}
+
+\end{document}
